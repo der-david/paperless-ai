@@ -111,20 +111,6 @@ class OpenAIService {
         .map(line => '    ' + line)  // Add proper indentation
         .join('\n');
 
-      // Build system prompt with restrictions at the beginning if enabled
-      let systemPrompt = '';
-      
-      // Add tag restriction at the beginning if enabled
-      if (config.restrictToExistingTags === 'yes') {
-        systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n`;
-      }
-      
-      // Add document type restrictions at the beginning if enabled
-      if (config.restrictToExistingDocumentTypes === 'yes') {
-        const docTypesList = Array.isArray(existingDocumentTypesList) ? existingDocumentTypesList.join(', ') : existingDocumentTypesList;
-        systemPrompt += `You can ONLY use these document types: ${docTypesList}\n\n`;
-      }
-
       // Get system prompt and model
       if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
         systemPrompt += `
