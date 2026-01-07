@@ -226,7 +226,7 @@ class OpenAIService {
             description: "Custom fields extracted from the document"
           }
         },
-        required: ["title", "tags", "document_date", "language"]
+        required: ["title", "tags", "document_type", "document_date", "language"]
       };
 
       // Add enum constraints if restrictions are enabled
@@ -437,6 +437,12 @@ class OpenAIService {
       // Validate response structure
       if (!parsedResponse || !Array.isArray(parsedResponse.tags)) {
         throw new Error('Invalid response structure: missing tags array');
+      }
+      if (!parsedResponse.document_type || typeof parsedResponse.document_type !== 'string') {
+        throw new Error('Invalid response structure: document_type is required and must be a string');
+      }
+      if (!parsedResponse.document_type || typeof parsedResponse.document_type !== 'string') {
+        throw new Error('Invalid response structure: document_type is required and must be a string');
       }
       // correspondent can be null or string, both are valid
       if (parsedResponse.correspondent !== null && typeof parsedResponse.correspondent !== 'string') {
