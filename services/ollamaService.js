@@ -310,7 +310,16 @@ class OllamaService {
                 .filter(name => name.length > 0)  // Remove empty strings
                 .join(', ');
 
-            systemPrompt = `
+            // Build system prompt with restrictions at the beginning if enabled
+            systemPrompt = '';
+            if (config.restrictToExistingTags === 'yes') {
+                systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n`;
+            }
+            if (config.restrictToExistingDocumentTypes === 'yes') {
+                systemPrompt += `You can ONLY use these document types: ${existingDocumentTypesList}\n\n`;
+            }
+
+            systemPrompt += `
             Pre-existing tags: ${existingTagsList}\n\n
             Pre-existing correspondents: ${existingCorrespondentList}\n\n
             Pre-existing document types: ${existingDocumentTypesList}\n\n
@@ -318,14 +327,22 @@ class OllamaService {
             promptTags = '';
         } else {
             config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-            systemPrompt = process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
+            let systemPrompt = process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
+            if (config.restrictToExistingTags === 'yes') {
+                systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n` + systemPrompt;
+            }
+            if (config.restrictToExistingDocumentTypes === 'yes') {
+                const existingDocumentTypesList = existingDocumentTypes
+                    .filter(Boolean)
+                    .map(docType => {
+                        if (typeof docType === 'string') return docType;
+                        return docType?.name || '';
+                    })
+                    .filter(name => name.length > 0)
+                    .join(', ');
+                systemPrompt = `You can ONLY use these document types: ${existingDocumentTypesList}\n\n` + systemPrompt;
+            }
             promptTags = '';
-        }
-
-        // Add explicit restriction information if enabled
-        if (config.restrictToExistingDocumentTypes === 'yes') {
-            const docTypesList = Array.isArray(existingDocumentTypes) ? existingDocumentTypes.join(', ') : existingDocumentTypes;
-            systemPrompt += `\n\n[IMPORTANT INSTRUCTION] Document Type Restriction Enabled: You MUST only select document types from this restricted list: ${docTypesList}. If none of the available document types match the document, do not invent a new type - use the closest matching type from the list or leave it empty.`;
         }
 
         // Get validated external API data if available

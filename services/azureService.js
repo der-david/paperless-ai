@@ -102,9 +102,23 @@ class AzureOpenAIService {
         .map(line => '    ' + line)  // Add proper indentation
         .join('\n');
 
+      // Build system prompt with restrictions at the beginning if enabled
+      systemPrompt = '';
+      
+      // Add tag restriction at the beginning if enabled
+      if (config.restrictToExistingTags === 'yes') {
+        systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n`;
+      }
+      
+      // Add document type restrictions at the beginning if enabled
+      if (config.restrictToExistingDocumentTypes === 'yes') {
+        const docTypesList = Array.isArray(existingDocumentTypesList) ? existingDocumentTypesList.join(', ') : existingDocumentTypesList;
+        systemPrompt += `You can ONLY use these document types: ${docTypesList}\n\n`;
+      }
+
       // Get system prompt and model
       if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
-        systemPrompt = `
+        systemPrompt += `
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
         Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
@@ -112,14 +126,8 @@ class AzureOpenAIService {
         promptTags = '';
       } else {
         config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-        systemPrompt = process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
+        systemPrompt += process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
         promptTags = '';
-      }
-
-      // Add explicit restriction information if enabled
-      if (config.restrictToExistingDocumentTypes === 'yes') {
-        const docTypesList = Array.isArray(existingDocumentTypesList) ? existingDocumentTypesList.join(', ') : existingDocumentTypesList;
-        systemPrompt += `\n\n[IMPORTANT INSTRUCTION] Document Type Restriction Enabled: You MUST only select document types from this restricted list: ${docTypesList}. If none of the available document types match the document, do not invent a new type - use the closest matching type from the list or leave it empty.`;
       }
 
       // Process placeholder replacements in system prompt
