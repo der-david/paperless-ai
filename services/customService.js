@@ -206,7 +206,7 @@ class CustomOpenAIService {
             description: "Custom fields extracted from the document"
           }
         },
-        required: ["title", "tags", "document_type", "document_date", "language"]
+        required: ["title", "tags", "document_type", "document_date", "correspondent", "language"]
       };
 
       // Add enum constraints if restrictions are enabled
@@ -313,7 +313,7 @@ class CustomOpenAIService {
         completionTokens: usage.completion_tokens,
         totalTokens: usage.total_tokens
       };
-      
+
       console.log('[DEBUG] Raw JSON content:', response.choices[0].message.content);
 
       let jsonContent = response.choices[0].message.content;

@@ -217,7 +217,7 @@ class OpenAIService {
             description: "Custom fields extracted from the document"
           }
         },
-        required: ["title", "tags", "document_type", "document_date", "language"]
+        required: ["title", "tags", "document_type", "document_date", "correspondent", "language"]
       };
 
       // Add enum constraints if restrictions are enabled
