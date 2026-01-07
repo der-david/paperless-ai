@@ -13,10 +13,13 @@ const existingTags = [
 
 const existingCorrespondents = ['John Doe', 'ACME Corp', 'Tax Office'];
 
+const existingDocumentTypes = ['Invoice', 'Receipt', 'Contract', 'Memo'];
+
 const config = {
   useExistingData: 'yes',
   restrictToExistingTags: 'yes',
-  restrictToExistingCorrespondents: 'yes'
+  restrictToExistingCorrespondents: 'yes',
+  restrictToExistingDocumentTypes: 'yes'
 };
 
 console.log('=== Updated Restriction Prompt Service Test ===\n');
@@ -26,12 +29,14 @@ console.log('Test 1: Prompt with placeholders');
 const promptWithPlaceholders = `You are a document analysis AI. 
 Available tags: %RESTRICTED_TAGS%
 Available correspondents: %RESTRICTED_CORRESPONDENTS%
+Available document types: %RESTRICTED_DOCUMENT_TYPES%
 Please analyze the document accordingly.`;
 
 const result1 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithPlaceholders,
   existingTags,
   existingCorrespondents,
+  existingDocumentTypes,
   config
 );
 
@@ -51,6 +56,7 @@ const result2 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithoutPlaceholders,
   existingTags,
   existingCorrespondents,
+  existingDocumentTypes,
   config
 );
 
@@ -66,6 +72,7 @@ console.log('\n' + '='.repeat(50) + '\n');
 console.log('Test 3: Empty data with placeholders');
 const result3 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithPlaceholders,
+  [],
   [],
   [],
   config

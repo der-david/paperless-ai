@@ -116,11 +116,18 @@ class AzureOpenAIService {
         promptTags = '';
       }
 
+      // Add explicit restriction information if enabled
+      if (config.restrictToExistingDocumentTypes === 'yes') {
+        const docTypesList = Array.isArray(existingDocumentTypesList) ? existingDocumentTypesList.join(', ') : existingDocumentTypesList;
+        systemPrompt += `\n\n[IMPORTANT INSTRUCTION] Document Type Restriction Enabled: You MUST only select document types from this restricted list: ${docTypesList}. If none of the available document types match the document, do not invent a new type - use the closest matching type from the list or leave it empty.`;
+      }
+
       // Process placeholder replacements in system prompt
       systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
         systemPrompt,
         existingTags,
         existingCorrespondentList,
+        existingDocumentTypesList,
         config
       );
 

@@ -118,6 +118,7 @@ module.exports = {
   mustHavePrompt: `  Return the result EXCLUSIVELY as a JSON object. The Tags, Title and Document_Type MUST be in the language that is used in the document.:
   IMPORTANT: The custom_fields are optional and can be left out if not needed, only try to fill out the values if you find a matching information in the document.
   Do not change the value of field_name, only fill out the values. If the field is about money only add the number without currency and always use a . for decimal places.
+  When selecting a document_type, ONLY choose from the provided restricted list if available: %RESTRICTED_DOCUMENT_TYPES%
   {
     "title": "xxxxx",
     "correspondent": "xxxxxxxx",

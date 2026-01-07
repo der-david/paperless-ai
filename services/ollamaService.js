@@ -322,6 +322,12 @@ class OllamaService {
             promptTags = '';
         }
 
+        // Add explicit restriction information if enabled
+        if (config.restrictToExistingDocumentTypes === 'yes') {
+            const docTypesList = Array.isArray(existingDocumentTypes) ? existingDocumentTypes.join(', ') : existingDocumentTypes;
+            systemPrompt += `\n\n[IMPORTANT INSTRUCTION] Document Type Restriction Enabled: You MUST only select document types from this restricted list: ${docTypesList}. If none of the available document types match the document, do not invent a new type - use the closest matching type from the list or leave it empty.`;
+        }
+
         // Get validated external API data if available
         let validatedExternalApiData = null;
         if (options.externalApiData) {

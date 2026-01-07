@@ -1652,9 +1652,23 @@ async function buildUpdateData(analysis, doc) {
   // Only process document type if document type classification is activated
   if (config.limitFunctions?.activateDocumentType !== 'no' && analysis.document.document_type) {
     try {
-      const documentType = await paperlessService.getOrCreateDocumentType(analysis.document.document_type);
-      if (documentType) {
-        updateData.document_type = documentType.id;
+      let documentType;
+      
+      // If restricting to existing document types, search for exact match only
+      if (config.restrictToExistingDocumentTypes === 'yes') {
+        documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
+        if (documentType) {
+          console.log(`[DEBUG] Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
+          updateData.document_type = documentType.id;
+        } else {
+          console.log(`[DEBUG] Document type "${analysis.document.document_type}" does not exist in Paperless and restrict mode is enabled - skipping`);
+        }
+      } else {
+        // Original behavior: get or create document type
+        documentType = await paperlessService.getOrCreateDocumentType(analysis.document.document_type);
+        if (documentType) {
+          updateData.document_type = documentType.id;
+        }
       }
     } catch (error) {
       console.error(`[ERROR] Error processing document type:`, error);

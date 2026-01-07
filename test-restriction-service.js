@@ -13,10 +13,13 @@ const existingTags = [
 
 const existingCorrespondents = ['John Doe', 'ACME Corp', 'Tax Office'];
 
+const existingDocumentTypes = ['Invoice', 'Receipt', 'Contract', 'Memo'];
+
 const config = {
   useExistingData: 'yes',
   restrictToExistingTags: 'yes',
-  restrictToExistingCorrespondents: 'yes'
+  restrictToExistingCorrespondents: 'yes',
+  restrictToExistingDocumentTypes: 'yes'
 };
 
 console.log('=== Restriction Prompt Service Test ===\n');
@@ -26,21 +29,21 @@ console.log('Test 1: Prompt with placeholders');
 const promptWithPlaceholders = `You are a document analysis AI. 
 Available tags: %RESTRICTED_TAGS%
 Available correspondents: %RESTRICTED_CORRESPONDENTS%
+Available document types: %RESTRICTED_DOCUMENT_TYPES%
 Please analyze the document accordingly.`;
 
 const result1 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithPlaceholders,
   existingTags,
   existingCorrespondents,
+  existingDocumentTypes,
   config
 );
 
 console.log('Original prompt:');
 console.log(promptWithPlaceholders);
 console.log('\nProcessed prompt:');
-console.log(result1.processedPrompt);
-console.log('\nRestriction prompts:');
-console.log(result1.restrictionPrompts);
+console.log(result1);
 
 console.log('\n' + '='.repeat(50) + '\n');
 
@@ -52,15 +55,14 @@ const result2 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithoutPlaceholders,
   existingTags,
   existingCorrespondents,
+  existingDocumentTypes,
   config
 );
 
 console.log('Original prompt:');
 console.log(promptWithoutPlaceholders);
 console.log('\nProcessed prompt:');
-console.log(result2.processedPrompt);
-console.log('\nRestriction prompts:');
-console.log(result2.restrictionPrompts);
+console.log(result2);
 
 console.log('\n' + '='.repeat(50) + '\n');
 
@@ -70,14 +72,13 @@ const result3 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithPlaceholders,
   [],
   [],
+  [],
   config
 );
 
 console.log('Original prompt:');
 console.log(promptWithPlaceholders);
 console.log('\nProcessed prompt (with empty data):');
-console.log(result3.processedPrompt);
-console.log('\nRestriction prompts:');
-console.log(result3.restrictionPrompts);
+console.log(result3);
 
 console.log('\n=== Test Complete ===');
