@@ -435,8 +435,12 @@ class OpenAIService {
       }
 
       // Validate response structure
-      if (!parsedResponse || !Array.isArray(parsedResponse.tags) || typeof parsedResponse.correspondent !== 'string') {
-        throw new Error('Invalid response structure: missing tags array or correspondent string');
+      if (!parsedResponse || !Array.isArray(parsedResponse.tags)) {
+        throw new Error('Invalid response structure: missing tags array');
+      }
+      // correspondent can be null or string, both are valid
+      if (parsedResponse.correspondent !== null && typeof parsedResponse.correspondent !== 'string') {
+        throw new Error('Invalid response structure: correspondent must be string or null');
       }
 
       return {
