@@ -82,7 +82,7 @@ class OpenAIService {
         }
       }
 
-      systemPrompt = '';
+      let systemPrompt = '';
       let promptTags = '';
       const model = process.env.OPENAI_MODEL;
 
