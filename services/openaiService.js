@@ -251,7 +251,7 @@ class OpenAIService {
         model: model,
         messages: [
           {
-            role: "system",
+            role: "developer", /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
             content: systemPrompt
           },
           {
