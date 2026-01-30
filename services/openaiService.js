@@ -362,8 +362,26 @@ class OpenAIService {
         throw new Error('Invalid JSON response from API');
       }
 
-      if (!parsedResponse || !Array.isArray(parsedResponse.tags) || typeof parsedResponse.correspondent !== 'string') {
-        throw new Error('Invalid response structure: missing tags array or correspondent string');
+
+      // Validate response structure
+      if (typeof parsedResponse !== 'object') {
+        console.debug(jsonContent);
+        throw new Error('Invalid response structure: not an object');
+      }
+       // tags must be array, can be empty
+      if (!Array.isArray(parsedResponse.tags)) {
+        console.debug(jsonContent);
+        throw new Error('Invalid response structure: missing tags array');
+      }
+      // document_type can be null or a string from the enum, both are valid
+      if (parsedResponse.document_type !== null && typeof parsedResponse.document_type !== 'string') {
+        console.debug(jsonContent);
+        throw new Error('Invalid response structure: document_type must be string or null');
+      }
+      // correspondent can be null or string, both are valid
+      if (parsedResponse.correspondent !== null && typeof parsedResponse.correspondent !== 'string') {
+        console.debug(jsonContent);
+        throw new Error('Invalid response structure: correspondent must be string or null');
       }
 
       return {
@@ -486,14 +504,17 @@ class OpenAIService {
 
       // Validate response structure
       if (!parsedResponse || !Array.isArray(parsedResponse.tags)) {
+        console.debug(jsonContent);
         throw new Error('Invalid response structure: missing tags array');
       }
       // document_type can be null or a string from the enum, both are valid
       if (parsedResponse.document_type !== null && typeof parsedResponse.document_type !== 'string') {
+        console.debug(jsonContent);
         throw new Error('Invalid response structure: document_type must be string or null');
       }
       // correspondent can be null or string, both are valid
       if (parsedResponse.correspondent !== null && typeof parsedResponse.correspondent !== 'string') {
+        console.debug(jsonContent);
         throw new Error('Invalid response structure: correspondent must be string or null');
       }
 
