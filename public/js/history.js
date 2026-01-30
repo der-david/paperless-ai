@@ -79,6 +79,18 @@ class HistoryManager {
                     }
                 },
                 {
+                    data: 'document_type',
+                    render: (data, type, row) => {
+                        if (type === 'display') {
+                            return `
+                                <div class="font-medium">${data}</div>
+                                <div class="text-xs text-gray-500">Modified: ${new Date(row.created_at).toLocaleString()}</div>
+                            `;
+                        }
+                        return data;
+                    }
+                },
+                {
                     data: 'tags',
                     render: (data, type) => {
                         if (type === 'display') {
@@ -109,7 +121,7 @@ class HistoryManager {
                     width: '150px'
                 }
             ],
-            order: [[2, 'desc']],
+            order: [[1, 'desc']], // Sort by document_id (column 1) descending - newest first
             pageLength: 10,
             dom: '<"flex flex-col sm:flex-row justify-between items-center mb-4"<"flex-1"f><"flex-none"l>>rtip',
             language: {
