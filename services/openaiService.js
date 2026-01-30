@@ -43,6 +43,10 @@ class OpenAIService {
       this.initialize();
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+      
+      let systemPrompt = '';
+      let promptTags = '';
+      const model = process.env.OPENAI_MODEL;
 
       if (!this.client) {
         throw new Error('OpenAI client not initialized');
@@ -82,99 +86,6 @@ class OpenAIService {
         }
       }
 
-      let systemPrompt = '';
-      let promptTags = '';
-      const model = process.env.OPENAI_MODEL;
-
-      // Parse CUSTOM_FIELDS from environment variable
-      let customFieldsObj;
-      try {
-        customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
-      } catch (error) {
-        console.error('Failed to parse CUSTOM_FIELDS:', error);
-        customFieldsObj = { custom_fields: [] };
-      }
-
-      // Generate custom fields template for the prompt
-      const customFieldsTemplate = {};
-
-      customFieldsObj.custom_fields.forEach((field, index) => {
-        customFieldsTemplate[index] = {
-          field_name: field.value,
-          value: "Fill in the value based on your analysis"
-        };
-      });
-
-      // Convert template to string for replacement and wrap in custom_fields
-      const customFieldsStr = '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
-        .split('\n')
-        .map(line => '    ' + line)  // Add proper indentation
-        .join('\n');
-
-      // Get system prompt and model
-      if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
-        systemPrompt += `
-        Pre-existing tags: ${existingTagsList}\n\n
-        Pre-existing correspondents: ${existingCorrespondentList}\n\n
-        Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
-        ` + process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-        promptTags = '';
-      } else {
-        config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-        systemPrompt += process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
-        promptTags = '';
-      }
-
-      // Process placeholder replacements in system prompt
-      systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
-        systemPrompt,
-        existingTags,
-        existingCorrespondentList,
-        existingDocumentTypesList,
-        config
-      );
-
-      // Include validated external API data if available
-      if (validatedExternalApiData) {
-        systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
-      }
-
-      if (process.env.USE_PROMPT_TAGS === 'yes') {
-        promptTags = process.env.PROMPT_TAGS;
-        systemPrompt = `
-        Take these tags and try to match one or more to the document content.\n\n
-        ` + config.specialPromptPreDefinedTags;
-      }
-
-      if (customPrompt) {
-        console.log('[DEBUG] Replace system prompt with custom prompt via WebHook');
-        systemPrompt = customPrompt + '\n\n' + config.mustHavePrompt;
-      }
-
-      // Calculate tokens AFTER all prompt modifications are complete
-      const totalPromptTokens = await calculateTotalPromptTokens(
-        systemPrompt,
-        process.env.USE_PROMPT_TAGS === 'yes' ? [promptTags] : [],
-        model
-      );
-
-      const maxTokens = Number(config.tokenLimit);
-      const reservedTokens = totalPromptTokens + Number(config.responseTokens);
-      const availableTokens = maxTokens - reservedTokens;
-
-      // Validate that we have positive available tokens
-      if (availableTokens <= 0) {
-        console.warn(`[WARNING] No available tokens for content. Reserved: ${reservedTokens}, Max: ${maxTokens}`);
-        throw new Error('Token limit exceeded: prompt too large for available token limit');
-      }
-
-      console.log(`[DEBUG] Token calculation - Prompt: ${totalPromptTokens}, Reserved: ${reservedTokens}, Available: ${availableTokens}`);
-      console.log(`[DEBUG] Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
-      console.log(`[DEBUG] External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
-
-      const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
-
-      await writePromptToFile(systemPrompt, truncatedContent);
 
       // Build response schema with enum constraints for tags and document types
       // First, build the base enum list for document types (all available types plus null)
@@ -246,6 +157,103 @@ class OpenAIService {
       } else if (allDocTypesList.length > 0) {
         console.log(`[DEBUG] Document type enum set with all ${allDocTypesList.length} available types`);
       }
+
+      // Parse CUSTOM_FIELDS from environment variable
+      let customFieldsObj;
+      try {
+        customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
+      } catch (error) {
+        console.error('Failed to parse CUSTOM_FIELDS:', error);
+        customFieldsObj = { custom_fields: [] };
+      }
+
+      // Generate custom fields template for the prompt
+      const customFieldsTemplate = {};
+
+      customFieldsObj.custom_fields.forEach((field, index) => {
+        customFieldsTemplate[index] = {
+          field_name: field.value,
+          value: "Fill in the value based on your analysis"
+        };
+      });
+
+      // Convert template to string for replacement and wrap in custom_fields
+      const customFieldsStr = '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
+        .split('\n')
+        .map(line => '    ' + line)  // Add proper indentation
+        .join('\n');
+
+      // Get system prompt and model
+      if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
+        systemPrompt += `
+        Pre-existing tags: ${existingTagsList}\n\n
+        Pre-existing correspondents: ${existingCorrespondentList}\n\n
+        Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
+        ` + process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
+        promptTags = '';
+      } else {
+        config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
+        systemPrompt += process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
+        promptTags = '';
+      }
+
+      // Process placeholder replacements in system prompt
+      systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
+        systemPrompt,
+        existingTags,
+        existingCorrespondentList,
+        existingDocumentTypesList,
+        config
+      );
+
+      // Include validated external API data if available
+      if (validatedExternalApiData) {
+        systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
+      }
+
+      if (process.env.USE_PROMPT_TAGS === 'yes') {
+        promptTags = process.env.PROMPT_TAGS;
+        systemPrompt = `
+        Take these tags and try to match one or more to the document content.\n\n
+        ` + config.specialPromptPreDefinedTags;
+      }
+      
+      if (customPrompt) {
+        console.log('[DEBUG] Replace system prompt with custom prompt via WebHook');
+        systemPrompt = customPrompt + '\n\n' + config.mustHavePrompt;
+      }
+
+      // Replace %JSON_SCHEMA% placeholder
+      // can be used if OpenAI-Middleware does not support response_format
+      if (systemPrompt.includes('%JSON_SCHEMA%')) {
+        systemPrompt = systemPrompt.replace(/%JSON_SCHEMA%/g, JSON.stringify(responseSchema, null, 2));
+      }
+
+      // Calculate tokens AFTER all prompt modifications are complete
+      const totalPromptTokens = await calculateTotalPromptTokens(
+        systemPrompt,
+        process.env.USE_PROMPT_TAGS === 'yes' ? [promptTags] : [],
+        model
+      );
+
+      const maxTokens = Number(config.tokenLimit);
+      const reservedTokens = totalPromptTokens + Number(config.responseTokens);
+      const availableTokens = maxTokens - reservedTokens;
+
+      // Validate that we have positive available tokens
+      if (availableTokens <= 0) {
+        console.warn(`[WARNING] No available tokens for content. Reserved: ${reservedTokens}, Max: ${maxTokens}`);
+        throw new Error('Token limit exceeded: prompt too large for available token limit');
+      }
+
+      console.log(`[DEBUG] Token calculation - Prompt: ${totalPromptTokens}, Reserved: ${reservedTokens}, Available: ${availableTokens}`);
+      console.log(`[DEBUG] Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
+      console.log(`[DEBUG] External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
+
+      const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
+
+      await writePromptToFile(systemPrompt, truncatedContent);
+
 
       const apiPayload = {
         model: model,
