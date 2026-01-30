@@ -71,7 +71,8 @@ module.exports = {
     apiToken: process.env.PAPERLESS_API_TOKEN
   },
   openai: {
-    apiKey: process.env.OPENAI_API_KEY
+    apiKey: process.env.OPENAI_API_KEY,
+    systemPromptRole: process.env.OPENAI_SYSTEM_PROMPT_ROLE || 'system'
   },
   ollama: {
     apiUrl: process.env.OLLAMA_API_URL || 'http://localhost:11434',

@@ -934,7 +934,7 @@ function transform(data) {
                                 <!-- System Prompt Section -->
                                 <div class="border-t pt-4 space-y-4">
                                     <div class="space-y-2">
-                                        <label for="systemPrompt" class="text-sm font-medium">Prompt Description</label>
+                                        <label for="systemPrompt" class="text-sm font-medium">Prompt</label>
                                         <div class="space-y-2">
                                             <textarea id="systemPrompt" 
                                                       name="systemPrompt"
@@ -946,6 +946,19 @@ function transform(data) {
                                                 <i class="fas fa-lightbulb mr-2"></i>
                                                 Example
                                             </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="border-t pt-4 space-y-4">
+                                    <div class="space-y-2">
+                                        <label for="systemPrompt" class="text-sm font-medium">Must-Have-Prompt (<em>(only appended, if placeholder <code>%JSON_SCHEMA%</code> is not present in Prompt above)</em></label>
+                                        <div class="space-y-2">
+                                            <textarea id="mustHavePrompt" 
+                                                      name="mustHavePrompt"
+                                                      rows="6"
+                                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                      placeholder="mandatory appendix defined in application configuration"
+                                                      disabled><%= config.mustHavePrompt %></textarea>
                                         </div>
                                     </div>
                                 </div>

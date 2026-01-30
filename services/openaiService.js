@@ -220,13 +220,15 @@ class OpenAIService {
       
       if (customPrompt) {
         console.log('[DEBUG] Replace system prompt with custom prompt via WebHook');
-        systemPrompt = customPrompt + '\n\n' + config.mustHavePrompt;
+        systemPrompt = customPrompt;
       }
 
       // Replace %JSON_SCHEMA% placeholder
       // can be used if OpenAI-Middleware does not support response_format
       if (systemPrompt.includes('%JSON_SCHEMA%')) {
         systemPrompt = systemPrompt.replace(/%JSON_SCHEMA%/g, JSON.stringify(responseSchema, null, 2));
+      } else {
+        systemPrompt = systemPrompt + '\n\n' + config.mustHavePrompt;
       }
 
       // Calculate tokens AFTER all prompt modifications are complete
@@ -253,13 +255,12 @@ class OpenAIService {
       const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
 
       await writePromptToFile(systemPrompt, truncatedContent);
-
-
+      
       const apiPayload = {
         model: model,
         messages: [
           {
-            role: "developer", /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
+            role: config.openai.systemPromptRole, /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
             content: systemPrompt
           },
           {
@@ -427,7 +428,7 @@ class OpenAIService {
         model: model,
         messages: [
           {
-            role: "system",
+            role: config.openai.systemPromptRole,
             content: prompt + musthavePrompt
           },
           {
