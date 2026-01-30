@@ -1052,7 +1052,8 @@ async searchForExistingCorrespondent(correspondent) {
         // Create new correspondent only if restrictions are not enabled
         try {
             const createResponse = await this.client.post('/correspondents/', { 
-                name: name 
+                name: name,
+                matching_algorithm: 0
             });
             console.log(`[DEBUG] Created new correspondent "${name}" with ID ${createResponse.data.id}`);
             return createResponse.data;
@@ -1270,8 +1271,6 @@ async getOrCreateDocumentType(name) {
       if (updates.tags) {
         console.log(`[DEBUG] Current tags for document ${documentId}:`, currentDoc.tags);
         console.log(`[DEBUG] Adding new tags:`, updates.tags);
-        console.log(`[DEBUG] Current correspondent:`, currentDoc.correspondent);
-        console.log(`[DEBUG] New correspondent:`, updates.correspondent);
                 
         const combinedTags = [...new Set([...currentDoc.tags, ...updates.tags])];
         updates.tags = combinedTags;
@@ -1280,6 +1279,8 @@ async getOrCreateDocumentType(name) {
       }
 
       if (currentDoc.correspondent && updates.correspondent) {
+        console.log(`[DEBUG] Current correspondent:`, currentDoc.correspondent);
+        console.log(`[DEBUG] New correspondent:`, updates.correspondent);
         console.log('[DEBUG] Document already has a correspondent, keeping existing one:', currentDoc.correspondent);
         delete updates.correspondent;
       }
