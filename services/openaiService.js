@@ -282,6 +282,7 @@ class OpenAIService {
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+          console.debug(apiPayload);
           response = await this.client.chat.completions.create(apiPayload);
           
           // Check if response has content
@@ -330,6 +331,7 @@ class OpenAIService {
         });
       } catch (error) {
         console.error('Failed to parse JSON response:', error);
+        console.debug(jsonContent);
         throw new Error('Invalid JSON response from API');
       }
 
