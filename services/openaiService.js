@@ -125,7 +125,8 @@ class OpenAIService {
           },
           custom_fields: {
             type: "object",
-            description: "Custom fields extracted from the document"
+            description: "Custom fields extracted from the document, fill only if you are sure!",
+            properties: {}
           }
         },
         required: ["title", "tags", "document_type", "document_date", "correspondent", "language"]
@@ -175,6 +176,30 @@ class OpenAIService {
           field_name: field.value,
           value: "Fill in the value based on your analysis"
         };
+
+        let customField = {
+          description: 'Fill in the value depending on your analysis'
+        };
+        switch(field.data_type) {
+          case 'boolean':
+            customField.type = 'boolean';
+            break;
+          case 'date':
+            customField.type = 'string';
+            customField.format = 'date';
+            break;
+          case 'number':
+            customField.type = 'number';
+          case 'integer':
+            customField.type = 'integer';
+          case 'monetary':
+            customField.type = 'number';
+          case 'url':
+            customField.type = 'string';
+          default:
+            customField.type = 'string';
+        }
+        responseSchema.properties.custom_fields.properties[field.value] = customField;
       });
 
       // Convert template to string for replacement and wrap in custom_fields
