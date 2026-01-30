@@ -190,12 +190,16 @@ class OpenAIService {
             break;
           case 'number':
             customField.type = 'number';
+            break;
           case 'integer':
             customField.type = 'integer';
+            break;
           case 'monetary':
             customField.type = 'number';
+            break;
           case 'url':
             customField.type = 'string';
+            break;
           default:
             customField.type = 'string';
         }

@@ -1690,6 +1690,7 @@ async function buildUpdateData(analysis, doc) {
     const processedFieldIds = new Set();
 
     // First, add any new/updated fields
+    /*
     for (const key in customFields) {
       const customField = customFields[key];
       
@@ -1705,6 +1706,23 @@ async function buildUpdateData(analysis, doc) {
           value: customField.value.trim()
         });
         processedFieldIds.add(fieldDetails.id);
+      }
+    }
+    */
+    for (const key in customFields) {
+      console.log(`[DEBUG] Processing AI-provided custom field "${key}"`);
+      const customField = customFields[key];
+      
+      const fieldDetails = await paperlessService.findExistingCustomField(key);
+      if (fieldDetails?.id) {
+        console.log(`[DEBUG] Found custom field "${fieldDetails.name}" with id "${fieldDetails.id}" and type "${fieldDetails.data_type}"`);
+        processedFields.push({
+          field: fieldDetails.id,
+          value: customField.value.trim()
+        });
+        processedFieldIds.add(fieldDetails.id);
+      } else {
+        console.log(`[DEBUG] No matching custom field found for "${key}"`);
       }
     }
 
