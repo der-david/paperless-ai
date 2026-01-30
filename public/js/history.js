@@ -79,18 +79,6 @@ class HistoryManager {
                     }
                 },
                 {
-                    data: 'document_type',
-                    render: (data, type, row) => {
-                        if (type === 'display') {
-                            return `
-                                <div class="font-medium">${data}</div>
-                                <div class="text-xs text-gray-500">Modified: ${new Date(row.created_at).toLocaleString(navigator.language)}</div>
-                            `;
-                        }
-                        return data;
-                    }
-                },
-                {
                     data: 'tags',
                     render: (data, type) => {
                         if (type === 'display') {
