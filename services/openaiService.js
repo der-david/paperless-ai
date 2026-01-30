@@ -282,7 +282,7 @@ class OpenAIService {
       
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.debug(apiPayload);
+          console.debug(JSON.stringify(apiPayload, null, 2));
           response = await this.client.chat.completions.create(apiPayload);
           
           // Check if response has content
