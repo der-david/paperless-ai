@@ -639,7 +639,7 @@
                     
                     // Update timestamp
                     document.getElementById('statusLastUpdated').textContent = 
-                        `Last updated: ${new Date().toLocaleTimeString()}`;
+                        `Last updated: ${new Date().toLocaleTimeString(navigator.language)}`;
                 })
                 .catch(error => console.error('Error fetching processing status:', error));
         }

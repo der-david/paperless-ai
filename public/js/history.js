@@ -72,7 +72,7 @@ class HistoryManager {
                         if (type === 'display') {
                             return `
                                 <div class="font-medium">${data}</div>
-                                <div class="text-xs text-gray-500">Modified: ${new Date(row.created_at).toLocaleString()}</div>
+                                <div class="text-xs text-gray-500">Modified: ${new Date(row.created_at).toLocaleString(navigator.language)}</div>
                             `;
                         }
                         return data;
@@ -84,7 +84,7 @@ class HistoryManager {
                         if (type === 'display') {
                             return `
                                 <div class="font-medium">${data}</div>
-                                <div class="text-xs text-gray-500">Modified: ${new Date(row.created_at).toLocaleString()}</div>
+                                <div class="text-xs text-gray-500">Modified: ${new Date(row.created_at).toLocaleString(navigator.language)}</div>
                             `;
                         }
                         return data;

@@ -341,7 +341,7 @@ class PromptRatingSystem {
                 </div>
                 <div class="prompt-text text-sm">${prompt.prompt}</div>
                 ${prompt.comment ? `<div class="mt-2 text-sm italic text-gray-600">${prompt.comment}</div>` : ''}
-                <div class="mt-2 text-xs text-gray-500">${new Date(prompt.date).toLocaleString()}</div>
+                <div class="mt-2 text-xs text-gray-500">${new Date(prompt.date).toLocaleString(navigator.language)}</div>
                 <div class="absolute top-2 right-2 flex gap-2">
                     <button onclick="window.promptRating.usePrompt(${prompt.id})" 
                             class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
