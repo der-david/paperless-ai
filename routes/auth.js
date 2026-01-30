@@ -5,49 +5,113 @@ const config = require('../config/config');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // JWT middleware to verify token
-const authenticateJWT = (req, res, next) => {
-  const token = req.cookies.jwt || req.headers.authorization?.split(' ')[1];
-  const apiKey = req.headers['x-api-key'];
 
-  if (apiKey && apiKey === process.env.API_KEY) {
-    req.user = { apiKey: true };
-    return next();
+const getJWT = (req) => {
+  return req.cookies.jwt || req.headers.authorization?.split(' ')[1];
+};
+
+const hasJWT = (req) => {
+  if(getJWT(req)) {
+    return true;
   }
+};
 
-  if (!token) {
+const isValidJWT = (token) => {
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch (error) {
+  }
+};
+
+const hasValidJWT = (req) => {
+  return isValidJWT(getJWT(req));
+};
+
+const applyJWT = (req) => {
+  try {
+    const decoded = jwt.verify(getJWT(req), JWT_SECRET);
+    req.user = decoded;
+    return true;
+  } catch (error) {
+  }
+};
+
+const getAPIKey = (req) => {
+  return req.headers['x-api-key'];
+};
+
+const hasAPIKey = (req) => {
+  if(getAPIKey(req)) {
+    return true;
+  }
+};
+
+const isValidAPIKey = (apiKey) => {
+  return apiKey === process.env.API_KEY;
+};
+
+const hasValidAPIKey = (req) => {
+  return isValidAPIKey(getAPIKey(req));
+};
+
+const applyAPIKey = (req) => {
+  req.user = { apiKey: true };
+  return true;
+};
+
+const authenticateJWT = (req, res, next) => {
+  if (!hasJWT(req)) {
     return res.status(401).json({ message: 'Authentication required' });
   }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
+  if (!hasValidJWT(req)) {
+    res.clearCookie('jwt');
     return res.status(403).json({ message: 'Invalid or expired token' });
   }
+  applyJWT(req);
+  next();
 };
 
-const isAuthenticated = (req, res, next) => {
-  const token = req.cookies.jwt || req.headers.authorization?.split(' ')[1];
-  const apiKey = req.headers['x-api-key'];
+const authenticateAPIKey = (req, res, next) => {
+  if (!hasAPIKey(req)) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
+  if (!hasValidAPIKey(req)) {
+    return res.status(403).json({ message: 'Invalid API key' });
+  }
+  applyAPIKey(req);
+  next();
+};
 
-  if (apiKey && apiKey === process.env.API_KEY) {
-    req.user = { apiKey: true };
-    return next();
+const authenticateAPI = (req, res, next) => {
+  if (!hasAPIKey(req) && !hasJWT(req)) {
+    res.status(401).json({ message: 'Authentication required' });
+    return;
   }
 
-  if (!token) {
-    return res.redirect('/login');
-  }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+  if (hasValidAPIKey(req)) {
+    applyAPIKey(req);
     next();
-  } catch (error) {
-    res.clearCookie('jwt');
-    return res.redirect('/login');
+    return;
   }
+
+  if (hasValidJWT(req)) {
+    applyJWT(req);
+    next();
+    return;
+  }
+  res.clearCookie('jwt');
+  res.status(403).json({ message: 'Invalid or expired authentication' });
 };
 
-module.exports = { authenticateJWT, isAuthenticated };
+const authenticateUI = (req, res, next) => {
+  if (!hasValidJWT(req)) {
+    res.clearCookie('jwt');
+    res.redirect('/login');
+    return;
+  }
+  applyJWT(req);
+  next();
+};
+
+module.exports = { authenticateJWT, authenticateAPIKey, authenticateAPI, authenticateUI };

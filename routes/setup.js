@@ -17,7 +17,7 @@ const path = require('path');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
-const { authenticateJWT, isAuthenticated } = require('./auth.js');
+const { authenticateJWT, authenticateAPIKey, authenticateAPI, authenticateUI } = require('./auth.js');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const customService = require('../services/customService.js');
 const config = require('../config/config.js');
@@ -144,14 +144,16 @@ let PUBLIC_ROUTES = [
 
 // Combined middleware to check authentication and setup
 router.use(async (req, res, next) => {
+  /*
   const token = req.cookies.jwt || req.headers.authorization?.split(' ')[1];
   const apiKey = req.headers['x-api-key'];
-
+  */
   // Public route check
   if (PUBLIC_ROUTES.some(route => req.path.startsWith(route))) {
-    return next();
+    next();
+    return;
   }
-
+  /*
   // API key authentication
   if (apiKey && apiKey === process.env.API_KEY) {
     req.user = { apiKey: true };
@@ -169,6 +171,7 @@ router.use(async (req, res, next) => {
       return res.redirect('/login');
     }
   }
+  */
 
   // Setup check
   try {
@@ -183,7 +186,6 @@ router.use(async (req, res, next) => {
     console.error('Error checking setup configuration:', error);
     return res.status(500).send('Internal Server Error');
   }
-  
   next();
 });
 
@@ -482,7 +484,7 @@ router.get('/logout', (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/sampleData/:id', async (req, res) => {
+router.get('/sampleData/:id', authenticateAPI, async (req, res) => {
   try {
     //get all correspondents from one document by id
     const document = await paperlessService.getDocument(req.params.id);
@@ -537,7 +539,7 @@ router.get('/sampleData/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/playground', protectApiRoute, async (req, res) => {
+router.get('/playground', authenticateUI, async (req, res) => {
   try {
     const {
       documents,
@@ -612,7 +614,7 @@ router.get('/playground', protectApiRoute, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/thumb/:documentId', async (req, res) => {
+router.get('/thumb/:documentId', authenticateAPI, async (req, res) => {
   const cachePath = path.join('./public/images', `${req.params.documentId}.png`);
 
   try {
@@ -697,7 +699,7 @@ router.get('/thumb/:documentId', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/chat', async (req, res) => {
+router.get('/chat', authenticateUI, async (req, res) => {
   try {
       const {open} = req.query;
       const documents = await paperlessService.getDocuments();
@@ -794,7 +796,7 @@ router.get('/chat', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/chat/init', async (req, res) => {
+router.get('/chat/init', authenticateAPI, async (req, res) => {
   const documentId = req.query.documentId;
   const result = await ChatService.initializeChat(documentId);
   res.json(result);
@@ -878,7 +880,7 @@ router.get('/chat/init', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/chat/message', async (req, res) => {
+router.post('/chat/message', authenticateAPI, async (req, res) => {
   try {
     const { documentId, message } = req.body;
     if (!documentId || !message) {
@@ -978,7 +980,7 @@ router.post('/chat/message', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/chat/init/:documentId', async (req, res) => {
+router.get('/chat/init/:documentId', authenticateAPI, async (req, res) => {
   try {
       const { documentId } = req.params;
       if (!documentId) {
@@ -1033,7 +1035,7 @@ router.get('/chat/init/:documentId', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/history', async (req, res) => {
+router.get('/history', authenticateUI, async (req, res) => {
   try {
     const allTags = await paperlessService.getTags();
     const tagMap = new Map(allTags.map(tag => [tag.id, tag]));
@@ -1208,7 +1210,7 @@ router.get('/history', async (req, res) => {
  *                   type: string
  *                   example: "Error loading history data"
  */
-router.get('/api/history', async (req, res) => {
+router.get('/api/history', authenticateAPI, async (req, res) => {
   try {
     const draw = parseInt(req.query.draw);
     const start = parseInt(req.query.start) || 0;
@@ -1338,7 +1340,7 @@ router.get('/api/history', async (req, res) => {
  *                   type: string
  *                   example: "Error resetting documents"
  */
-router.post('/api/reset-all-documents', async (req, res) => {
+router.post('/api/reset-all-documents', authenticateAPI, async (req, res) => {
   try {
     await documentModel.deleteAllDocuments();
     res.json({ success: true });
@@ -1423,7 +1425,7 @@ router.post('/api/reset-all-documents', async (req, res) => {
  *                   type: string
  *                   example: "Error resetting documents"
  */
-router.post('/api/reset-documents', async (req, res) => {
+router.post('/api/reset-documents', authenticateAPI, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids)) {
@@ -1490,8 +1492,8 @@ router.post('/api/reset-documents', async (req, res) => {
  *                   type: string
  *                   example: "Error during document scan"
  */
-router.post('/api/scan/now', async (req, res) => {
-try {
+router.post('/api/scan/now', authenticateAPI, async (req, res) => {
+  try {
     const isConfigured = await setupService.isConfigured();
     if (!isConfigured) {
       console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
@@ -1807,7 +1809,7 @@ async function saveDocumentChanges(docId, updateData, analysis, originalData) {
  *                   type: string
  *                   example: "Error regenerating API key"
  */
-router.post('/api/key-regenerate', async (req, res) => {
+router.post('/api/key-regenerate', authenticateAPI, async (req, res) => {
   try {
     const fs = require('fs');
     const path = require('path');
@@ -2048,7 +2050,7 @@ router.get('/setup', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/manual/preview/:id', async (req, res) => {
+router.get('/manual/preview/:id', authenticateAPI, async (req, res) => {
   try {
     const documentId = req.params.id;
     console.log('Fetching content for document:', documentId);
@@ -2122,7 +2124,7 @@ router.get('/manual/preview/:id', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/manual', async (req, res) => {
+router.get('/manual', authenticateUI, async (req, res) => {
   const version = configFile.PAPERLESS_AI_VERSION || ' ';
   res.render('manual', {
     title: 'Document Review',
@@ -2176,7 +2178,7 @@ router.get('/manual', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/manual/tags', async (req, res) => {
+router.get('/manual/tags', authenticateAPI, async (req, res) => {
   const getTags = await paperlessService.getTags();
   res.json(getTags);
 });
@@ -2221,7 +2223,7 @@ router.get('/manual/tags', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/manual/documents', async (req, res) => {
+router.get('/manual/documents', authenticateAPI, async (req, res) => {
   const getDocuments = await paperlessService.getDocuments();
   res.json(getDocuments);
 });
@@ -2281,7 +2283,7 @@ router.get('/manual/documents', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/api/correspondentsCount', async (req, res) => {
+router.get('/api/correspondentsCount', authenticateAPI, async (req, res) => {
   const correspondents = await paperlessService.listCorrespondentsNames();
   res.json(correspondents);
 });
@@ -2341,7 +2343,7 @@ router.get('/api/correspondentsCount', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/api/tagsCount', async (req, res) => {
+router.get('/api/tagsCount', authenticateAPI, async (req, res) => {
   const tags = await paperlessService.listTagNames();
   res.json(tags);
 });
@@ -2505,7 +2507,7 @@ async function processQueue(customPrompt) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/api/webhook/document', async (req, res) => {
+router.post('/api/webhook/document', authenticateAPI, async (req, res) => {
   try {
     const { url, prompt } = req.body;
     let usePrompt = false;
@@ -2589,7 +2591,7 @@ router.post('/api/webhook/document', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/dashboard', async (req, res) => {
+router.get('/dashboard', authenticateUI, async (req, res) => {
   const tagCount = await paperlessService.getTagCount();
   const correspondentCount = await paperlessService.getCorrespondentCount();
   const documentCount = await paperlessService.getDocumentCount();
@@ -2670,7 +2672,7 @@ router.get('/dashboard', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/settings', async (req, res) => {
+router.get('/settings', authenticateUI, async (req, res) => {
   const processSystemPrompt = (prompt) => {
     if (!prompt) return '';
     return prompt.replace(/\\n/g, '\n');
@@ -2796,7 +2798,7 @@ router.get('/settings', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/debug', async (req, res) => {
+router.get('/debug', authenticateUI, async (req, res) => {
   //const isConfigured = await setupService.isConfigured();
   //if (!isConfigured) {
   //   return res.status(503).json({ 
@@ -2853,7 +2855,7 @@ router.get('/debug', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/debug/tags', async (req, res) => {
+router.get('/debug/tags', authenticateAPI, async (req, res) => {
   const tags = await debugService.getTags();
   res.json(tags);
 });
@@ -2897,7 +2899,7 @@ router.get('/debug/tags', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/debug/documents', async (req, res) => {
+router.get('/debug/documents', authenticateAPI, async (req, res) => {
   const documents = await debugService.getDocuments();
   res.json(documents);
 });
@@ -2941,7 +2943,7 @@ router.get('/debug/documents', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/debug/correspondents', async (req, res) => {
+router.get('/debug/correspondents', authenticateAPI, async (req, res) => {
   const correspondents = await debugService.getCorrespondents();
   res.json(correspondents);
 });
@@ -3037,7 +3039,7 @@ router.get('/debug/correspondents', async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/manual/analyze', express.json(), async (req, res) => {
+router.post('/manual/analyze', [express.json(), authenticateAPI], async (req, res) => {
   try {
     const { content, existingTags, id } = req.body;
     let existingCorrespondentList = await paperlessService.listCorrespondentsNames();
@@ -3155,7 +3157,7 @@ router.post('/manual/analyze', express.json(), async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/manual/playground', express.json(), async (req, res) => {
+router.post('/manual/playground', [express.json(), authenticateAPI], async (req, res) => {
   try {
     const { content, existingTags, prompt, documentId } = req.body;
     
@@ -3281,7 +3283,7 @@ router.post('/manual/playground', express.json(), async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/manual/updateDocument', express.json(), async (req, res) => {
+router.post('/manual/updateDocument', [express.json(), authenticateAPI], async (req, res) => {
   try {
     var { documentId, tags, correspondent, title } = req.body;
     console.log("TITLE: ", title);
@@ -4004,7 +4006,7 @@ router.post('/setup', express.json(), async (req, res) => {
  *                   type: string
  *                   example: "Failed to update settings: Database error"
  */
-router.post('/settings', express.json(), async (req, res) => {
+router.post('/settings', [express.json(), authenticateAPI], async (req, res) => {
   try {
     const { 
       paperlessUrl, 
@@ -4356,7 +4358,7 @@ router.post('/settings', express.json(), async (req, res) => {
  *                   type: string
  *                   example: "Failed to fetch processing status"
  */
-router.get('/api/processing-status', async (req, res) => {
+router.get('/api/processing-status', authenticateAPI, async (req, res) => {
   try {
       const status = await documentModel.getCurrentProcessingStatus();
       res.json(status);
@@ -4365,7 +4367,7 @@ router.get('/api/processing-status', async (req, res) => {
   }
 });
 
-router.get('/api/rag-test', async (req, res) => {
+router.get('/api/rag-test', authenticateAPI, async (req, res) => {
   RAGService.initialize();
   try { 
     if(await RAGService.sendDocumentsToRAGService()){
@@ -4379,7 +4381,7 @@ router.get('/api/rag-test', async (req, res) => {
 }
 );
 
-router.get('/dashboard/doc/:id', async (req, res) => {
+router.get('/dashboard/doc/:id', authenticateAPI, async (req, res) => {
   const docId = req.params.id;
   if (!docId) {
     return res.status(400).json({ error: 'Document ID is required' });
