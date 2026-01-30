@@ -168,17 +168,9 @@ class OpenAIService {
         customFieldsObj = { custom_fields: [] };
       }
 
-      // Generate custom fields template for the prompt
-      const customFieldsTemplate = {};
-
       customFieldsObj.custom_fields.forEach((field, index) => {
-        customFieldsTemplate[index] = {
-          field_name: field.value,
-          value: "Fill in the value based on your analysis"
-        };
-
         let customField = {
-          description: 'Fill in the value depending on your analysis'
+          description: 'Fill in the value based on your analysis'
         };
         switch(field.data_type) {
           case 'boolean':
@@ -207,10 +199,7 @@ class OpenAIService {
       });
 
       // Convert template to string for replacement and wrap in custom_fields
-      const customFieldsStr = '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
-        .split('\n')
-        .map(line => '    ' + line)  // Add proper indentation
-        .join('\n');
+      const customFieldsStr = '"custom_fields": ' + JSON.stringify(responseSchema.properties.custom_fields.properties);
 
       // Get system prompt and model
       if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
@@ -218,11 +207,10 @@ class OpenAIService {
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
         Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
-        ` + process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
+        ` + process.env.SYSTEM_PROMPT;
         promptTags = '';
       } else {
-        config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-        systemPrompt += process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
+        systemPrompt += process.env.SYSTEM_PROMPT;
         promptTags = '';
       }
 
@@ -242,7 +230,7 @@ class OpenAIService {
 
       if (process.env.USE_PROMPT_TAGS === 'yes') {
         promptTags = process.env.PROMPT_TAGS;
-        systemPrompt = `
+        systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
         ` + config.specialPromptPreDefinedTags;
       }
@@ -259,6 +247,7 @@ class OpenAIService {
       } else {
         systemPrompt = systemPrompt + '\n\n' + config.mustHavePrompt;
       }
+      systemPrompt = systemPrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
 
       // Calculate tokens AFTER all prompt modifications are complete
       const totalPromptTokens = await calculateTotalPromptTokens(
