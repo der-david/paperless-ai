@@ -1916,6 +1916,7 @@ router.get('/setup', async (req, res) => {
       AI_PROVIDER: process.env.AI_PROVIDER || 'openai',
       OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
       OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
       OLLAMA_API_URL: process.env.OLLAMA_API_URL || 'http://localhost:11434',
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
@@ -2713,6 +2714,7 @@ router.get('/settings', authenticateUI, async (req, res) => {
     AI_PROVIDER: process.env.AI_PROVIDER || 'openai',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
     OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
     OLLAMA_API_URL: process.env.OLLAMA_API_URL || 'http://localhost:11434',
     OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
     SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
@@ -3485,6 +3487,14 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: OpenAI model to use for analysis
  *                 example: "gpt-4"
+ *               openaiGizmoId:
+ *                 type: string
+ *                 description: Gizmo ID for a custom GPT (optional)
+ *                 example: "g-697d35206a2481a4bda4c4c01ddfbcd3"
+ *               openaiGizmoId:
+ *                 type: string
+ *                 description: Gizmo ID for a custom GPT (optional)
+ *                 example: "g-697d35206a2481a4bda4c4c01ddfbcd3"
  *               ollamaUrl:
  *                 type: string
  *                 description: URL for Ollama API (required when aiProvider is 'ollama')
@@ -3622,6 +3632,7 @@ router.post('/setup', express.json(), async (req, res) => {
       aiProvider,
       openaiKey,
       openaiModel,
+      openaiGizmoId,
       ollamaUrl,
       ollamaModel,
       scanInterval,
@@ -3759,6 +3770,7 @@ router.post('/setup', express.json(), async (req, res) => {
       CUSTOM_API_KEY: customApiKey || '',
       CUSTOM_BASE_URL: customBaseUrl || '',
       CUSTOM_MODEL: customModel || '',
+      OPENAI_GIZMO_ID: openaiGizmoId || '',
       PAPERLESS_AI_INITIAL_SETUP: 'yes',
       ACTIVATE_TAGGING: activateTagging ? 'yes' : 'no',
       ACTIVATE_CORRESPONDENTS: activateCorrespondents ? 'yes' : 'no',
@@ -3785,6 +3797,7 @@ router.post('/setup', express.json(), async (req, res) => {
       }
       config.OPENAI_API_KEY = openaiKey;
       config.OPENAI_MODEL = openaiModel || 'gpt-4o-mini';
+      config.OPENAI_GIZMO_ID = openaiGizmoId || '';
     } else if (aiProvider === 'ollama') {
       const isOllamaValid = await setupService.validateOllamaConfig(ollamaUrl, ollamaModel);
       if (!isOllamaValid) {
@@ -4030,6 +4043,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       aiProvider,
       openaiKey,
       openaiModel,
+      openaiGizmoId,
       ollamaUrl,
       ollamaModel,
       scanInterval,
@@ -4073,6 +4087,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       AI_PROVIDER: process.env.AI_PROVIDER || '',
       OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
       OPENAI_MODEL: process.env.OPENAI_MODEL || '',
+      OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
       OLLAMA_API_URL: process.env.OLLAMA_API_URL || '',
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || '',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
@@ -4190,6 +4205,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
         }
         updatedConfig.OPENAI_API_KEY = openaiKey;
         if (openaiModel) updatedConfig.OPENAI_MODEL = openaiModel;
+        if (openaiGizmoId !== undefined) updatedConfig.OPENAI_GIZMO_ID = openaiGizmoId;
       } 
       else if (aiProvider === 'ollama' && (ollamaUrl || ollamaModel)) {
         const isOllamaValid = await setupService.validateOllamaConfig(

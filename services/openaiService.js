@@ -46,7 +46,9 @@ class OpenAIService {
       
       let systemPrompt = '';
       let promptTags = '';
-      const model = process.env.OPENAI_MODEL;
+      const baseModel = process.env.OPENAI_MODEL;
+      const gizmoId = config.openai.gizmoId;
+      const model = gizmoId ? `${baseModel}-gizmo-${gizmoId}` : baseModel;
 
       if (!this.client) {
         throw new Error('OpenAI client not initialized');

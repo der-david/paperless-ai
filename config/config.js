@@ -72,7 +72,8 @@ module.exports = {
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
-    systemPromptRole: process.env.OPENAI_SYSTEM_PROMPT_ROLE || 'system'
+    systemPromptRole: process.env.OPENAI_SYSTEM_PROMPT_ROLE || 'system',
+    gizmoId: process.env.OPENAI_GIZMO_ID || ''
   },
   ollama: {
     apiUrl: process.env.OLLAMA_API_URL || 'http://localhost:11434',
