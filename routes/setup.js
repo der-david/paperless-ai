@@ -2524,7 +2524,7 @@ async function processQueue(customPrompt) {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/api/webhook/document', authenticateAPI, async (req, res) => {
+router.post('/api/webhook/document', [express.json(), authenticateAPI], async (req, res) => {
   try {
     const { url, prompt } = req.body;
     let usePrompt = false;
