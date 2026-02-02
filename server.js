@@ -353,7 +353,11 @@ async function buildUpdateData(analysis, doc) {
     }
     */
     for (const key in customFields) {
-      console.log(`[DEBUG] Processing AI-provided custom field "${key}"`);      
+      console.log(`[DEBUG] Processing AI-provided custom field "${key}"`);
+      if (customFields[key] === null) {
+        console.log(`[DEBUG] Skipping AI-provided custom field "${key}" because of null value`);
+        continue;
+      }
       const fieldDetails = await paperlessService.findExistingCustomField(key);
       if (fieldDetails?.id) {
         console.log(`[DEBUG] Found custom field "${fieldDetails.name}" with id "${fieldDetails.id}" and type "${fieldDetails.data_type}"`);
