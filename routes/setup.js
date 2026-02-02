@@ -2526,6 +2526,8 @@ async function processQueue(customPrompt) {
  */
 router.post('/api/webhook/document', [express.json(), authenticateAPI], async (req, res) => {
   try {
+    console.log(req);
+    console.log(req.body);
     const { url, prompt } = req.body;
     let usePrompt = false;
     if (!url) {
@@ -3487,10 +3489,6 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: OpenAI model to use for analysis
  *                 example: "gpt-4"
- *               openaiGizmoId:
- *                 type: string
- *                 description: Gizmo ID for a custom GPT (optional)
- *                 example: "g-697d35206a2481a4bda4c4c01ddfbcd3"
  *               openaiGizmoId:
  *                 type: string
  *                 description: Gizmo ID for a custom GPT (optional)
