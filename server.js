@@ -18,6 +18,7 @@ const Logger = require('./services/loggerService');
 const { max } = require('date-fns');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./swagger');
+const expressLayouts = require('express-ejs-layouts');
 
 const htmlLogger = new Logger({
   logFile: 'logs.html',
@@ -132,6 +133,10 @@ app.get('/api-docs.json', (req, res) => {
 // View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layouts/app');
+app.set('layout extractScripts', true);
+app.set('layout extractStyles', true);
 
 // //Layout middleware
 // app.use((req, res, next) => {
@@ -518,7 +523,8 @@ if (process.env.RAG_SERVICE_ENABLED === 'true') {
   app.get('/rag', async (req, res) => {
     try {
       res.render('rag', { 
-        title: 'Dokumenten-Fragen'
+        title: 'Dokumenten-Fragen',
+        layout: false
       });
     } catch (error) {
       console.error('Error rendering RAG UI:', error);

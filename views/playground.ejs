@@ -1,14 +1,5 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paperless-AI Documents</title>
-    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
-    <link rel="stylesheet" href="css/dashboard.css">
-    <script src="js/playground-analyzer.js"></script>
-    <style>
+<script src="js/playground-analyzer.js"></script>
+<style>
         .document-card {
             position: relative;
             transition: all 0.3s ease;
@@ -32,14 +23,7 @@
             transition: filter 0.3s ease;
         }
         </style>
-</head>
-<body class="h-full">
-    <button id="themeToggle" class="theme-toggle">
-        <i class="fas fa-moon dark:fas fa-sun"></i>
-    </button>
 
-    <div class="layout-container">
-        <%- include('partials/sidebar', { active: 'playground', version }) %>
 
         <!-- Main Content -->
          
@@ -134,7 +118,6 @@
             </div>
         </div>
     </div>
-    <%- include('partials/sidebar-script') %>
     <script>
         // get github stars count from repo
         async function getStarsCount() {
@@ -153,5 +136,3 @@
         });
     </script>
     <script src="js/playground.js"></script>
-</body>
-</html>

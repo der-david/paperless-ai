@@ -1,19 +1,10 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paperless-AI Dashboard</title>
-    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
-    <link rel="stylesheet" href="css/dashboard.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css" />
-    <script src="https://unpkg.com/@popperjs/core@2"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tippy.js/6.3.2/tippy.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
-    <style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/tippy.js@6/dist/tippy.css" />
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tippy.js/6.3.2/tippy.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+<style>
         /* Content Header Dark Mode Fixes */
         .content-header {
             transition: background-color 0.3s ease, color 0.3s ease;
@@ -71,16 +62,6 @@
             color: var(--text-primary);
         }
     </style>
-</head>
-<body class="h-full">
-    
-    
-    <button id="themeToggle" class="theme-toggle">
-        <i class="fas fa-moon dark:fas fa-sun"></i>
-    </button>
-    
-    <div class="layout-container">
-        <%- include('partials/sidebar', { active: 'settings', version }) %>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -958,7 +939,6 @@ function transform(data) {
                 </div>
             </div>
         </main>
-    </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const apiKeyContainer = document.getElementById('apiKeyContainer');
@@ -1088,8 +1068,6 @@ function transform(data) {
         });
     });
     </script>
-    <!-- Füge dies direkt vor dem schließenden </body> Tag ein -->
-    <%- include('partials/sidebar-script') %>
     <script>
         // get github stars count from repo
         async function getStarsCount() {
@@ -1108,5 +1086,3 @@ function transform(data) {
         });
     </script>
     <script src="js/settings.js"></script>
-</body>
-</html>

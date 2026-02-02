@@ -1,24 +1,7 @@
-<!DOCTYPE html>
-<html lang="en" class="h-full" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paperless-AI Chat</title>
-    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.0/css/all.min.css">
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="css/chat.css">
-</head>
-<body class="h-full">
-    <button id="themeToggle" class="theme-toggle">
-        <i class="fas fa-moon"></i>
-    </button>
-
-    <div class="layout-container">
-        <%- include('partials/sidebar', { active: 'chat', version }) %>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<link rel="stylesheet" href="css/chat.css">
 
         <!-- Main Content -->
         <main class="main-content">
@@ -69,8 +52,6 @@
                 </div>
             </div>
         </main>
-    </div>
-    <%- include('partials/sidebar-script') %>
     <script>
         // get github stars count from repo
         async function getStarsCount() {
@@ -90,5 +71,3 @@
     </script>
     <script src="js/dashboard.js"></script>
     <script src="js/chat.js"></script>
-</body>
-</html>

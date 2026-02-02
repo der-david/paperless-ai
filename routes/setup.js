@@ -249,7 +249,7 @@ router.get('/login', (req, res) => {
     if(users.length === 0) {
       res.redirect('setup');
     } else {
-      res.render('login', { error: null });
+      res.render('login', { error: null, layout: false });
     }
   });
 });
@@ -342,7 +342,7 @@ router.post('/login', async (req, res) => {
     // Check if user was found and has required fields
     if (!user || !user.password) {
       console.warn('Failed login  User not found or invalid data:', username);
-      return res.render('login', { error: 'Invalid credentials' });
+      return res.render('login', { error: 'Invalid credentials', layout: false });
     }
 
     // Compare passwords
@@ -368,11 +368,11 @@ router.post('/login', async (req, res) => {
 
       return res.redirect('/dashboard');
     }else{
-      return res.render('login', { error: 'Invalid credentials' });
+      return res.render('login', { error: 'Invalid credentials', layout: false });
     }
   } catch (error) {
     console.error('Login error:', error);
-    res.render('login', { error: 'An error occurred during login' });
+    res.render('login', { error: 'An error occurred during login', layout: false });
   }
 });
 
@@ -556,7 +556,9 @@ router.get('/playground', authenticateUI, async (req, res) => {
       tagNames,
       correspondentNames,
       paperlessUrl,
-      version: configFile.PAPERLESS_AI_VERSION || ' '
+      version: configFile.PAPERLESS_AI_VERSION || ' ',
+      active: 'playground',
+      title: 'Paperless-AI Playground'
     });
   } catch (error) {
     console.error('loading documents view:', error);
@@ -704,7 +706,7 @@ router.get('/chat', authenticateUI, async (req, res) => {
       const {open} = req.query;
       const documents = await paperlessService.getDocuments();
       const version = configFile.PAPERLESS_AI_VERSION || ' ';
-      res.render('chat', { documents, open, version });
+      res.render('chat', { documents, open, version, active: 'chat', title: 'Paperless-AI Chat' });
   } catch (error) {
     console.error('loading documents:', error);
     res.status(500).send('Error loading documents');
@@ -1050,7 +1052,9 @@ router.get('/history', authenticateUI, async (req, res) => {
       filters: {
         allTags: allTags,
         allCorrespondents: allCorrespondents
-      }
+      },
+      active: 'history',
+      title: 'Modified Documents - Paperless-AI'
     });
   } catch (error) {
     console.error('loading history page:', error);
@@ -1999,13 +2003,15 @@ router.get('/setup', async (req, res) => {
     // Render setup page with config and appropriate message
     res.render('setup', {
       config,
-      success: successMessage
+      success: successMessage,
+      layout: false
     });
   } catch (error) {
     console.error('Setup route error:', error);
     res.status(500).render('setup', {
       config: {},
-      error: 'An error occurred while loading the setup page.'
+      error: 'An error occurred while loading the setup page.',
+      layout: false
     });
   }
 });
@@ -2160,13 +2166,14 @@ router.get('/manual/preview/:id', authenticateAPI, async (req, res) => {
 router.get('/manual', authenticateUI, async (req, res) => {
   const version = configFile.PAPERLESS_AI_VERSION || ' ';
   res.render('manual', {
-    title: 'Document Review',
+    title: 'Paperless-AI Manual',
     error: null,
     success: null,
     version,
     paperlessUrl: process.env.PAPERLESS_API_URL,
     paperlessToken: process.env.PAPERLESS_API_TOKEN,
-    config: {}
+    config: {},
+    active: 'manual'
   });
 });
 
@@ -2659,7 +2666,9 @@ router.get('/dashboard', authenticateUI, async (req, res) => {
       averageTotalTokens, 
       tokensOverall 
     }, 
-    version 
+    version,
+    active: 'dashboard',
+    title: 'Paperless-AI Dashboard'
   });
 });
 
@@ -2790,7 +2799,9 @@ router.get('/settings', authenticateUI, async (req, res) => {
     version,
     config,
     success: isConfigured ? 'The application is already configured. You can update the configuration below.' : undefined,
-    settingsError: showErrorCheckSettings ? 'Please check your settings. Something is not working correctly.' : undefined
+    settingsError: showErrorCheckSettings ? 'Please check your settings. Something is not working correctly.' : undefined,
+    active: 'settings',
+    title: 'Paperless-AI Settings'
   });
 });
 
@@ -2844,7 +2855,7 @@ router.get('/debug', authenticateUI, async (req, res) => {
   //     message: 'Application setup not completed'
   //   });
   // }
-  res.render('debug');
+  res.render('debug', { layout: false });
 });
 
 // router.get('/test/:correspondent', async (req, res) => {
