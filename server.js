@@ -181,12 +181,11 @@ async function saveOpenApiSpec() {
 }
 
 // Document processing functions
-async function processDocument(doc, existingTags, existingCorrespondentList, existingDocumentTypesList, ownUserId) {
+async function processDocument(doc, existingTags, existingCorrespondentList, existingDocumentTypesList, ownUserId, customPrompt = null) {
   const isProcessed = await documentModel.isDocumentProcessed(doc.id);
   if (isProcessed) return null;
   await documentModel.setProcessingStatus(doc.id, doc.title, 'processing');
 
-  //Check if the Document can be edited
   const documentEditable = await paperlessService.getPermissionOfDocument(doc.id);
   if (!documentEditable) {
     console.log(`[DEBUG] Document belongs to: ${documentEditable}, skipping analysis`);
@@ -210,8 +209,34 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     content = content.substring(0, 50000);
   }
 
+  // Prepare options for AI service
+  const options = {
+    restrictToExistingTags: config.restrictToExistingTags === 'yes',
+    restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes'
+  };
+
+  // Get external API data if enabled
+  if (config.externalApiConfig.enabled === 'yes') {
+    try {
+      const externalApiService = require('../services/externalApiService');
+      const externalData = await externalApiService.fetchData();
+      if (externalData) {
+        options.externalApiData = externalData;
+        console.log('[DEBUG] Retrieved external API data for prompt enrichment');
+      }
+    } catch (error) {
+      console.error('[ERROR] Failed to fetch external API data:', error.message);
+    }
+  }
+
   const aiService = AIServiceFactory.getService();
-  const analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id);
+  let analysis;
+  if(customPrompt) {
+    console.log('[DEBUG] Starting document analysis with custom prompt');
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, options);
+  }else{
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, options);
+  }
   console.log('Repsonse from AI service:', analysis);
   if (analysis.error) {
     throw new Error(`[ERROR] Document analysis failed: ${analysis.error}`);
@@ -223,11 +248,17 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
 async function buildUpdateData(analysis, doc) {
   const updateData = {};
 
-  console.log('TEST: ', config.addAIProcessedTag)
-  console.log('TEST 2: ', config.addAIProcessedTags)
+  // Create options object with restriction settings
+  const options = {
+    restrictToExistingTags: config.restrictToExistingTags === 'yes' ? true : false,
+    restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes' ? true : false
+  };
+
+  console.log(`[DEBUG] Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondents=${options.restrictToExistingCorrespondents}`);
+
   // Only process tags if tagging is activated
   if (config.limitFunctions?.activateTagging !== 'no') {
-    const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags);
+    const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
       console.warn('[ERROR] Some tags could not be processed:', errors);
     }
@@ -237,7 +268,7 @@ async function buildUpdateData(analysis, doc) {
     // get tags from .env file and split them by comma and make an array
     console.log('[DEBUG] Tagging is deactivated but AI processed tag will be added');
     const tags = config.addAIProcessedTags.split(',');
-    const { tagIds, errors } = await paperlessService.processTags(tags);
+    const { tagIds, errors } = await paperlessService.processTags(tags, options);
     if (errors.length > 0) {
       console.warn('[ERROR] Some tags could not be processed:', errors);
     }
@@ -256,15 +287,29 @@ async function buildUpdateData(analysis, doc) {
   // Only process document type if document type classification is activated
   if (config.limitFunctions?.activateDocumentType !== 'no' && analysis.document.document_type) {
     try {
-      const documentType = await paperlessService.getOrCreateDocumentType(analysis.document.document_type);
-      if (documentType) {
-        updateData.document_type = documentType.id;
+      let documentType;
+      
+      // If restricting to existing document types, search for exact match only
+      if (config.restrictToExistingDocumentTypes === 'yes') {
+        documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
+        if (documentType) {
+          console.log(`[DEBUG] Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
+          updateData.document_type = documentType.id;
+        } else {
+          console.log(`[DEBUG] Document type "${analysis.document.document_type}" does not exist in Paperless and restrict mode is enabled - skipping`);
+        }
+      } else {
+        // Original behavior: get or create document type
+        documentType = await paperlessService.getOrCreateDocumentType(analysis.document.document_type);
+        if (documentType) {
+          updateData.document_type = documentType.id;
+        }
       }
     } catch (error) {
       console.error(`[ERROR] Error processing document type:`, error);
     }
   }
-  
+
   // Only process custom fields if custom fields detection is activated
   if (config.limitFunctions?.activateCustomFields !== 'no' && analysis.document.custom_fields) {
     const customFields = analysis.document.custom_fields;
@@ -278,6 +323,7 @@ async function buildUpdateData(analysis, doc) {
     const processedFieldIds = new Set();
 
     // First, add any new/updated fields
+    /*
     for (const key in customFields) {
       const customField = customFields[key];
       
@@ -293,6 +339,21 @@ async function buildUpdateData(analysis, doc) {
           value: customField.value.trim()
         });
         processedFieldIds.add(fieldDetails.id);
+      }
+    }
+    */
+    for (const key in customFields) {
+      console.log(`[DEBUG] Processing AI-provided custom field "${key}"`);      
+      const fieldDetails = await paperlessService.findExistingCustomField(key);
+      if (fieldDetails?.id) {
+        console.log(`[DEBUG] Found custom field "${fieldDetails.name}" with id "${fieldDetails.id}" and type "${fieldDetails.data_type}"`);
+        processedFields.push({
+          field: fieldDetails.id,
+          value: customFields[key]
+        });
+        processedFieldIds.add(fieldDetails.id);
+      } else {
+        console.log(`[DEBUG] No matching custom field found for "${key}"`);
       }
     }
 
@@ -311,7 +372,7 @@ async function buildUpdateData(analysis, doc) {
   // Only process correspondent if correspondent detection is activated
   if (config.limitFunctions?.activateCorrespondents !== 'no' && analysis.document.correspondent) {
     try {
-      const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent);
+      const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
         updateData.correspondent = correspondent.id;
       }
