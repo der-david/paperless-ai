@@ -13,6 +13,30 @@ const path = require('path');
 const { model } = require('./ollamaService');
 const RestrictionPromptService = require('./restrictionPromptService');
 
+function extractSchemaData(parsedResponse) {
+  if (
+    parsedResponse &&
+    typeof parsedResponse === 'object' &&
+    parsedResponse.properties &&
+    typeof parsedResponse.properties === 'object'
+  ) {
+    const props = parsedResponse.properties;
+    const looksLikeData =
+      Array.isArray(props.tags) ||
+      typeof props.title === 'string' ||
+      typeof props.correspondent === 'string' ||
+      typeof props.document_type === 'string' ||
+      typeof props.document_date === 'string' ||
+      typeof props.language === 'string' ||
+      typeof props.content === 'string' ||
+      typeof props.custom_fields === 'object';
+    if (looksLikeData) {
+      return props;
+    }
+  }
+  return parsedResponse;
+}
+
 class OpenAIService {
   constructor() {
     this.client = null;
@@ -457,6 +481,7 @@ class OpenAIService {
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(jsonContent);
+        parsedResponse = extractSchemaData(parsedResponse);
         //write to file and append to the file (txt)
         fs.appendFile('./logs/response.txt', jsonContent, (err) => {
           if (err) throw err;
@@ -602,6 +627,7 @@ class OpenAIService {
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(jsonContent);
+        parsedResponse = extractSchemaData(parsedResponse);
       } catch (error) {
         console.error('Failed to parse JSON response:', error);
         throw new Error('Invalid JSON response from API');
