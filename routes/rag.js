@@ -9,16 +9,16 @@ const ragService = require('../services/ragService');
 router.post('/search', async (req, res) => {
   try {
     const { query, from_date, to_date, correspondent } = req.body;
-    
+
     if (!query) {
       return res.status(400).json({ error: 'Query is required' });
     }
-    
+
     const filters = {};
     if (from_date) filters.from_date = from_date;
     if (to_date) filters.to_date = to_date;
     if (correspondent) filters.correspondent = correspondent;
-    
+
     const results = await ragService.search(query, filters);
     res.json(results);
   } catch (error) {
@@ -33,11 +33,11 @@ router.post('/search', async (req, res) => {
 router.post('/ask', async (req, res) => {
   try {
     const { question } = req.body;
-    
+
     if (!question) {
       return res.status(400).json({ error: 'Question is required' });
     }
-    
+
     const result = await ragService.askQuestion(question);
     res.json(result);
   } catch (error) {

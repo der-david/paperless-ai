@@ -492,7 +492,7 @@ class OllamaService {
      */
     _generateSystemPrompt(customFieldsStr) {
         let systemPromptTemplate = `
-            You are a document analyzer. Your task is to analyze documents and extract relevant information. You do not ask back questions. 
+            You are a document analyzer. Your task is to analyze documents and extract relevant information. You do not ask back questions.
             YOU MUSTNOT: Ask for additional information or clarification, or ask questions about the document, or ask for additional context.
             YOU MUSTNOT: Return a response without the desired JSON format.
             YOU MUST: Return the result EXCLUSIVELY as a JSON object. The Tags, Title and Document_Type MUST be in the language that is used in the document.:
@@ -519,7 +519,7 @@ class OllamaService {
      */
     _generatePlaygroundSystemPrompt() {
         return `
-            You are a document analyzer. Your task is to analyze documents and extract relevant information. You do not ask back questions. 
+            You are a document analyzer. Your task is to analyze documents and extract relevant information. You do not ask back questions.
             YOU MUSTNOT: Ask for additional information or clarification, or ask questions about the document, or ask for additional context.
             YOU MUSTNOT: Return a response without the desired JSON format.
             YOU MUST: Analyze the document content and extract the following information into this structured JSON format and only this format!:         {

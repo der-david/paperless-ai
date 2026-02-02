@@ -9,14 +9,14 @@ class ThemeManager {
     initialize() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         this.setTheme(savedTheme);
-        
+
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
     }
 
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        
+
         const icon = this.themeToggle.querySelector('i');
         icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
     }
@@ -32,8 +32,8 @@ class FormManager {
     constructor() {
         this.form = document.getElementById('setupForm');
         this.aiProvider = document.getElementById('aiProvider');
-        this.tokenLimit = document.getElementById('tokenLimit'); 
-        this.responseTokens = document.getElementById('responseTokens'); 
+        this.tokenLimit = document.getElementById('tokenLimit');
+        this.responseTokens = document.getElementById('responseTokens');
         this.showTags = document.getElementById('showTags');
         this.aiProcessedTag = document.getElementById('aiProcessedTag');
         this.usePromptTags = document.getElementById('usePromptTags');
@@ -47,21 +47,21 @@ class FormManager {
         this.toggleProviderSettings();
         this.toggleTagsInput();
         this.handleDisableAutomaticProcessing();
-        
+
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
-        this.tokenLimit.addEventListener('input', () => this.validateTokenLimit()); 
-        this.responseTokens.addEventListener('input', () => this.validateResponseTokens()); 
+        this.tokenLimit.addEventListener('input', () => this.validateTokenLimit());
+        this.responseTokens.addEventListener('input', () => this.validateResponseTokens());
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
         this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
         this.disableAutomaticProcessing.addEventListener('change', () => this.handleDisableAutomaticProcessing());
-        
+
         this.initializePasswordToggles();
 
         if (this.usePromptTags.value === 'yes') {
             this.disablePromptElements();
         }
-        
+
         this.toggleAiTagInput();
         this.togglePromptTagsInput();
     }
@@ -94,7 +94,7 @@ class FormManager {
             hiddenInput.name = 'disableAutomaticProcessing';
             this.form.appendChild(hiddenInput);
         }
-        
+
         // Update the hidden input value based on checkbox state
         hiddenInput.value = this.disableAutomaticProcessing.checked ? 'yes' : 'no';
     }
@@ -131,14 +131,14 @@ class FormManager {
         const externalApiBody = document.getElementById('externalApiBody');
         const externalApiTimeout = document.getElementById('externalApiTimeout');
         const externalApiTransformationTemplate = document.getElementById('externalApiTransformationTemplate');
-        
-        
+
+
         // Hide all settings sections first
         openaiSettings.classList.add('hidden');
         ollamaSettings.classList.add('hidden');
         customSettings.classList.add('hidden');
         azureSettings.classList.add('hidden');
-        
+
         // Reset all required fields
         openaiKey.required = false;
         ollamaUrl.required = false;
@@ -150,7 +150,7 @@ class FormManager {
         azureEndpoint.required = false;
         azureDeploymentName.required = false;
         azureApiVersion.required = false;
-        
+
         // Show and set required fields based on selected provider
         switch (provider) {
             case 'openai':
@@ -182,7 +182,7 @@ class FormManager {
     toggleTagsInput() {
         const showTags = this.showTags.value;
         const tagsInputSection = document.getElementById('tagsInputSection');
-        
+
         if (showTags === 'yes') {
             tagsInputSection.classList.remove('hidden');
         } else {
@@ -194,7 +194,7 @@ class FormManager {
     toggleAiTagInput() {
         const showAiTag = this.aiProcessedTag.value;
         const aiTagNameSection = document.getElementById('aiTagNameSection');
-        
+
         if (showAiTag === 'yes') {
             aiTagNameSection.classList.remove('hidden');
         } else {
@@ -205,7 +205,7 @@ class FormManager {
     togglePromptTagsInput() {
         const usePromptTags = this.usePromptTags.value;
         const promptTagsSection = document.getElementById('promptTagsSection');
-        
+
         if (usePromptTags === 'yes') {
             promptTagsSection.classList.remove('hidden');
             this.disablePromptElements();
@@ -241,7 +241,7 @@ class FormManager {
     togglePassword(inputId) {
         const input = document.getElementById(inputId);
         const icon = input.nextElementSibling.querySelector('i');
-        
+
         if (input.type === 'password') {
             input.type = 'text';
             icon.classList.remove('fa-eye');
@@ -265,10 +265,10 @@ class TagsManager {
         this.tagsContainer = document.getElementById(tagsContainerId); // tagsContainer
         this.tagsHiddenInput = document.getElementById(tagsHiddenInputId); // tagsHiddenInput
         this.addTagButton = this.tagInput?.closest('.space-y-2')?.querySelector('button');
-        
+
         if (this.tagInput && this.tagsContainer && this.addTagButton) {
             this.initialize();
-            
+
             // Initialize existing tags with proper event handlers
             this.initializeExistingTags();
         }
@@ -278,7 +278,7 @@ class TagsManager {
         if (this.addTagButton) {
             this.addTagButton.addEventListener('click', () => this.addTag());
         }
-        
+
         if (this.tagInput) {
             this.tagInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
@@ -330,7 +330,7 @@ class TagsManager {
 
         const tagText = this.tagInput.value.trim();
         const specialChars = /[,;:\n\r\\/]/;
-        
+
         if (specialChars.test(tagText)) {
             await Swal.fire({
                 title: 'Invalid Characters',
@@ -356,30 +356,30 @@ class TagsManager {
     createTagElement(text) {
         const tag = document.createElement('div');
         tag.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 animate-fade-in';
-        
+
         const tagText = document.createElement('span');
         tagText.textContent = text;
-        
+
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.className = 'hover:text-blue-600';
         removeButton.innerHTML = '<i class="fas fa-times"></i>';
-        
+
         this.initializeTagRemoval(removeButton);
 
         tag.appendChild(tagText);
         tag.appendChild(removeButton);
-        
+
         return tag;
     }
 
     updateHiddenInput() {
         if (!this.tagsHiddenInput || !this.tagsContainer) return;
-        
+
         const tags = Array.from(this.tagsContainer.querySelectorAll('.bg-blue-100 span'))
             .map(span => span.textContent.trim())
             .filter(tag => tag); // Remove any empty tags
-            
+
         this.tagsHiddenInput.value = tags.join(',');
     }
 }
@@ -407,7 +407,7 @@ Analyze the document content and extract the following information into a struct
 4. document_date: Extract the document date (format: YYYY-MM-DD)
 5. document_type: Determine a precise type that classifies the document (e.g. Invoice, Contract, Employer, Information and so on)
 6. language: Determine the document language (e.g. "de" or "en")
-      
+
 Important rules for the analysis:
 
 For tags:
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const setupForm = document.getElementById('setupForm');
     setupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const submitBtn = setupForm.querySelector('button[type="submit"]');
         const originalBtnText = submitBtn.innerHTML;
         submitBtn.disabled = true;
@@ -640,14 +640,14 @@ class TooltipManager {
         return `
             <div class="p-4 space-y-4">
                 <h3 class="text-lg font-bold">API URL Configuration</h3>
-                
+
                 <div class="space-y-2">
                     <p>The URL should follow this format:</p>
                     <code class="block p-2 bg-gray-100 dark:bg-gray-800 rounded">
                         http://your-host:8000
                     </code>
                 </div>
-                
+
                 <div class="space-y-2">
                     <p class="font-semibold">Important Notes:</p>
                     <ul class="list-disc pl-4 space-y-1">
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // External API settings toggle
     const externalApiEnabled = document.getElementById('externalApiEnabled');
     const externalApiSettings = document.getElementById('externalApiSettings');
-    
+
     if (externalApiEnabled && externalApiSettings) {
         externalApiEnabled.addEventListener('change', function() {
             if (this.checked) {
@@ -703,7 +703,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     const fieldsList = document.getElementById('customFieldsList');
     if (fieldsList) {
         // Initialize Sortable
@@ -794,7 +794,7 @@ function updateThemeClasses(isDark) {
 function toggleCurrencySelect() {
     const fieldType = document.getElementById('newFieldType').value;
     const currencySelect = document.getElementById('currencyCode');
-    
+
     if (fieldType === 'monetary') {
         currencySelect.classList.remove('hidden');
     } else {
@@ -809,19 +809,19 @@ function updateCustomFieldsJson() {
         const typeText = item.querySelector('p.text-sm').textContent;
         const data_type = typeText.split('Type: ')[1].split(' ')[0];
         const currency = typeText.includes('(') ? typeText.split('(')[1].split(')')[0] : null;
-        
+
         const field = {
             value: fieldName,
             data_type: data_type
         };
-        
+
         if (currency) {
             field.currency = currency;
         }
-        
+
         return field;
     });
-    
+
     document.getElementById('customFieldsJson').value = JSON.stringify({
         custom_fields: fields
     });
@@ -830,16 +830,16 @@ function updateCustomFieldsJson() {
 function createFieldElement(fieldName, data_type, currency = null) {
     const div = document.createElement('div');
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    
+
     div.className = `custom-field-item flex items-center gap-2 p-3 rounded-lg border hover:border-blue-500 transition-colors ${
         isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
     }`;
-    
+
     let typeDisplay = `Type: ${data_type}`;
     if (data_type === 'monetary' && currency) {
         typeDisplay += ` (${currency})`;
     }
-    
+
     div.innerHTML = `
         <div class="cursor-move text-gray-400">
             <i class="fas fa-grip-vertical"></i>
@@ -848,13 +848,13 @@ function createFieldElement(fieldName, data_type, currency = null) {
             <p class="font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}">${fieldName}</p>
             <p class="text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}">${typeDisplay}</p>
         </div>
-        <button type="button" 
+        <button type="button"
                 onclick="removeCustomField(this)"
                 class="text-gray-400 hover:text-red-500 transition-colors">
             <i class="fas fa-trash"></i>
         </button>
     `;
-    
+
     return div;
 }
 
@@ -863,11 +863,11 @@ function addCustomField() {
     const typeSelect = document.getElementById('newFieldType');
     const currencySelect = document.getElementById('currencyCode');
     const fieldsList = document.getElementById('customFieldsList');
-    
+
     const fieldName = nameInput.value.trim();
     const data_type = typeSelect.value;
     const currency = data_type === 'monetary' ? currencySelect.value : null;
-    
+
     if (!fieldName) {
         Swal.fire({
             icon: 'warning',
@@ -876,11 +876,11 @@ function addCustomField() {
         });
         return;
     }
-    
+
     // Check for duplicates
     const existingFields = Array.from(fieldsList.querySelectorAll('p.font-medium'))
         .map(p => p.textContent);
-    
+
     if (existingFields.includes(fieldName)) {
         Swal.fire({
             icon: 'warning',
@@ -889,13 +889,13 @@ function addCustomField() {
         });
         return;
     }
-    
+
     const fieldElement = createFieldElement(fieldName, data_type, currency);
     fieldsList.appendChild(fieldElement);
-    
+
     // Reset inputs
     nameInput.value = '';
-    
+
     // Update hidden input
     updateCustomFieldsJson();
 }

@@ -26,7 +26,7 @@ console.log('=== Updated Restriction Prompt Service Test ===\n');
 
 // Test 1: Prompt with placeholders
 console.log('Test 1: Prompt with placeholders');
-const promptWithPlaceholders = `You are a document analysis AI. 
+const promptWithPlaceholders = `You are a document analysis AI.
 Available tags: %RESTRICTED_TAGS%
 Available correspondents: %RESTRICTED_CORRESPONDENTS%
 Available document types: %RESTRICTED_DOCUMENT_TYPES%

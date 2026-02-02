@@ -14,7 +14,7 @@ class ChatService {
   constructor() {
     this.chats = new Map(); // Stores chat histories: documentId -> messages[]
     this.tempDir = path.join(os.tmpdir(), 'paperless-chat');
-    
+
     // Create temporary directory if it doesn't exist
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
@@ -30,7 +30,7 @@ class ChatService {
     try {
       const document = await PaperlessService.getDocument(documentId);
       const tempFilePath = path.join(this.tempDir, `${documentId}_${document.original_filename}`);
-      
+
       // Create download stream
       const response = await PaperlessService.client.get(`/documents/${documentId}/download/`, {
         responseType: 'stream'
@@ -75,20 +75,20 @@ class ChatService {
       const messages = [
         {
           role: "system",
-          content: `You are a helpful assistant for the document "${document.title}". 
-                   Use the following document content as context for your responses. 
+          content: `You are a helpful assistant for the document "${document.title}".
+                   Use the following document content as context for your responses.
                    If you don't know something or it's not in the document, please say so honestly.
-                   
+
                    Document content:
                    ${documentContent}`
         }
       ];
-      
+
       this.chats.set(documentId, {
         messages,
         documentTitle: document.title
       });
-      
+
       return {
         documentTitle: document.title,
         initialized: true
@@ -122,18 +122,18 @@ class ChatService {
       if (aiProvider === 'openai') {
         // Make sure OpenAIService is initialized
         OpenAIService.initialize();
-        
+
         // Always create a new client instance for this request to ensure it works
         const openai = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY
         });
-        
+
         const stream = await openai.chat.completions.create({
           model: process.env.OPENAI_MODEL || 'gpt-4',
           messages: chatData.messages,
           stream: true,
         });
-        
+
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {
@@ -153,7 +153,7 @@ class ChatService {
           messages: chatData.messages,
           stream: true,
         });
-        
+
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {
@@ -174,7 +174,7 @@ class ChatService {
           messages: chatData.messages,
           stream: true,
         });
-        
+
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {
@@ -194,7 +194,7 @@ class ChatService {
           messages: chatData.messages,
           stream: true,
         });
-        
+
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content || '';
           if (content) {

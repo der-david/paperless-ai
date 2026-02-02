@@ -8,9 +8,9 @@ class ThemeManager {
     initialize() {
         const savedTheme = localStorage.getItem('theme') || 'light';
         this.setTheme(savedTheme);
-        
+
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
-        
+
         // Add logo to no-invert class
         const logo = document.querySelector('.sidebar-header img');
         if (logo) {
@@ -21,7 +21,7 @@ class ThemeManager {
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        
+
         const icon = this.themeToggle.querySelector('i');
         icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
     }

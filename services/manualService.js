@@ -1,8 +1,8 @@
-const { 
-    calculateTokens, 
-    calculateTotalPromptTokens, 
-    truncateToTokenLimit, 
-    writePromptToFile 
+const {
+    calculateTokens,
+    calculateTotalPromptTokens,
+    truncateToTokenLimit,
+    writePromptToFile
 } = require('./serviceUtils');
 const axios = require('axios');
 const OpenAI = require('openai');
@@ -24,7 +24,7 @@ class ManualService {
                     deploymentName: config.azure.deploymentName,
                     apiVersion: config.azure.apiVersion
                   });
-        } else {            
+        } else {
             this.openai = new OpenAI({ apiKey: config.openai.apiKey });
             this.ollama = axios.create({
             timeout: 300000
@@ -32,7 +32,7 @@ class ManualService {
         }
     }
 
-    
+
     async analyzeDocument(content, existingTags, provider) {
         try {
         if (provider === 'openai') {
@@ -43,7 +43,7 @@ class ManualService {
             return this._analyzeCustom(content, existingTags);
         } else if (provider === 'azure') {
             return this._analyzeAzure(content, existingTags);
-        } else {            
+        } else {
             throw new Error('Invalid provider');
         }
         } catch (error) {
@@ -51,7 +51,7 @@ class ManualService {
         return { tags: [], correspondent: null };
         }
     }
-    
+
     async _analyzeOpenAI(content, existingTags) {
         try {
         const existingTagsList = existingTags
@@ -74,10 +74,10 @@ class ManualService {
             ],
             ...(model !== 'o3-mini' && { temperature: 0.3 }),
         });
-    
+
         let jsonContent = response.choices[0].message.content;
         jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        
+
         const parsedResponse = JSON.parse(jsonContent);
         try {
             parsedResponse = JSON.parse(jsonContent);
@@ -88,11 +88,11 @@ class ManualService {
             console.error('Failed to parse JSON response:', error);
             throw new Error('Invalid JSON response from API');
         }
-        
+
         if (!Array.isArray(parsedResponse.tags) || typeof parsedResponse.correspondent !== 'string') {
             throw new Error('Invalid response structure');
         }
-        
+
         return parsedResponse;
         } catch (error) {
         console.error('Failed to analyze document with OpenAI:', error);
@@ -105,7 +105,7 @@ class ManualService {
         const existingTagsList = existingTags
             .map(tag => tag.name)
             .join(', ');
-    
+
         const systemPrompt = process.env.SYSTEM_PROMPT;
         await writePromptToFile(systemPrompt, content);
         const response = await this.openai.chat.completions.create({
@@ -122,10 +122,10 @@ class ManualService {
             ],
             temperature: 0.3,
         });
-    
+
         let jsonContent = response.choices[0].message.content;
         jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        
+
         const parsedResponse = JSON.parse(jsonContent);
         try {
             parsedResponse = JSON.parse(jsonContent);
@@ -136,11 +136,11 @@ class ManualService {
             console.error('Failed to parse JSON response:', error);
             throw new Error('Invalid JSON response from API');
         }
-        
+
         if (!Array.isArray(parsedResponse.tags) || typeof parsedResponse.correspondent !== 'string') {
             throw new Error('Invalid response structure');
         }
-        
+
         return parsedResponse;
         } catch (error) {
         console.error('Failed to analyze document with OpenAI:', error);
@@ -153,7 +153,7 @@ class ManualService {
             const existingTagsList = existingTags
                 .map(tag => tag.name)
                 .join(', ');
-        
+
             const systemPrompt = process.env.SYSTEM_PROMPT;
             const model = config.custom.model;
             const response = await this.openai.chat.completions.create({
@@ -170,23 +170,23 @@ class ManualService {
                 ],
                 ...(model !== 'o3-mini' && { temperature: 0.3 }),
             });
-        
+
             let jsonContent = response.choices[0].message.content;
             jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            
+
             const parsedResponse = JSON.parse(jsonContent);
-            
+
             if (!Array.isArray(parsedResponse.tags) || typeof parsedResponse.correspondent !== 'string') {
                 throw new Error('Invalid response structure');
             }
-            
+
             return parsedResponse;
             } catch (error) {
             console.error('Failed to analyze document with OpenAI:', error);
             return { tags: [], correspondent: null };
             }
     }
-    
+
     async _analyzeOllama(content, existingTags) {
         try {
         const prompt = process.env.SYSTEM_PROMPT;
@@ -198,30 +198,30 @@ class ManualService {
             const freeMemoryMB = (freeMemory / (1024 * 1024)).toFixed(0);
             return { totalMemoryMB, freeMemoryMB };
         };
-        
+
         const calculateNumCtx = (promptTokenCount, expectedResponseTokens) => {
             const totalTokenUsage = promptTokenCount + expectedResponseTokens;
             const maxCtxLimit = Number(config.tokenLimit);
-            
+
             const numCtx = Math.min(totalTokenUsage, maxCtxLimit);
-            
+
             console.log('Prompt Token Count:', promptTokenCount);
             console.log('Expected Response Tokens:', expectedResponseTokens);
             console.log('Dynamic calculated num_ctx:', numCtx);
-            
+
             return numCtx;
         };
-        
+
         const calculatePromptTokenCount = (prompt) => {
             return Math.ceil(prompt.length / 4);
         };
-        
+
         const { freeMemoryMB } = await getAvailableMemory();
         const expectedResponseTokens = 1024;
         const promptTokenCount = calculatePromptTokenCount(prompt);
-        
+
         const numCtx = calculateNumCtx(promptTokenCount, expectedResponseTokens);
-        
+
         const response = await this.ollama.post(`${config.ollama.apiUrl}/api/generate`, {
             model: config.ollama.model,
             prompt: prompt,
@@ -233,7 +233,7 @@ class ManualService {
             num_ctx: numCtx,
             }
         });
-    
+
         if (!response.data || !response.data.response) {
             console.error('Unexpected Ollama response format:', response);
             throw new Error('Invalid response from Ollama API');
@@ -253,4 +253,4 @@ class ManualService {
     }
 }
 
-module.exports = ManualService; 
+module.exports = ManualService;

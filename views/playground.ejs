@@ -1,32 +1,9 @@
 <script src="js/playground-analyzer.js"></script>
-<style>
-        .document-card {
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        #messageArea {
-            position: relative;
-            z-index: 100;
-        }
-        
-        #analysisPrompt {
-            font-family: monospace;
-        }
-        
-        #analyzeButton:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        /* Add smooth transition for image inversion */
-        img {
-            transition: filter 0.3s ease;
-        }
-        </style>
+<link rel="stylesheet" href="css/playground.css">
 
 
         <!-- Main Content -->
-         
+
         <main class="main-content p-6">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold mb-4">Documents</h1>
@@ -34,16 +11,14 @@
                 <div class="material-card mb-8">
                     <h2 class="card-title">Document Analysis</h2>
                     <div class="space-y-4">
-                        <textarea 
+                        <textarea
                             id="analysisPrompt"
+                            class="playground-textarea"
                             placeholder="Enter your analysis prompt here..."
-                            style="width: 100%; min-height: 128px; padding: 1rem; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; resize: vertical;"
                         ></textarea>
-                        <button 
+                        <button
                             id="analyzeButton"
-                            style="padding: 0.75rem 1.5rem; background: var(--accent-primary); color: white; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s ease;"
-                            onmouseover="this.style.background = 'var(--accent-secondary)'"
-                            onmouseout="this.style.background = 'var(--accent-primary)'"
+                            class="playground-analyze-button"
                         >
                             Analyze Documents
                         </button>
@@ -56,35 +31,35 @@
                         <div class="material-card document-card" data-document-id="<%= doc.id %>">
                             <!-- Thumbnail -->
                             <div class="relative aspect-[3/4]">
-                                <img src="/thumb/<%= doc.id %>" 
+                                <img src="/thumb/<%= doc.id %>"
                                      alt="<%= doc.title %>"
                                      class="w-full h-full object-cover rounded-lg">
-                                
+
                                 <!-- Tags Container -->
                                 <div class="tags-container absolute top-2 left-2 right-2 flex flex-wrap gap-1">
                                     <% doc.tags.forEach(function(tagId) { %>
-                                    <span class="tag text-xs px-2 py-1 rounded-full bg-blue-600 text-white" 
+                                    <span class="tag text-xs px-2 py-1 rounded-full bg-blue-600 text-white"
                                           data-tag-id="<%= tagId %>">
                                         <%= tagNames[tagId] || 'Unknown' %>
                                     </span>
                                     <% }); %>
                                 </div>
                             </div>
-                            
+
                             <!-- Document Info -->
                             <div class="document-info">
                                 <div class="info-container">
                                     <div class="info-item">
                                         <h3 class="text-sm font-medium truncate"><%= doc.title %></h3>
                                     </div>
-                                    
+
                                     <div class="info-item">
                                         <p class="text-xs text-gray-600 truncate">
                                             <%= new Date(doc.created).toLocaleDateString() %>
                                         </p>
-                                        
+
                                         <% if (doc.correspondent) { %>
-                                        <p class="text-xs text-gray-600 truncate" 
+                                        <p class="text-xs text-gray-600 truncate"
                                            data-correspondent="<%= doc.correspondent %>">
                                             <%= correspondentNames[doc.correspondent] || 'Unknown' %>
                                         </p>
@@ -124,7 +99,7 @@
             try {
                 const response = await fetch('https://api.github.com/repos/clusterzx/paperless-ai');
                 if (!response.ok) throw new Error('Failed to fetch repo info');
-                
+
                 const data = await response.json();
                 document.getElementById('starCount').textContent = data.stargazers_count.toLocaleString();
             } catch (error) {

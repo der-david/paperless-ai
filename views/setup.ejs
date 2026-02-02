@@ -25,7 +25,7 @@
             <div class="mx-auto max-w-7xl px-6 lg:px-8">
                 <div class="flex h-24 items-center justify-between">
                     <div class="flex items-center space-x-6">
-                        <img src="/favicon.ico" alt="Paperless AI Logo" style="height: 60px;">
+                        <img src="/favicon.ico" alt="Paperless AI Logo" class="app-logo">
                         <div>
                             <h1 class="text-2xl font-bold">Paperless-AI <small><%= config.PAPERLESS_AI_VERSION %></small></h1>
                             <p class="text-sm text-secondary">Configuration Setup</p>
@@ -40,7 +40,7 @@
                 <!-- Progress Bar -->
                 <div class="mb-6">
                     <div class="progress-bar">
-                        <div class="progress-bar-fill" style="width: 25%"></div>
+                        <div class="progress-bar-fill"></div>
                     </div>
                 </div>
 
@@ -49,26 +49,26 @@
                     <!-- Tab Navigation -->
                     <div class="tab-navigation border-b border-gray-200 mb-6">
                         <nav class="flex flex-wrap gap-2" role="tablist">
-                            <button type="button" 
-                                    class="tab-button active flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2" 
+                            <button type="button"
+                                    class="tab-button active flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2"
                                     data-tab="user-tab">
                                 <i class="fas fa-user"></i>
                                 User Setup
                             </button>
-                            <button type="button" 
-                                    class="tab-button flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2" 
+                            <button type="button"
+                                    class="tab-button flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2"
                                     data-tab="connection-tab">
                                 <i class="fas fa-link"></i>
                                 Connection
                             </button>
-                            <button type="button" 
-                                    class="tab-button flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2" 
+                            <button type="button"
+                                    class="tab-button flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2"
                                     data-tab="ai-tab">
                                 <i class="fas fa-robot"></i>
                                 AI Settings
                             </button>
-                            <button type="button" 
-                                    class="tab-button flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2" 
+                            <button type="button"
+                                    class="tab-button flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2"
                                     data-tab="advanced-tab">
                                 <i class="fas fa-cog"></i>
                                 Advanced
@@ -88,18 +88,18 @@
                                     <!-- User settings content -->
                                     <div class="form-group">
                                         <label for="username">Username</label>
-                                        <input type="text" 
-                                               id="username" 
+                                        <input type="text"
+                                               id="username"
                                                name="username"
                                                class="modern-input"
                                                required>
                                     </div>
-                            
+
                                     <div class="form-group">
                                         <label for="password">Password</label>
                                         <div class="password-input">
-                                            <input type="password" 
-                                                   id="password" 
+                                            <input type="password"
+                                                   id="password"
                                                    name="password"
                                                    class="modern-input"
                                                    required>
@@ -109,12 +109,12 @@
                                         </div>
                                         <div id="password-strength" class="mt-2"></div>
                                     </div>
-                            
+
                                     <div class="form-group">
                                         <label for="confirmPassword">Confirm Password</label>
                                         <div class="password-input">
-                                            <input type="password" 
-                                                   id="confirmPassword" 
+                                            <input type="password"
+                                                   id="confirmPassword"
                                                    name="confirmPassword"
                                                    class="modern-input"
                                                    required>
@@ -140,14 +140,14 @@
                                     <div class="form-group">
                                         <label for="paperlessUrl" class="flex items-center gap-2">
                                             Paperless-ngx API URL
-                                            <button type="button" 
+                                            <button type="button"
                                                     class="help-btn text-gray-400 hover:text-gray-600 focus:outline-none"
                                                     id="urlHelp">
                                                 <i class="fas fa-circle-question"></i>
                                             </button>
                                         </label>
-                                        <input type="text" 
-                                               id="paperlessUrl" 
+                                        <input type="text"
+                                               id="paperlessUrl"
                                                name="paperlessUrl"
                                                value="<%= config.PAPERLESS_API_URL %>"
                                                class="modern-input"
@@ -158,8 +158,8 @@
                                     <div class="form-group">
                                         <label for="paperlessToken">API Token</label>
                                         <div class="password-input">
-                                            <input type="password" 
-                                                   id="paperlessToken" 
+                                            <input type="password"
+                                                   id="paperlessToken"
                                                    name="paperlessToken"
                                                    value="<%= config.PAPERLESS_API_TOKEN %>"
                                                    class="modern-input"
@@ -172,8 +172,8 @@
 
                                     <div class="form-group">
                                         <label for="paperlessUsername">Paperless-ngx Username</label>
-                                        <input type="text" 
-                                               id="paperlessUsername" 
+                                        <input type="text"
+                                               id="paperlessUsername"
                                                name="paperlessUsername"
                                                value="<%= config.PAPERLESS_USERNAME %>"
                                                class="modern-input"
@@ -194,7 +194,7 @@
                                     <!-- AI Provider Selection -->
                                     <div class="form-group">
                                         <label for="aiProvider">AI Provider</label>
-                                        <select id="aiProvider" 
+                                        <select id="aiProvider"
                                                 name="aiProvider"
                                                 class="modern-input">
                                             <option value="openai" <%= config.AI_PROVIDER === 'openai' ? 'selected' : '' %>>
@@ -217,8 +217,8 @@
                                         <div class="form-group">
                                             <label for="openaiKey">OpenAI API Key</label>
                                             <div class="password-input">
-                                                <input type="password" 
-                                                       id="openaiKey" 
+                                                <input type="password"
+                                                       id="openaiKey"
                                                        name="openaiKey"
                                                        value="<%= config.OPENAI_API_KEY %>"
                                                        class="modern-input">
@@ -227,10 +227,10 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="form-group">
                                             <label for="openaiModel">OpenAI Model</label>
-                                            <select id="openaiModel" 
+                                            <select id="openaiModel"
                                                     name="openaiModel"
                                                     class="modern-input">
                                                 <option value="gpt-5.2" <%= config.OPENAI_MODEL === 'gpt-5.2' ? 'selected' : '' %>>GPT-5.2</option>
@@ -251,8 +251,8 @@
 
                                         <div class="form-group">
                                             <label for="openaiGizmoId">Gizmo ID (Custom GPT)</label>
-                                            <input type="text" 
-                                                   id="openaiGizmoId" 
+                                            <input type="text"
+                                                   id="openaiGizmoId"
                                                    name="openaiGizmoId"
                                                    value="<%= config.OPENAI_GIZMO_ID %>"
                                                    class="modern-input"
@@ -264,17 +264,17 @@
                                     <div id="ollamaSettings" class="provider-settings">
                                         <div class="form-group">
                                             <label for="ollamaUrl">Ollama API URL</label>
-                                            <input type="text" 
-                                                   id="ollamaUrl" 
+                                            <input type="text"
+                                                   id="ollamaUrl"
                                                    name="ollamaUrl"
                                                    value="<%= config.OLLAMA_API_URL %>"
                                                    class="modern-input">
                                         </div>
-                                        
+
                                         <div class="form-group">
                                             <label for="ollamaModel">Ollama Model</label>
-                                            <input type="text" 
-                                                   id="ollamaModel" 
+                                            <input type="text"
+                                                   id="ollamaModel"
                                                    name="ollamaModel"
                                                    value="<%= config.OLLAMA_MODEL %>"
                                                    class="modern-input">
@@ -285,19 +285,19 @@
                                     <div id="customSettings" class="provider-settings">
                                         <div class="form-group">
                                             <label for="customBaseUrl">Base URL</label>
-                                            <input type="text" 
-                                                   id="customBaseUrl" 
+                                            <input type="text"
+                                                   id="customBaseUrl"
                                                    name="customBaseUrl"
                                                    value="<%= config.CUSTOM_BASE_URL %>"
                                                    class="modern-input"
                                                    placeholder="https://api.example.com">
                                         </div>
-                                        
+
                                         <div class="form-group">
                                             <label for="customApiKey">API Key</label>
                                             <div class="password-input">
-                                                <input type="password" 
-                                                       id="customApiKey" 
+                                                <input type="password"
+                                                       id="customApiKey"
                                                        name="customApiKey"
                                                        value="<%= config.CUSTOM_API_KEY %>"
                                                        class="modern-input">
@@ -306,11 +306,11 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="form-group">
                                             <label for="customModel">Model</label>
-                                            <input type="text" 
-                                                   id="customModel" 
+                                            <input type="text"
+                                                   id="customModel"
                                                    name="customModel"
                                                    value="<%= config.CUSTOM_MODEL %>"
                                                    class="modern-input"
@@ -318,24 +318,24 @@
                                         </div>
                                     </div>
 
-                                    
+
                                     <!-- Azure Settings -->
                                     <div id="azureSettings" class="provider-settings">
                                         <div class="form-group">
                                             <label for="azureEndpoint">Endpoint</label>
-                                            <input type="text" 
-                                                   id="azureEndpoint" 
+                                            <input type="text"
+                                                   id="azureEndpoint"
                                                    name="azureEndpoint"
                                                    value="<%= config.AZURE_ENDPOINT %>"
                                                    class="modern-input"
                                                    placeholder="https://api.example.com">
                                         </div>
-                                        
+
                                         <div class="form-group">
                                             <label for="azureApiKey">API Key</label>
                                             <div class="password-input">
-                                                <input type="password" 
-                                                       id="azureApiKey" 
+                                                <input type="password"
+                                                       id="azureApiKey"
                                                        name="azureApiKey"
                                                        value="<%= config.AZURE_API_KEY %>"
                                                        class="modern-input">
@@ -344,11 +344,11 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="form-group">
                                             <label for="azureDeploymentName">Deployment</label>
-                                            <input type="text" 
-                                                   id="azureDeploymentName" 
+                                            <input type="text"
+                                                   id="azureDeploymentName"
                                                    name="azureDeploymentName"
                                                    value="<%= config.AZURE_DEPLOYMENT_NAME %>"
                                                    class="modern-input"
@@ -357,8 +357,8 @@
 
                                         <div class="form-group">
                                             <label for="azureApiVersion">API Version</label>
-                                            <input type="text" 
-                                                   id="azureApiVersion" 
+                                            <input type="text"
+                                                   id="azureApiVersion"
                                                    name="azureApiVersion"
                                                    value="<%= config.AZURE_API_VERSION %>"
                                                    class="modern-input"
@@ -368,18 +368,18 @@
 
                                     <div class="form-group">
                                         <label for="tokenLimit">Token Limit</label>
-                                        <input type="number" 
-                                               id="tokenLimit" 
+                                        <input type="number"
+                                               id="tokenLimit"
                                                name="tokenLimit"
                                                value="<%= config.TOKEN_LIMIT %>"
                                                class="modern-input"
                                                placeholder="Enter token limit of model">
                                     </div>
-                        
+
                                     <div class="form-group">
                                         <label for="responseTokens">Response Tokens</label>
-                                        <input type="number" 
-                                               id="responseTokens" 
+                                        <input type="number"
+                                               id="responseTokens"
                                                name="responseTokens"
                                                value="<%= config.RESPONSE_TOKENS %>"
                                                class="modern-input"
@@ -388,7 +388,7 @@
 
                                     <div class="form-group">
                                         <label for="contentSourceMode">Content Source Mode</label>
-                                        <select id="contentSourceMode" 
+                                        <select id="contentSourceMode"
                                                 name="contentSourceMode"
                                                 class="modern-input">
                                             <option value="content" <%= config.CONTENT_SOURCE_MODE === 'content' ? 'selected' : '' %>>Content only (default)</option>
@@ -399,7 +399,7 @@
 
                                     <div class="form-group">
                                         <label for="rawDocumentMode">Raw Document Mode</label>
-                                        <select id="rawDocumentMode" 
+                                        <select id="rawDocumentMode"
                                                 name="rawDocumentMode"
                                                 class="modern-input">
                                             <option value="text" <%= config.RAW_DOCUMENT_MODE === 'text' ? 'selected' : '' %>>Text (base64)</option>
@@ -422,45 +422,45 @@
                                     <!-- Basic Settings -->
                                     <div class="form-group">
                                         <label for="useExistingData">Use existing Correspondents and Tags?</label>
-                                        <select id="useExistingData" 
-                                                name="useExistingData" 
+                                        <select id="useExistingData"
+                                                name="useExistingData"
                                                 class="modern-input">
                                                 <option value="no" <%= config.USE_EXISTING_DATA === 'no' ? 'selected' : '' %>>No</option>
                                                 <option value="yes" <%= config.USE_EXISTING_DATA === 'yes' ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
-    
+
                                         <div class="form-group">
                                             <label for="scanInterval">Scan Interval (Cron Format)</label>
-                                            <input type="text" 
-                                                   id="scanInterval" 
+                                            <input type="text"
+                                                   id="scanInterval"
                                                    name="scanInterval"
                                                    value="<%= config.SCAN_INTERVAL %>"
                                                    class="modern-input"
                                                    required>
                                             <p class="help-text">Default: every 30 minutes</p>
                                         </div>
-    
+
                                         <div class="form-group">
                                             <label for="showTags">Process only specific pre tagged documents?</label>
-                                            <select id="showTags" 
-                                                    name="showTags" 
+                                            <select id="showTags"
+                                                    name="showTags"
                                                     class="modern-input">
                                                 <option value="no" <%= config.PROCESS_PREDEFINED_DOCUMENTS === 'no' ? 'selected' : '' %>>No</option>
                                                 <option value="yes" <%= config.PROCESS_PREDEFINED_DOCUMENTS === 'yes' ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
-    
+
                                         <!-- Tags Input -->
                                         <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS === 'yes' ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="tagInput">Tags</label>
                                                 <div class="tag-input-container">
-                                                    <input type="text" 
-                                                        id="tagInput" 
+                                                    <input type="text"
+                                                        id="tagInput"
                                                         class="modern-input"
                                                         placeholder="Enter a tag and press Enter">
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="material-button add-tag-btn">
                                                         <i class="fas fa-plus"></i>
                                                         Add
@@ -479,24 +479,24 @@
                                                 <input type="hidden" id="tags" name="tags" value="<%= Array.isArray(config.TAGS) ? config.TAGS.join(',') : '' %>">
                                             </div>
                                         </div>
-                                        
+
                                         <!-- AI Tag identification -->
                                         <hr/>
                                         <div class="form-group">
                                             <label for="aiProcessedTag">Add AI-processed tag to documents?</label>
-                                            <select id="aiProcessedTag" 
-                                                    name="aiProcessedTag" 
+                                            <select id="aiProcessedTag"
+                                                    name="aiProcessedTag"
                                                     class="modern-input">
                                                 <option value="no" <%= config.ADD_AI_PROCESSED_TAG === 'no' ? 'selected' : '' %>>No</option>
                                                 <option value="yes" <%= config.ADD_AI_PROCESSED_TAG === 'yes' ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
-    
+
                                         <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG === 'yes' ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="aiTagName">AI-processed Tag Name</label>
-                                                <input type="text" 
-                                                    id="aiTagName" 
+                                                <input type="text"
+                                                    id="aiTagName"
                                                     name="aiTagName"
                                                     value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
                                                     class="modern-input"
@@ -504,27 +504,27 @@
                                                 <p class="help-text">This tag will be added to documents after AI processing</p>
                                             </div>
                                         </div>
-                                        
+
                                         <hr/>
                                         <div class="form-group">
                                             <label for="usePromptTags">Use specific tags in prompt?</label>
-                                            <select id="usePromptTags" 
-                                                    name="usePromptTags" 
+                                            <select id="usePromptTags"
+                                                    name="usePromptTags"
                                                     class="modern-input">
                                                 <option value="no" <%= config.USE_PROMPT_TAGS === 'no' ? 'selected' : '' %>>No</option>
                                                 <option value="yes" <%= config.USE_PROMPT_TAGS === 'yes' ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
-    
+
                                         <div id="promptTagsSection" class="<%= config.USE_PROMPT_TAGS === 'yes' ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="promptTagInput">Prompt Tags</label>
                                                 <div class="tag-input-container">
-                                                    <input type="text" 
-                                                        id="promptTagInput" 
+                                                    <input type="text"
+                                                        id="promptTagInput"
                                                         class="modern-input"
                                                         placeholder="Enter a tag and press Enter">
-                                                    <button type="button" 
+                                                    <button type="button"
                                                             class="material-button add-prompt-tag-btn">
                                                         <i class="fas fa-plus"></i>
                                                         Add
@@ -549,9 +549,9 @@
                                             <label for="disableAutomaticProcessing">Disable automatic processing?</label>
                                             <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                 <label class="flex items-start cursor-pointer w-full">
-                                                    <input type="checkbox" 
-                                                        id="disableAutomaticProcessing" 
-                                                        name="disableAutomaticProcessing" 
+                                                    <input type="checkbox"
+                                                        id="disableAutomaticProcessing"
+                                                        name="disableAutomaticProcessing"
                                                         class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                         <%= config.DISABLE_AUTOMATIC_PROCESSING === 'yes' ? 'checked' : '' %>>
                                                     <div class="ml-3">
@@ -572,13 +572,13 @@
                                                 Enable/Disable AI Functions
                                             </label>
                                             <p class="text-sm text-gray-500">Select which functions the AI should perform during document analysis</p>
-                                            
+
                                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                                                 <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                     <label class="flex items-start cursor-pointer w-full">
-                                                        <input type="checkbox" 
-                                                            id="activateTagging" 
-                                                            name="activateTagging" 
+                                                        <input type="checkbox"
+                                                            id="activateTagging"
+                                                            name="activateTagging"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             <%= config.ACTIVATE_TAGGING === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
@@ -590,12 +590,12 @@
                                                         </div>
                                                     </label>
                                                 </div>
-                                                
+
                                                 <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                     <label class="flex items-start cursor-pointer w-full">
-                                                        <input type="checkbox" 
-                                                            id="activateCorrespondent" 
-                                                            name="activateCorrespondent" 
+                                                        <input type="checkbox"
+                                                            id="activateCorrespondent"
+                                                            name="activateCorrespondent"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             <%= config.ACTIVATE_CORRESPONDENT === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
@@ -607,12 +607,12 @@
                                                         </div>
                                                     </label>
                                                 </div>
-                                                
+
                                                 <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                     <label class="flex items-start cursor-pointer w-full">
-                                                        <input type="checkbox" 
-                                                            id="activateDocumentType" 
-                                                            name="activateDocumentType" 
+                                                        <input type="checkbox"
+                                                            id="activateDocumentType"
+                                                            name="activateDocumentType"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             <%= config.ACTIVATE_DOCUMENT_TYPE === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
@@ -624,12 +624,12 @@
                                                         </div>
                                                     </label>
                                                 </div>
-                                                
+
                                                 <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                     <label class="flex items-start cursor-pointer w-full">
-                                                        <input type="checkbox" 
-                                                            id="activateTitle" 
-                                                            name="activateTitle" 
+                                                        <input type="checkbox"
+                                                            id="activateTitle"
+                                                            name="activateTitle"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             <%= config.ACTIVATE_TITLE === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
@@ -644,9 +644,9 @@
 
                                                 <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                     <label class="flex items-start cursor-pointer w-full">
-                                                        <input type="checkbox" 
-                                                            id="activateContent" 
-                                                            name="activateContent" 
+                                                        <input type="checkbox"
+                                                            id="activateContent"
+                                                            name="activateContent"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             <%= config.ACTIVATE_CONTENT === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
@@ -661,9 +661,9 @@
 
                                                 <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
                                                     <label class="flex items-start cursor-pointer w-full">
-                                                        <input type="checkbox" 
-                                                            id="activateCustomFields" 
-                                                            name="activateCustomFields" 
+                                                        <input type="checkbox"
+                                                            id="activateCustomFields"
+                                                            name="activateCustomFields"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                             <%= config.ACTIVATE_CUSTOM_FIELDS === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
@@ -677,7 +677,7 @@
                                                 </div>
                                             </div>
                                         </div>
-    
+
                                         <hr/>
                                         <!-- Custom Fields Section -->
                                         <section>
@@ -687,7 +687,7 @@
                                                     Custom Fields Configuration
                                                 </label>
                                                 <p class="text-sm text-gray-500">Configure custom fields that will be populated by AI during document analysis.</p>
-                                                
+
                                                 <!-- Fields Container -->
                                                 <div id="customFieldsList" class="space-y-2">
                                                     <% if (config.CUSTOM_FIELDS && Array.isArray(JSON.parse(config.CUSTOM_FIELDS).custom_fields)) { %>
@@ -708,8 +708,8 @@
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <button type="button" 
-                                                                    onclick="removeCustomField(this)" 
+                                                            <button type="button"
+                                                                    onclick="removeCustomField(this)"
                                                                     class="text-gray-400 hover:text-red-500 transition-colors">
                                                                 <i class="fas fa-trash"></i>
                                                             </button>
@@ -721,12 +721,12 @@
                                             <!-- Add New Field Form -->
                                             <div class="grid grid-cols-12 gap-3 mt-4">
                                                 <div class="col-span-6">
-                                                    <input type="text" 
-                                                        id="newFieldName" 
-                                                        class="modern-input w-full" 
+                                                    <input type="text"
+                                                        id="newFieldName"
+                                                        class="modern-input w-full"
                                                         placeholder="Enter field name...">
                                                 </div>
-                                                
+
                                                 <div class="col-span-2">
                                                     <select id="newFieldType" class="modern-input w-full" onchange="toggleCurrencySelect()">
                                                         <option value="string">Text</option>
@@ -740,7 +740,7 @@
                                                 </div>
 
                                                 <div class="col-span-2">
-                                                    <select id="currencyCode" class="modern-input w-full" style="display: none;">
+                                                    <select id="currencyCode" class="modern-input w-full hidden">
                                                         <option value="EUR">EUR</option>
                                                         <option value="USD">USD</option>
                                                         <option value="GBP">GBP</option>
@@ -755,8 +755,8 @@
                                                 </div>
 
                                                 <div class="col-span-2">
-                                                    <button type="button" 
-                                                            onclick="addCustomField()" 
+                                                    <button type="button"
+                                                            onclick="addCustomField()"
                                                             class="material-button w-full flex items-center justify-center gap-2"
                                                             id="addFieldBtn">
                                                         <i class="fas fa-plus"></i>
@@ -766,9 +766,9 @@
                                             </div>
 
                                             <!-- Hidden input for form submission -->
-                                            <input type="hidden" 
-                                                id="customFieldsJson" 
-                                                name="customFields" 
+                                            <input type="hidden"
+                                                id="customFieldsJson"
+                                                name="customFields"
                                                 value="<%= config.CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
                                         </div>
                                     </section>
@@ -778,12 +778,12 @@
                                     <div class="form-group">
                                         <label for="systemPrompt">Prompt Description</label>
                                         <div class="prompt-container">
-                                            <textarea id="systemPrompt" 
+                                            <textarea id="systemPrompt"
                                                      name="systemPrompt"
                                                      rows="8"
                                                      class="modern-input"
                                                      placeholder="Describe how the AI should analyze your documents..."><%= config.SYSTEM_PROMPT %></textarea>
-                                            <button id="systemPromptBtn" type="button" 
+                                            <button id="systemPromptBtn" type="button"
                                                     class="material-button example-btn">
                                                 <i class="fas fa-lightbulb"></i>
                                                 Example
@@ -796,7 +796,7 @@
 
                         <!-- Navigation Buttons -->
                         <div class="flex justify-between pt-6">
-                            <button type="button" id="prevBtn" class="material-button" style="display: none;">
+                            <button type="button" id="prevBtn" class="material-button hidden">
                                 <i class="fas fa-arrow-left"></i>
                                 Previous
                             </button>
@@ -804,7 +804,7 @@
                                 Next
                                 <i class="fas fa-arrow-right"></i>
                             </button>
-                            <button type="submit" id="submitBtn" class="material-button submit-btn" style="display: none;">
+                            <button type="submit" id="submitBtn" class="material-button submit-btn hidden">
                                 <i class="fas fa-save"></i>
                                 Save Configuration
                             </button>
@@ -818,7 +818,7 @@
     <!-- Scripts -->
     <script src="js/setup.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Initialize textarea newlines -->
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
@@ -832,7 +832,7 @@
         function getTooltipPlacement() {
             return window.innerWidth < 768 ? 'bottom' : 'right';
         }
-        
+
         let tooltipInstance = tippy('#urlHelp', {
             content: `
                 <div class="tooltip-content p-2">
@@ -841,7 +841,7 @@
                     <code class="block p-2 rounded mb-2">
                         http://your-host:8000
                     </code>
-                    
+
                     <p class="mb-2"><span class="font-semibold">Important Notes:</span></p>
                     <ul class="list-disc pl-4">
                         <li class="mb-1">Must start with <u>http://</u> or <u>https://</u></li>
@@ -888,7 +888,7 @@
     <!-- <script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js/dist/css/shepherd.css"> -->
     <script>
-        document.addEventListener("DOMContentLoaded", function() {  
+        document.addEventListener("DOMContentLoaded", function() {
     // Helper function to switch tabs
     function switchToTab(tabId) {
         console.log('Attempting to switch to tab:', tabId);
@@ -1259,12 +1259,12 @@
         try {
             const currentStep = evt.step;
             console.log('Tour step is being shown:', currentStep.id);
-            
+
             // Execute beforeShow if it exists
             if (currentStep.options.beforeShow) {
                 currentStep.options.beforeShow();
             }
-            
+
             // Update progress bar
             const progress = document.querySelector('.progress-bar-fill');
             if (progress) {

@@ -8,7 +8,7 @@ class ThemeManager {
         // Load saved theme or default to light
         const savedTheme = localStorage.getItem('theme') || 'light';
         this.setTheme(savedTheme);
-        
+
         // Add event listener for theme toggle
         this.themeToggle.addEventListener('click', () => this.toggleTheme());
     }
@@ -16,11 +16,11 @@ class ThemeManager {
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        
+
         // Update toggle button icon
         const icon = this.themeToggle.querySelector('i');
         icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-        
+
         // Update any active Shepherd tour
         this.updateShepherdTheme(theme);
     }
@@ -55,16 +55,16 @@ class FormManager {
     initialize() {
         // Initialize provider settings
         this.toggleProviderSettings();
-        
+
         // Initialize tags section
         this.toggleTagsInput();
-        
+
         // Add event listeners
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
         this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
-        
+
         // Initialize password toggles
         this.initializePasswordToggles();
 
@@ -72,7 +72,7 @@ class FormManager {
         if (this.usePromptTags.value === 'yes') {
             this.disablePromptElements();
         }
-        
+
         // Initialize new sections
         this.toggleAiTagInput();
         this.togglePromptTagsInput();
@@ -84,7 +84,7 @@ class FormManager {
         const ollamaSettings = document.getElementById('ollamaSettings');
         const customSettings = document.getElementById('customSettings');
         const azureSettings = document.getElementById('azureSettings');
-        
+
         // Get all required fields
         const openaiKey = document.getElementById('openaiKey');
         const ollamaUrl = document.getElementById('ollamaUrl');
@@ -96,13 +96,13 @@ class FormManager {
         const azureEndpoint = document.getElementById('azureEndpoint');
         const azureModel = document.getElementById('azureApiVersion');
         const azureDeployment = document.getElementById('azureDeploymentName');
-        
+
         // Hide all settings first
         openaiSettings.style.display = 'none';
         ollamaSettings.style.display = 'none';
         customSettings.style.display = 'none';
         azureSettings.style.display = 'none';
-        
+
         // Reset all required attributes
         openaiKey.required = false;
         ollamaUrl.required = false;
@@ -114,7 +114,7 @@ class FormManager {
         azureEndpoint.required = false;
         azureModel.required = false;
         azureDeployment.required = false;
-        
+
         // Show and set required fields based on selected provider
         switch (provider) {
             case 'openai':
@@ -145,7 +145,7 @@ class FormManager {
     toggleTagsInput() {
         const showTags = this.showTags.value;
         const tagsInputSection = document.getElementById('tagsInputSection');
-        
+
         if (showTags === 'yes') {
             tagsInputSection.classList.remove('hidden');
         } else {
@@ -156,7 +156,7 @@ class FormManager {
     toggleAiTagInput() {
         const showAiTag = this.aiProcessedTag.value;
         const aiTagNameSection = document.getElementById('aiTagNameSection');
-        
+
         if (showAiTag === 'yes') {
             aiTagNameSection.classList.remove('hidden');
         } else {
@@ -167,7 +167,7 @@ class FormManager {
     togglePromptTagsInput() {
         const usePromptTags = this.usePromptTags.value;
         const promptTagsSection = document.getElementById('promptTagsSection');
-        
+
         if (usePromptTags === 'yes') {
             promptTagsSection.classList.remove('hidden');
             this.disablePromptElements();
@@ -203,7 +203,7 @@ class FormManager {
     togglePassword(inputId) {
         const input = document.getElementById(inputId);
         const icon = input.nextElementSibling.querySelector('i');
-        
+
         if (input.type === 'password') {
             input.type = 'text';
             icon.classList.remove('fa-eye');
@@ -224,7 +224,7 @@ class TabManager {
         this.prevBtn = document.getElementById('prevBtn');
         this.nextBtn = document.getElementById('nextBtn');
         this.submitBtn = document.getElementById('submitBtn');
-        
+
         this.initialize();
     }
 
@@ -280,7 +280,7 @@ class TabManager {
         // Get all required fields in the current tab
         const currentTabContent = this.contents[tabIndex];
         const requiredFields = currentTabContent.querySelectorAll('[required]');
-        
+
         let isValid = true;
         requiredFields.forEach(field => {
             if (!field.value.trim()) {
@@ -315,7 +315,7 @@ class TagsManager {
         this.tagsHiddenInput = document.getElementById('tags');
         this.addTagButton = document.querySelector('.add-tag-btn');
         this.initialize();
-        
+
         // Initialize existing tags with click handlers
         document.querySelectorAll('.modern-tag button').forEach(button => {
             button.addEventListener('click', async () => {
@@ -379,10 +379,10 @@ class TagsManager {
     createTagElement(text) {
         const tag = document.createElement('div');
         tag.className = 'modern-tag fade-in';
-        
+
         const tagText = document.createElement('span');
         tagText.textContent = text;
-        
+
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -409,7 +409,7 @@ class TagsManager {
 
         tag.appendChild(tagText);
         tag.appendChild(removeButton);
-        
+
         return tag;
     }
 
@@ -428,7 +428,7 @@ class PromptTagsManager {
         this.tagsHiddenInput = document.getElementById('promptTags');
         this.addTagButton = document.querySelector('.add-prompt-tag-btn');
         this.initialize();
-        
+
         // Initialize existing tags with click handlers
         document.querySelectorAll('#promptTagsContainer .modern-tag button').forEach(button => {
             button.addEventListener('click', async () => {
@@ -492,10 +492,10 @@ class PromptTagsManager {
     createTagElement(text) {
         const tag = document.createElement('div');
         tag.className = 'modern-tag fade-in';
-        
+
         const tagText = document.createElement('span');
         tagText.textContent = text;
-        
+
         const removeButton = document.createElement('button');
         removeButton.type = 'button';
         removeButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -522,7 +522,7 @@ class PromptTagsManager {
 
         tag.appendChild(tagText);
         tag.appendChild(removeButton);
-        
+
         return tag;
     }
 
@@ -556,7 +556,7 @@ Analyze the document content and extract the following information into a struct
 4. document_date: Extract the document date (format: YYYY-MM-DD)
 5. document_type: Determine a precise type that classifies the document (e.g. Invoice, Contract, Employer, Information and so on)
 6. language: Determine the document language (e.g. "de" or "en")
-      
+
 Important rules for the analysis:
 
 For tags:
@@ -675,10 +675,10 @@ class PasswordManager {
     checkPasswordMatch() {
         const password = this.passwordInput.value;
         const confirmPassword = this.confirmPasswordInput.value;
-        
+
         if (confirmPassword) {
             const matches = password === confirmPassword;
-            this.passwordMatchDiv.innerHTML = matches 
+            this.passwordMatchDiv.innerHTML = matches
                 ? '<div class="text-green-500 text-sm">Passwords match</div>'
                 : '<div class="text-red-500 text-sm">Passwords do not match</div>';
             return matches;
@@ -688,7 +688,7 @@ class PasswordManager {
 
     initializeFormValidation() {
         const originalSubmit = this.form.onsubmit;
-        
+
         this.form.onsubmit = (e) => {
             if (this.passwordInput.value) {  // Only validate if password field is present and has a value
                 const passwordStrength = this.checkPasswordStrength(this.passwordInput.value);
@@ -746,19 +746,19 @@ function updateCustomFieldsJson() {
         const typeText = item.querySelector('p.text-gray-500').textContent;
         const data_type = typeText.split('Type: ')[1].split(' ')[0];
         const currency = typeText.includes('(') ? typeText.split('(')[1].split(')')[0] : null;
-        
+
         const field = {
             value: fieldName,
             data_type: data_type
         };
-        
+
         if (currency) {
             field.currency = currency;
         }
-        
+
         return field;
     });
-    
+
     document.getElementById('customFieldsJson').value = JSON.stringify({
         custom_fields: fields
     });
@@ -767,12 +767,12 @@ function updateCustomFieldsJson() {
 function createFieldElement(fieldName, data_type, currency = null) {
     const div = document.createElement('div');
     div.className = 'custom-field-item flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-200 transition-colors';
-    
+
     let typeDisplay = `Type: ${data_type}`;
     if (data_type === 'monetary' && currency) {
         typeDisplay += ` (${currency})`;
     }
-    
+
     div.innerHTML = `
         <div class="cursor-move text-gray-400">
             <i class="fas fa-grip-vertical"></i>
@@ -783,8 +783,8 @@ function createFieldElement(fieldName, data_type, currency = null) {
                 <p class="text-sm text-gray-500">${typeDisplay}</p>
             </div>
         </div>
-        <button type="button" 
-                onclick="removeCustomField(this)" 
+        <button type="button"
+                onclick="removeCustomField(this)"
                 class="text-gray-400 hover:text-red-500 transition-colors">
             <i class="fas fa-trash"></i>
         </button>
@@ -797,11 +797,11 @@ function addCustomField() {
     const typeSelect = document.getElementById('newFieldType');
     const currencySelect = document.getElementById('currencyCode');
     const fieldsList = document.getElementById('customFieldsList');
-    
+
     const fieldName = nameInput.value.trim();
     const data_type = typeSelect.value;
     const currency = data_type === 'monetary' ? currencySelect.value : null;
-    
+
     if (!fieldName) {
         Swal.fire({
             icon: 'warning',
@@ -810,7 +810,7 @@ function addCustomField() {
         });
         return;
     }
-    
+
     // Check for duplicates
     const existingFields = document.querySelectorAll('.custom-field-item p.font-medium');
     if (Array.from(existingFields).some(p => p.textContent === fieldName)) {
@@ -821,13 +821,13 @@ function addCustomField() {
         });
         return;
     }
-    
+
     const fieldElement = createFieldElement(fieldName, data_type, currency);
     fieldsList.appendChild(fieldElement);
-    
+
     // Reset inputs
     nameInput.value = '';
-    
+
     // Update hidden JSON input
     updateCustomFieldsJson();
 }
@@ -856,7 +856,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (setupForm) {
         setupForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             // Check if processing all documents without specific tags
             const showTags = document.getElementById('showTags').value;
             if (showTags === 'no') {
@@ -960,10 +960,10 @@ document.addEventListener('DOMContentLoaded', function() {
             onEnd: updateCustomFieldsJson
         });
     }
-    
+
     // Initialize currency select visibility
     toggleCurrencySelect();
-    
+
     // Add keyboard event listener for the name input
     const nameInput = document.getElementById('newFieldName');
     if (nameInput) {
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Add change event listener for field type
     const typeSelect = document.getElementById('newFieldType');
     if (typeSelect) {

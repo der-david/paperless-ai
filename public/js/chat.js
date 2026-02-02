@@ -24,15 +24,15 @@ async function initializeChat(documentId) {
         const response = await fetch(`/chat/init/${documentId}`);
         if (!response.ok) throw new Error('Failed to initialize chat');
         const data = await response.json();
-        
+
         document.getElementById('initialState').classList.add('hidden');
         document.getElementById('chatHistory').classList.remove('hidden');
         document.getElementById('messageForm').classList.remove('hidden');
         document.getElementById('documentId').value = documentId;
         document.getElementById('chatHistory').innerHTML = '';
-        
+
         currentDocumentId = documentId;
-        
+
         addMessage('Chat initialized for document: ' + data.documentTitle, false);
     } catch (error) {
         console.error('Error initializing chat:', error);
@@ -52,19 +52,19 @@ async function sendMessage(message) {
                 message: message
             })
         });
-        
+
         if (!response.ok) throw new Error('Failed to send message');
-        
+
         // Create message container for streaming response
         const containerDiv = document.createElement('div');
         containerDiv.className = 'message-container assistant';
-        
+
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message assistant';
         containerDiv.appendChild(messageDiv);
-        
+
         document.getElementById('chatHistory').appendChild(containerDiv);
-        
+
         let markdown = '';
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -86,12 +86,12 @@ async function sendMessage(message) {
                         if (parsed.content) {
                             markdown += parsed.content;
                             messageDiv.innerHTML = marked.parse(markdown);
-                            
+
                             // Apply syntax highlighting to any code blocks
                             messageDiv.querySelectorAll('pre code').forEach((block) => {
                                 hljs.highlightBlock(block);
                             });
-                            
+
                             // Scroll to bottom
                             const chatHistory = document.getElementById('chatHistory');
                             chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -113,10 +113,10 @@ async function sendMessage(message) {
 function addMessage(message, isUser = true) {
     const containerDiv = document.createElement('div');
     containerDiv.className = `message-container ${isUser ? 'user' : 'assistant'}`;
-    
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
-    
+
     if (isUser) {
         messageDiv.innerHTML = `<p>${escapeHtml(message)}</p>`;
     } else {
@@ -129,13 +129,13 @@ function addMessage(message, isUser = true) {
         } catch (e) {
             console.log('Message is not JSON, using as is');
         }
-        
+
         messageDiv.innerHTML = marked.parse(messageContent);
         messageDiv.querySelectorAll('pre code').forEach((block) => {
             hljs.highlightBlock(block);
         });
     }
-    
+
     containerDiv.appendChild(messageDiv);
     const chatHistory = document.getElementById('chatHistory');
     chatHistory.appendChild(containerDiv);
@@ -172,10 +172,10 @@ function setTheme(theme) {
     const body = document.body;
     const lightIcon = document.getElementById('lightIcon');
     const darkIcon = document.getElementById('darkIcon');
-    
+
     body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-    
+
     if (theme === 'dark') {
         lightIcon.classList.add('hidden');
         darkIcon.classList.remove('hidden');
@@ -187,12 +187,12 @@ function setTheme(theme) {
 
 function setupTextareaAutoResize() {
     const textarea = document.getElementById('messageInput');
-    
+
     function adjustHeight() {
         textarea.style.height = 'auto';
         textarea.style.height = (textarea.scrollHeight) + 'px';
     }
-    
+
     textarea.addEventListener('input', adjustHeight);
     textarea.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -232,17 +232,17 @@ document.getElementById('messageInput').addEventListener('keydown', async (e) =>
 async function submitForm() {
     const messageInput = document.getElementById('messageInput');
     const message = messageInput.value.trim();
-    
+
     if (!message) return;
-    
+
     try {
         // Show user message immediately
         addMessage(message, true);
-        
+
         // Clear input and reset height
         messageInput.value = '';
         messageInput.style.height = 'auto';
-        
+
         // Send message and handle streaming response
         await sendMessage(message);
     } catch {

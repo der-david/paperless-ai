@@ -1,34 +1,5 @@
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
-<style>
-        .dataTables_wrapper .dataTables_length, 
-        .dataTables_wrapper .dataTables_filter {
-            margin-bottom: 1rem;
-        }
-        .dataTables_wrapper .dataTables_info {
-            margin-top: 1rem;
-        }
-        .dataTables_wrapper .dataTables_paginate {
-            margin-top: 1rem;
-        }
-        .highlight-row {
-            background-color: rgba(59, 130, 246, 0.1);
-        }
-        .modal {
-            transition: opacity 0.3s ease-in-out;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .modal.show {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .modal.hidden {
-            display: none;
-        }
-            </style>
-
+<link rel="stylesheet" href="css/history.css">
         <main class="main-content modified-documents-page">
             <div class="content-wrapper">
                 <div class="content-header flex justify-between items-center mb-6">
@@ -53,7 +24,7 @@
                             <% }); %>
                         </select>
                     </div>
-                    
+
                     <div class="min-w-[200px]">
                         <select id="correspondentFilter" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">All Correspondents</option>
@@ -125,7 +96,7 @@
             try {
                 const response = await fetch('https://api.github.com/repos/clusterzx/paperless-ai');
                 if (!response.ok) throw new Error('Failed to fetch repo info');
-                
+
                 const data = await response.json();
                 document.getElementById('starCount').textContent = data.stargazers_count.toLocaleString();
             } catch (error) {

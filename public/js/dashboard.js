@@ -15,7 +15,7 @@ class ThemeManager {
     setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        
+
         const icon = this.themeToggle.querySelector('i');
         icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
     }
@@ -90,10 +90,10 @@ class ModalManager {
     initializeEventListeners() {
         // Close button click
         this.modal.querySelector('.modal-close').addEventListener('click', () => this.hideModal());
-        
+
         // Overlay click
         this.modal.querySelector('.modal-overlay').addEventListener('click', () => this.hideModal());
-        
+
         // Escape key press
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.modal.classList.contains('show')) {

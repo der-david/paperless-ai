@@ -116,7 +116,7 @@ class RestrictionPromptService {
           return docType?.name || '';
         })
         .filter(name => name.length > 0);  // Remove empty strings
-      
+
       return filtered.length > 0 ? filtered.join(', ') : 'No restriction applied';
     }
 

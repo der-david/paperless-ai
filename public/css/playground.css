@@ -1,0 +1,44 @@
+.document-card {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+#messageArea {
+  position: relative;
+  z-index: 100;
+}
+
+.playground-textarea {
+  width: 100%;
+  min-height: 128px;
+  padding: 1rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  resize: vertical;
+  font-family: monospace;
+}
+
+.playground-analyze-button {
+  padding: 0.75rem 1.5rem;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.playground-analyze-button:hover {
+  background: var(--accent-secondary);
+}
+
+#analyzeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+img {
+  transition: filter 0.3s ease;
+}

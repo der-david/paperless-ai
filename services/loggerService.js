@@ -9,13 +9,13 @@ class Logger {
         this.timestamp = options.timestamp !== false;
         this.format = options.format || 'txt';
         this.maxFileSize = options.maxFileSize || 1024 * 1024 * 10; // Standard: 10MB
-        
+
         if (!fs.existsSync(this.logDir)) {
             fs.mkdirSync(this.logDir, { recursive: true });
         }
 
         this.logPath = path.join(this.logDir, this.logFile);
-        
+
         // Initialisiere Log-Datei
         this.initLogFile();
 
@@ -114,7 +114,7 @@ class Logger {
         let autoScroll = true;
         function toggleAutoScroll() {
             autoScroll = !autoScroll;
-            document.getElementById('autoScrollBtn').textContent = 
+            document.getElementById('autoScrollBtn').textContent =
                 autoScroll ? 'Auto-Scroll: ON' : 'Auto-Scroll: OFF';
         }
         function scrollToBottom() {
@@ -124,7 +124,7 @@ class Logger {
         }
         const observer = new MutationObserver(scrollToBottom);
         window.onload = () => {
-            observer.observe(document.querySelector('.log-container'), 
+            observer.observe(document.querySelector('.log-container'),
                 { childList: true });
             scrollToBottom();
         };
@@ -133,7 +133,7 @@ class Logger {
 <body>
     <div class="log-container">
 `;
-        
+
         if (!fs.existsSync(this.logPath) || fs.statSync(this.logPath).size === 0) {
             fs.writeFileSync(this.logPath, htmlHeader);
         }
@@ -146,7 +146,7 @@ class Logger {
     formatLogMessage(type, args) {
         const msg = util.format(...args);
         if (this.format === 'html') {
-            const timestamp = this.timestamp ? 
+            const timestamp = this.timestamp ?
                 `<span class="timestamp">[${this.getTimestamp()}]</span>` : '';
             return `    <div class="log-entry">
         ${timestamp}
@@ -154,7 +154,7 @@ class Logger {
         <span class="message">${this.escapeHtml(msg)}</span>
     </div>\n`;
         } else {
-            return this.timestamp ? 
+            return this.timestamp ?
                 `[${this.getTimestamp()}] [${type.toUpperCase()}] ${msg}\n` :
                 `[${type.toUpperCase()}] ${msg}\n`;
         }
@@ -176,13 +176,13 @@ class Logger {
         if (this.checkFileSize()) {
             // Lösche die alte Datei
             fs.unlinkSync(this.logPath);
-            
+
             // Bei HTML-Format müssen wir den Header neu schreiben
             if (this.format === 'html') {
                 this.initHtmlFile();
             }
         }
-        
+
         fs.appendFileSync(this.logPath, message);
     }
 

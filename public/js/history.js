@@ -62,7 +62,7 @@ class HistoryManager {
                     orderable: false,
                     width: '40px'
                 },
-                { 
+                {
                     data: 'document_id',
                     width: '60px'
                 },
@@ -83,7 +83,7 @@ class HistoryManager {
                     render: (data, type) => {
                         if (type === 'display') {
                             if (!data?.length) return '<span class="text-gray-400 text-sm">No tags</span>';
-                            return data.map(tag => 
+                            return data.map(tag =>
                                 `<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs" data-tag-id="${tag.id}">${tag.name}</span>`
                             ).join(' ');
                         }
@@ -132,7 +132,7 @@ class HistoryManager {
         // Modal close handlers
         [this.confirmModal, this.confirmModalAll].forEach(modal => {
             if (!modal) return;
-            
+
             // Close on overlay click
             modal.querySelector('.modal-overlay')?.addEventListener('click', () => {
                 this.hideModal(modal);
@@ -232,10 +232,10 @@ class HistoryManager {
 
         const checkboxes = document.querySelectorAll('.doc-select');
         const checkedBoxes = document.querySelectorAll('.doc-select:checked');
-        
+
         // Update "Select All" checkbox state
         this.selectAll.checked = checkboxes.length > 0 && checkboxes.length === checkedBoxes.length;
-        
+
         // Update indeterminate state
         this.selectAll.indeterminate = checkedBoxes.length > 0 && checkedBoxes.length < checkboxes.length;
     }

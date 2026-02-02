@@ -37,9 +37,9 @@
                         <!-- Message Input -->
                         <div id="messageForm" class="message-form hidden">
                             <input type="hidden" id="documentId" name="documentId" value="">
-                            <textarea 
+                            <textarea
                                 id="messageInput"
-                                name="message" 
+                                name="message"
                                 class="message-input"
                                 placeholder="Type your message... (Shift + Enter for new line)"
                                 rows="1"
@@ -58,7 +58,7 @@
             try {
                 const response = await fetch('https://api.github.com/repos/clusterzx/paperless-ai');
                 if (!response.ok) throw new Error('Failed to fetch repo info');
-                
+
                 const data = await response.json();
                 document.getElementById('starCount').textContent = data.stargazers_count.toLocaleString();
             } catch (error) {

@@ -4,7 +4,7 @@ class PromptRatingSystem {
         this.localStorageKey = 'savedPrompts';
         this.savedPrompts = this.loadSavedPrompts();
         this.currentPrompt = '';
-        
+
         // Erst Modal erstellen, dann UI Setup
         this.createRatingModal();
         this.setupUI();
@@ -190,12 +190,12 @@ class PromptRatingSystem {
             #ratingModal {
                 transition: opacity 0.2s ease-in-out;
             }
-            
+
             #ratingModal.hidden {
                 opacity: 0;
                 pointer-events: none;
             }
-            
+
             #ratingModal:not(.hidden) {
                 opacity: 1;
                 pointer-events: auto;
@@ -271,23 +271,23 @@ class PromptRatingSystem {
             console.error('Rating modal not found');
             return;
         }
-        
+
         // Debug-Ausgabe
         console.log('Current prompt:', this.currentPrompt);
-        
+
         // Setze den Prompt-Text
         const codeElement = modal.querySelector('.prompt-preview code');
         if (codeElement) {
             codeElement.textContent = this.currentPrompt;
         }
-        
+
         // Reset state
         modal.querySelectorAll('.star-rating button').forEach(star => star.classList.remove('active'));
         const commentField = modal.querySelector('#ratingComment');
         if (commentField) {
             commentField.value = '';
         }
-        
+
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     }
@@ -303,13 +303,13 @@ class PromptRatingSystem {
     savePromptRating(rating, comment) {
         // Debug-Ausgabe
         console.log('Saving prompt:', this.currentPrompt);
-        
+
         // Sicherstellen, dass wir einen Prompt haben
         if (!this.currentPrompt) {
             console.error('No prompt to save');
             return;
         }
-    
+
         const promptData = {
             prompt: this.currentPrompt,
             rating: rating,
@@ -317,10 +317,10 @@ class PromptRatingSystem {
             date: new Date().toISOString(),
             id: Date.now()
         };
-    
+
         // Debug-Ausgabe
         console.log('Saving prompt data:', promptData);
-    
+
         this.savedPrompts.unshift(promptData);
         try {
             localStorage.setItem(this.localStorageKey, JSON.stringify(this.savedPrompts));
@@ -343,7 +343,7 @@ class PromptRatingSystem {
                 ${prompt.comment ? `<div class="mt-2 text-sm italic text-gray-600">${prompt.comment}</div>` : ''}
                 <div class="mt-2 text-xs text-gray-500">${new Date(prompt.date).toLocaleString(navigator.language)}</div>
                 <div class="absolute top-2 right-2 flex gap-2">
-                    <button onclick="window.promptRating.usePrompt(${prompt.id})" 
+                    <button onclick="window.promptRating.usePrompt(${prompt.id})"
                             class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                             title="Use this prompt">
                         <i class="fas fa-play"></i>
@@ -445,12 +445,12 @@ class PlaygroundAnalyzer {
             .document-card.updated {
                 animation: highlight 2s ease-in-out;
             }
-            
+
             @keyframes highlight {
                 0% { box-shadow: 0 0 0 2px var(--accent-primary); }
                 100% { box-shadow: none; }
             }
-            
+
             /* Tag-Stile */
             .tag.new-tag {
                 background: #22c55e !important;
@@ -537,43 +537,43 @@ class PlaygroundAnalyzer {
 
     async startAnalysis() {
         if (this.isAnalyzing) return;
-        
+
         const prompt = this.analysisPrompt.value.trim();
         if (!prompt) {
             this.showMessage('Please enter an analysis prompt', 'error');
             return;
         }
-    
+
         this.isAnalyzing = true;
         this.analyzeButton.disabled = true;
         this.showMessage('Starting document analysis...', 'info');
-    
+
         try {
             const documents = Array.from(this.documentsGrid.children);
             for (const [index, docCard] of documents.entries()) {
                 this.showMessage(`Analyzing document ${index + 1} of ${documents.length}...`, 'info');
-                
-                docCard.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'center' 
+
+                docCard.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
                 });
-                
+
                 docCard.classList.add('processing');
                 await this.analyzeDocument(docCard, prompt);
                 docCard.classList.remove('processing');
-                
+
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
-            
+
             window.scrollTo({
                 top: 0,
                 behavior: 'smooth'
             });
-            
+
             // Hier ist die wichtige Änderung - speichere den Prompt direkt
             window.promptRating.currentPrompt = prompt;  // Direkter Zugriff
             window.promptRating.setCurrentPrompt(prompt);  // Aktiviere den Rate Button
-            
+
             this.showMessage('Analysis completed successfully', 'success');
         } catch (error) {
             console.error('Analysis error:', error);
@@ -600,7 +600,7 @@ class PlaygroundAnalyzer {
                     id: tag.dataset.tagId,
                     name: tag.textContent.trim()
                 }));
-            
+
             const existingCorrespondent = docCard.querySelector('[data-correspondent]')?.dataset.correspondent;
             const existingTitle = docCard.querySelector('h3').textContent;
 
@@ -625,7 +625,7 @@ class PlaygroundAnalyzer {
             }
 
             const result = await analysisResponse.json();
-            
+
             // Karte aktualisieren
             await this.updateDocumentCard(docCard, result.document, {
                 existingTags,
@@ -646,7 +646,7 @@ class PlaygroundAnalyzer {
             const tagsContainer = docCard.querySelector('.tags-container, div[class*="flex flex-wrap gap"]');
             if (tagsContainer) {
                 const existingTagIds = existing.existingTags.map(t => t.id);
-                
+
                 // Neue Tags hinzufügen
                 analysisResult.tags.forEach(tagId => {
                     if (!existingTagIds.includes(tagId)) {
@@ -659,7 +659,7 @@ class PlaygroundAnalyzer {
                 });
             }
         }
-    
+
         // Correspondent aktualisieren
         if (analysisResult.correspondent && analysisResult.correspondent !== existing.existingCorrespondent) {
             const correspondentElem = docCard.querySelector('[data-correspondent]');
@@ -668,47 +668,47 @@ class PlaygroundAnalyzer {
                 const oldCorrespondentName = correspondentElem.textContent.trim();
                 const infoContainer = document.createElement('div');
                 infoContainer.className = 'info-item';
-                
+
                 const newValue = document.createElement('span');
                 newValue.className = 'updated-text truncate';
                 // Hier müssen wir den neuen Namen aus correspondentNames holen
                 newValue.textContent = window.correspondentNames?.[analysisResult.correspondent] || analysisResult.correspondent;
-                
+
                 const oldValue = document.createElement('span');
                 oldValue.className = 'old-value';
                 // Verwende den gespeicherten Namen
                 oldValue.textContent = oldCorrespondentName;
-                
+
                 infoContainer.appendChild(newValue);
                 infoContainer.appendChild(oldValue);
-                
+
                 correspondentElem.parentNode.replaceChild(infoContainer, correspondentElem);
                 infoContainer.dataset.correspondent = analysisResult.correspondent;
             }
         }
-    
+
         // Titel aktualisieren
         if (analysisResult.title && analysisResult.title !== existing.existingTitle) {
             const titleElem = docCard.querySelector('h3');
             if (titleElem) {
                 const infoContainer = document.createElement('div');
                 infoContainer.className = 'info-item';
-                
+
                 const newValue = document.createElement('span');
                 newValue.className = 'updated-text text-sm font-medium truncate';
                 newValue.textContent = analysisResult.title;
-                
+
                 const oldValue = document.createElement('span');
                 oldValue.className = 'old-value';
                 oldValue.textContent = existing.existingTitle;
-                
+
                 infoContainer.appendChild(newValue);
                 infoContainer.appendChild(oldValue);
-                
+
                 titleElem.parentNode.replaceChild(infoContainer, titleElem);
             }
         }
-    
+
         // Highlight-Effekt
         docCard.classList.add('updated');
         setTimeout(() => {
@@ -738,9 +738,9 @@ class PlaygroundAnalyzer {
         messageArea.innerHTML = `
             <div class="flex">
                 <div class="flex-shrink-0">
-                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 
-                                    type === 'success' ? 'check-circle' : 
-                                    type === 'warning' ? 'exclamation-triangle' : 
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' :
+                                    type === 'success' ? 'check-circle' :
+                                    type === 'warning' ? 'exclamation-triangle' :
                                     'info-circle'} text-${color}-400"></i>
                 </div>
                 <div class="ml-3">

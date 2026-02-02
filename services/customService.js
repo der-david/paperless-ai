@@ -230,10 +230,10 @@ class CustomOpenAIService {
 
       // Build response schema with enum constraints for tags and document types
       // First, build the base enum list for document types (all available types plus null)
-      const allDocTypesList = Array.isArray(existingDocumentTypesList) 
+      const allDocTypesList = Array.isArray(existingDocumentTypesList)
         ? existingDocumentTypesList.map(t => typeof t === 'string' ? t : t.name).filter(Boolean)
         : [];
-      
+
       const responseSchema = {
         type: "object",
         properties: {
@@ -369,11 +369,11 @@ class CustomOpenAIService {
       let response = null;
       let lastError = null;
       const maxRetries = 3;
-      
+
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           response = await this.client.chat.completions.create(apiPayload);
-          
+
           // Check if response has content
           if (response?.usage.completion_tokens > 0 && response?.choices?.[0]?.message?.content) {
             console.debug(`Got valid response on attempt ${attempt}/${maxRetries}`);
@@ -485,7 +485,7 @@ class CustomOpenAIService {
 
   async analyzePlayground(content, prompt) {
     const musthavePrompt = `
-    Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:  
+    Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
         {
           "title": "xxxxx",
           "correspondent": "xxxxxxxx",

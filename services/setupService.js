@@ -95,8 +95,8 @@ class SetupService {
     };
     console.log('Custom AI config:', config);
     try {
-      const openai = new OpenAI({ 
-        apiKey: config.apiKey, 
+      const openai = new OpenAI({
+        apiKey: config.apiKey,
         baseURL: config.baseURL,
       });
       const completion = await openai.chat.completions.create({
@@ -158,7 +158,7 @@ class SetupService {
       paperlessApiUrl,
       config.PAPERLESS_API_TOKEN
     );
-    
+
     if (!paperlessValid) {
       throw new Error('Invalid Paperless configuration');
     }
@@ -167,7 +167,7 @@ class SetupService {
     const aiProvider = config.AI_PROVIDER || 'openai';
 
     console.log('AI provider:', aiProvider);
-    
+
     if (aiProvider === 'openai') {
       const openaiValid = await this.validateOpenAIConfig(config.OPENAI_API_KEY);
       if (!openaiValid) {
@@ -213,7 +213,7 @@ class SetupService {
 
       const JSON_STANDARD_PROMPT = `
         Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
-        
+
         {
           "title": "xxxxx",
           "correspondent": "xxxxxxxx",
@@ -236,7 +236,7 @@ class SetupService {
         .join('\n');
 
       await fs.writeFile(this.envPath, envContent);
-      
+
       // Reload environment variables
       Object.entries(config).forEach(([key, value]) => {
         process.env[key] = value;

@@ -1,0 +1,42 @@
+.jsonview {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.jsonview .null {
+  color: #ff4444;
+}
+.jsonview .bool {
+  color: #20a0ff;
+}
+.jsonview .num {
+  color: #20a0ff;
+}
+.jsonview .string {
+  color: #00b300;
+}
+.jsonview .collapser {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  text-align: center;
+  line-height: 20px;
+  cursor: pointer;
+}
+.jsonview .collapser:hover {
+  background-color: #f0f0f0;
+}
+.jsonview .collapsible {
+  transition: height 0.2s ease;
+}
+.jsonview .collapsible.collapsed {
+  height: 0;
+  overflow: hidden;
+}
+.jsonview .level1 {
+  padding-left: 20px;
+}
+.jsonview .level2 {
+  padding-left: 40px;
+}
+

@@ -31,32 +31,32 @@ function getCompatibleModel(model) {
         'gpt-4o', 'chatgpt-4o-latest', 'gpt-4o-mini', 'gpt-4o-audio-preview',
         'gpt-4o-audio-preview-2024-12-17', 'gpt-4o-audio-preview-2024-10-01',
         'gpt-4o-mini-audio-preview', 'gpt-4o-mini-audio-preview-2024-12-17',
-        
+
         // GPT-4.1 family
         'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano',
-        
+
         // GPT-3.5 family
         'gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-instruct',
-        
+
         // GPT-4 family
         'gpt-4', 'gpt-4-32k', 'gpt-4-1106-preview', 'gpt-4-0125-preview',
         'gpt-4-turbo-2024-04-09', 'gpt-4-turbo', 'gpt-4-turbo-preview',
-        
+
         // GPT-4.5 family
         'gpt-4.5-preview-2025-02-27', 'gpt-4.5-preview', 'gpt-4.5',
-        
+
         // O-series models
         'o1', 'o1-2024-12-17', 'o1-preview', 'o1-mini', 'o3-mini', 'o3', 'o4-mini',
-        
+
         // Legacy models that tiktoken might support
         'text-davinci-003', 'text-davinci-002'
     ];
-    
+
     // If it's a known OpenAI model, return as-is
     if (openaiModels.some(openaiModel => model.includes(openaiModel))) {
         return model;
     }
-    
+
     // For all other models (Llama, Claude, etc.), return null to use estimation
     return null;
 }
@@ -72,21 +72,21 @@ function estimateTokensForNonOpenAI(text) {
 async function calculateTokens(text, model = process.env.OPENAI_MODEL || "gpt-4o-mini") {
     try {
         const compatibleModel = getCompatibleModel(model);
-        
+
         if (!compatibleModel) {
             // Non-OpenAI model - use character-based estimation
             console.debug(`Using character-based token estimation for model: ${model}`);
             return estimateTokensForNonOpenAI(text);
         }
-        
+
         // OpenAI model - use tiktoken
         const tokenizer = tiktoken.encoding_for_model(compatibleModel);
         const tokens = tokenizer.encode(text);
         const tokenCount = tokens.length;
         tokenizer.free();
-        
+
         return tokenCount;
-        
+
     } catch (error) {
         console.warn(`Tiktoken failed for model ${model}, falling back to character estimation:`, error.message);
         return estimateTokensForNonOpenAI(text);
@@ -118,65 +118,65 @@ async function calculateTotalPromptTokens(systemPrompt, additionalPrompts = [], 
 async function truncateToTokenLimit(text, maxTokens, model = process.env.OPENAI_MODEL || "gpt-4o-mini") {
     try {
         const compatibleModel = getCompatibleModel(model);
-        
+
         if (!compatibleModel) {
             // Non-OpenAI model - use character-based estimation
             console.debug(`Using character-based truncation for model: ${model}`);
-            
+
             const estimatedTokens = estimateTokensForNonOpenAI(text);
-            
+
             if (estimatedTokens <= maxTokens) {
                 return text;
             }
-            
+
             // Truncate based on character estimation (conservative approach)
             const maxChars = maxTokens * 4; // 4 chars per token approximation
             const truncatedText = text.substring(0, maxChars);
-            
+
             // Try to break at a word boundary if possible
             const lastSpaceIndex = truncatedText.lastIndexOf(' ');
             if (lastSpaceIndex > maxChars * 0.8) { // Only if we don't lose too much text
                 return truncatedText.substring(0, lastSpaceIndex);
             }
-            
+
             return truncatedText;
         }
-        
+
         // OpenAI model - use tiktoken
         const tokenizer = tiktoken.encoding_for_model(compatibleModel);
         const tokens = tokenizer.encode(text);
-      
+
         if (tokens.length <= maxTokens) {
             tokenizer.free();
             return text;
         }
-      
+
         const truncatedTokens = tokens.slice(0, maxTokens);
         const truncatedText = tokenizer.decode(truncatedTokens);
         tokenizer.free();
-        
+
         // No need for TextDecoder here, tiktoken.decode() returns a string
         return truncatedText;
-        
+
     } catch (error) {
         console.warn(`Token truncation failed for model ${model}, falling back to character estimation:`, error.message);
-        
+
         // Fallback to character-based estimation
         const estimatedTokens = estimateTokensForNonOpenAI(text);
-        
+
         if (estimatedTokens <= maxTokens) {
             return text;
         }
-        
+
         const maxChars = maxTokens * 4;
         const truncatedText = text.substring(0, maxChars);
-        
+
         // Try to break at a word boundary if possible
         const lastSpaceIndex = truncatedText.lastIndexOf(' ');
         if (lastSpaceIndex > maxChars * 0.8) {
             return truncatedText.substring(0, lastSpaceIndex);
         }
-        
+
         return truncatedText;
     }
 }
@@ -186,7 +186,7 @@ async function writePromptToFile(systemPrompt, truncatedContent, filePath = './l
     try {
         // Ensure the logs directory exists
         await fs.mkdir(path.dirname(filePath), { recursive: true });
-        
+
         // Check file size and manage it
         try {
             const stats = await fs.stat(filePath);
@@ -203,7 +203,7 @@ async function writePromptToFile(systemPrompt, truncatedContent, filePath = './l
         // Write the content with timestamp
         const timestamp = new Date().toISOString();
         const content = `\n=== ${timestamp} ===\nSYSTEM PROMPT:\n${systemPrompt}\n\nUSER CONTENT:\n${truncatedContent}\n\n`;
-        
+
         await fs.appendFile(filePath, content);
     } catch (error) {
         console.error('Error writing to file:', error);
