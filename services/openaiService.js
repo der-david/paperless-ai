@@ -410,8 +410,6 @@ class OpenAIService {
       
       let strippedApiPayload = truncateValues(JSON.parse(JSON.stringify(apiPayload)), 1000);
 
-      throw new Error('INTENTIONAL BREAK!');
-
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           console.log(`[DEBUG] Attempt ${attempt}/${maxRetries}`);
