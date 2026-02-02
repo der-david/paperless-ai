@@ -388,9 +388,26 @@ class OpenAIService {
       let lastError = null;
       const maxRetries = 3;
       
+      let strippedApiPayload = JSON.parse(JSON.stringify(apiPayload));
+      for (let message of apiPayload.messages) {
+        if (!Array.isArray(message.content)) {
+          continue;
+        }
+        for (let part of message.content) {
+          for (let prop in part) {
+            let propValue = String(part[prop]);
+            if (propValue.length > 100) {
+              part[prop] = propValue.substr(0, 100) + '...';
+            }
+          }
+        }
+      }
+
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          console.debug(JSON.stringify(apiPayload, null, 2));
+          console.log(`[DEBUG] Attempt ${attempt}/${maxRetries}`);
+          
+          console.debug(JSON.stringify(strippedApiPayload, null, 2));
           response = await this.client.chat.completions.create(apiPayload);
           
           // Check if response has content
