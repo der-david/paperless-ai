@@ -39,6 +39,7 @@ class OllamaService {
                 },
                 document_type: { type: "string" },
                 document_date: { type: "string" },
+                content: { type: "string" },
                 language: { type: "string" },
                 custom_fields: {
                     type: "object",
@@ -60,6 +61,7 @@ class OllamaService {
                 },
                 document_type: { type: "string" },
                 document_date: { type: "string" },
+                content: { type: "string" },
                 language: { type: "string" }
             },
             required: ["title", "correspondent", "tags", "document_type", "document_date", "language"]

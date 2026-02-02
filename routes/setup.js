@@ -1650,6 +1650,14 @@ async function buildUpdateData(analysis, doc) {
     updateData.title = analysis.document.title || doc.title;
   }
 
+  // Only update content if content update is activated and AI provided content
+  if (config.limitFunctions?.activateContent !== 'no' && typeof analysis.document.content === 'string') {
+    const trimmedContent = analysis.document.content.trim();
+    if (trimmedContent.length > 0) {
+      updateData.content = trimmedContent;
+    }
+  }
+
   // Add created date regardless of settings as it's a core field
   updateData.created = analysis.document.document_date || doc.created;
 
@@ -1739,7 +1747,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process correspondent if correspondent detection is activated
-  if (config.limitFunctions?.activateCorrespondents !== 'no' && analysis.document.correspondent) {
+  if (config.limitFunctions?.activateCorrespondent !== 'no' && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
@@ -3531,6 +3539,24 @@ router.get('/health', async (req, res) => {
  *                 type: boolean
  *                 description: Whether to show tags in the UI
  *                 example: true
+ *               tokenLimit:
+ *                 type: integer
+ *                 description: The maximum number of tokens the AI can handle
+ *                 example: 128000
+ *               responseTokens:
+ *                 type: integer
+ *                 description: The approx. amount of tokens required for the response
+ *                 example: 1000
+ *               contentSourceMode:
+ *                 type: string
+ *                 description: Which document data is sent to the AI for analysis
+ *                 enum: ["content", "raw_document", "both"]
+ *                 example: "content"
+ *               rawDocumentMode:
+ *                 type: string
+ *                 description: How raw document data is sent to the AI
+ *                 enum: ["text", "file", "image"]
+ *                 example: "text"
  *               tags:
  *                 type: string
  *                 description: Comma-separated list of tags to use for filtering
@@ -3567,7 +3593,7 @@ router.get('/health', async (req, res) => {
  *                 type: boolean
  *                 description: Enable AI-based tag suggestions
  *                 example: true
- *               activateCorrespondents:
+ *               activateCorrespondent:
  *                 type: boolean
  *                 description: Enable AI-based correspondent suggestions
  *                 example: true
@@ -3579,6 +3605,10 @@ router.get('/health', async (req, res) => {
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
+ *               activateContent:
+ *                 type: boolean
+ *                 description: Enable AI-based document content updates
+ *                 example: false
  *               activateCustomFields:
  *                 type: boolean
  *                 description: Enable AI-based custom field extraction
@@ -3658,9 +3688,10 @@ router.post('/setup', express.json(), async (req, res) => {
       customBaseUrl,
       customModel,
       activateTagging,
-      activateCorrespondents,
+      activateCorrespondent,
       activateDocumentType,
       activateTitle,
+      activateContent,
       activateCustomFields,
       customFields,
       disableAutomaticProcessing,
@@ -3794,9 +3825,10 @@ router.post('/setup', express.json(), async (req, res) => {
       OPENAI_GIZMO_ID: openaiGizmoId || '',
       PAPERLESS_AI_INITIAL_SETUP: 'yes',
       ACTIVATE_TAGGING: activateTagging ? 'yes' : 'no',
-      ACTIVATE_CORRESPONDENTS: activateCorrespondents ? 'yes' : 'no',
+      ACTIVATE_CORRESPONDENT: activateCorrespondent ? 'yes' : 'no',
       ACTIVATE_DOCUMENT_TYPE: activateDocumentType ? 'yes' : 'no',
       ACTIVATE_TITLE: activateTitle ? 'yes' : 'no',
+      ACTIVATE_CONTENT: activateContent ? 'yes' : 'no',
       ACTIVATE_CUSTOM_FIELDS: activateCustomFields ? 'yes' : 'no',
       CUSTOM_FIELDS: processedCustomFields.length > 0 
         ? JSON.stringify({ custom_fields: processedCustomFields }) 
@@ -3965,6 +3997,11 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 description: Which document data is sent to the AI for analysis
  *                 enum: ["content", "raw_document", "both"]
  *                 example: "content"
+ *               rawDocumentMode:
+ *                 type: string
+ *                 description: How raw document data is sent to the AI
+ *                 enum: ["text", "file", "image"]
+ *                 example: "text"
  *               tags:
  *                 type: string
  *                 description: Comma-separated list of tags to use for filtering
@@ -3993,7 +4030,7 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: boolean
  *                 description: Enable AI-based tag suggestions
  *                 example: true
- *               activateCorrespondents:
+ *               activateCorrespondent:
  *                 type: boolean
  *                 description: Enable AI-based correspondent suggestions
  *                 example: true
@@ -4005,6 +4042,10 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
+ *               activateContent:
+ *                 type: boolean
+ *                 description: Enable AI-based document content updates
+ *                 example: false
  *               activateCustomFields:
  *                 type: boolean
  *                 description: Enable AI-based custom field extraction
@@ -4090,9 +4131,10 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       customBaseUrl,
       customModel,
       activateTagging,
-      activateCorrespondents,
+      activateCorrespondent,
       activateDocumentType,
       activateTitle,
+      activateContent,
       activateCustomFields,
       customFields,  // Added parameter
       disableAutomaticProcessing,
@@ -4148,9 +4190,10 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
       CUSTOM_MODEL: process.env.CUSTOM_MODEL || '',
       ACTIVATE_TAGGING: process.env.ACTIVATE_TAGGING || 'yes',
-      ACTIVATE_CORRESPONDENTS: process.env.ACTIVATE_CORRESPONDENTS || 'yes',
+      ACTIVATE_CORRESPONDENT: process.env.ACTIVATE_CORRESPONDENT || 'yes',
       ACTIVATE_DOCUMENT_TYPE: process.env.ACTIVATE_DOCUMENT_TYPE || 'yes',
       ACTIVATE_TITLE: process.env.ACTIVATE_TITLE || 'yes',
+      ACTIVATE_CONTENT: process.env.ACTIVATE_CONTENT || 'no',
       ACTIVATE_CUSTOM_FIELDS: process.env.ACTIVATE_CUSTOM_FIELDS || 'yes',
       CUSTOM_FIELDS: process.env.CUSTOM_FIELDS || '{"custom_fields":[]}',  // Added default
       DISABLE_AUTOMATIC_PROCESSING: process.env.DISABLE_AUTOMATIC_PROCESSING || 'no',
@@ -4303,9 +4346,10 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
 
       // Handle limit functions
       updatedConfig.ACTIVATE_TAGGING = activateTagging ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_CORRESPONDENTS = activateCorrespondents ? 'yes' : 'no';
+      updatedConfig.ACTIVATE_CORRESPONDENT = activateCorrespondent ? 'yes' : 'no';
       updatedConfig.ACTIVATE_DOCUMENT_TYPE = activateDocumentType ? 'yes' : 'no';
       updatedConfig.ACTIVATE_TITLE = activateTitle ? 'yes' : 'no';
+      updatedConfig.ACTIVATE_CONTENT = activateContent ? 'yes' : 'no';
       updatedConfig.ACTIVATE_CUSTOM_FIELDS = activateCustomFields ? 'yes' : 'no';
       
       // Handle tag and correspondent restrictions

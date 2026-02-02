@@ -821,12 +821,12 @@ function transform(data) {
                                                 </div>
                                                 
                                                 <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-                                                    <label for="activateCorrespondents" class="flex items-center p-4 cursor-pointer w-full">
+                                                    <label for="activateCorrespondent" class="flex items-center p-4 cursor-pointer w-full">
                                                         <input type="checkbox" 
-                                                            id="activateCorrespondents" 
-                                                            name="activateCorrespondents" 
+                                                            id="activateCorrespondent" 
+                                                            name="activateCorrespondent" 
                                                             class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_CORRESPONDENTS === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_CORRESPONDENT === 'yes' ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center text-gray-900 font-medium">
                                                                 <i class="fas fa-user mr-2 text-blue-500"></i>
@@ -867,6 +867,22 @@ function transform(data) {
                                                                 Title Generation
                                                             </div>
                                                             <p class="text-sm text-gray-500 mt-1">Generate meaningful titles for documents</p>
+                                                        </div>
+                                                    </label>
+                                                </div>
+                                                <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+                                                    <label for="activateContent" class="flex items-center p-4 cursor-pointer w-full">
+                                                        <input type="checkbox" 
+                                                            id="activateContent" 
+                                                            name="activateContent" 
+                                                            class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                            <%= config.ACTIVATE_CONTENT === 'yes' ? 'checked' : '' %>>
+                                                        <div class="ml-3">
+                                                            <div class="flex items-center text-gray-900 font-medium">
+                                                                <i class="fas fa-align-left mr-2 text-blue-500"></i>
+                                                                Content Update
+                                                            </div>
+                                                            <p class="text-sm text-gray-500 mt-1">Update document content with the AI-optimized text</p>
                                                         </div>
                                                     </label>
                                                 </div>

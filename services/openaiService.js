@@ -122,6 +122,10 @@ class OpenAIService {
             type: "string",
             description: "The document date in YYYY-MM-DD format"
           },
+          content: {
+            type: "string",
+            description: "Optimized document content (optional)"
+          },
           language: {
             type: "string",
             description: "The language of the document (en/de/es/etc)"

@@ -13,9 +13,10 @@ const parseEnvBoolean = (value, defaultValue = 'yes') => {
 // Initialize limit functions with defaults
 const limitFunctions = {
   activateTagging: parseEnvBoolean(process.env.ACTIVATE_TAGGING, 'yes'),
-  activateCorrespondents: parseEnvBoolean(process.env.ACTIVATE_CORRESPONDENTS, 'yes'),
+  activateCorrespondent: parseEnvBoolean(process.env.ACTIVATE_CORRESPONDENT, 'yes'),
   activateDocumentType: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, 'yes'),
   activateTitle: parseEnvBoolean(process.env.ACTIVATE_TITLE, 'yes'),
+  activateContent: parseEnvBoolean(process.env.ACTIVATE_CONTENT, 'no'),
   activateCustomFields: parseEnvBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, 'yes')
 };
 
@@ -99,9 +100,10 @@ module.exports = {
   // Add limit functions to config
   limitFunctions: {
     activateTagging: limitFunctions.activateTagging,
-    activateCorrespondents: limitFunctions.activateCorrespondents,
+    activateCorrespondent: limitFunctions.activateCorrespondent,
     activateDocumentType: limitFunctions.activateDocumentType,
     activateTitle: limitFunctions.activateTitle,
+    activateContent: limitFunctions.activateContent,
     activateCustomFields: limitFunctions.activateCustomFields
   },
   specialPromptPreDefinedTags: `You are a document analysis AI. You will analyze the document. 
@@ -114,6 +116,7 @@ module.exports = {
   Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
   {
     "title": "xxxxx",
+    "content": "xxxxx",
     "correspondent": "xxxxxxxx",
     "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
     "document_date": "YYYY-MM-DD",
@@ -125,6 +128,7 @@ module.exports = {
   When selecting a document_type, ONLY choose from the provided restricted list if available: %RESTRICTED_DOCUMENT_TYPES%
   {
     "title": "xxxxx",
+    "content": "xxxxx",
     "correspondent": "xxxxxxxx",
     "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
     "document_type": "Invoice/Contract/...",

@@ -283,6 +283,14 @@ async function buildUpdateData(analysis, doc) {
     updateData.title = analysis.document.title || doc.title;
   }
 
+  // Only update content if content update is activated and AI provided content
+  if (config.limitFunctions?.activateContent !== 'no' && typeof analysis.document.content === 'string') {
+    const trimmedContent = analysis.document.content.trim();
+    if (trimmedContent.length > 0) {
+      updateData.content = trimmedContent;
+    }
+  }
+
   // Add created date regardless of settings as it's a core field
   updateData.created = analysis.document.document_date || doc.created;
 
@@ -372,7 +380,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process correspondent if correspondent detection is activated
-  if (config.limitFunctions?.activateCorrespondents !== 'no' && analysis.document.correspondent) {
+  if (config.limitFunctions?.activateCorrespondent !== 'no' && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {

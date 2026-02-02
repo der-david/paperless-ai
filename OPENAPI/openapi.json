@@ -2170,6 +2170,26 @@
                     "description": "Whether to show tags in the UI",
                     "example": true
                   },
+                  "contentSourceMode": {
+                    "type": "string",
+                    "description": "Which document data is sent to the AI for analysis",
+                    "enum": [
+                      "content",
+                      "raw_document",
+                      "both"
+                    ],
+                    "example": "content"
+                  },
+                  "rawDocumentMode": {
+                    "type": "string",
+                    "description": "How raw document data is sent to the AI",
+                    "enum": [
+                      "text",
+                      "file",
+                      "image"
+                    ],
+                    "example": "text"
+                  },
                   "tags": {
                     "type": "string",
                     "description": "Comma-separated list of tags to use for filtering",
@@ -2215,7 +2235,7 @@
                     "description": "Enable AI-based tag suggestions",
                     "example": true
                   },
-                  "activateCorrespondents": {
+                  "activateCorrespondent": {
                     "type": "boolean",
                     "description": "Enable AI-based correspondent suggestions",
                     "example": true
@@ -2229,6 +2249,11 @@
                     "type": "boolean",
                     "description": "Enable AI-based title suggestions",
                     "example": true
+                  },
+                  "activateContent": {
+                    "type": "boolean",
+                    "description": "Enable AI-based document content updates",
+                    "example": false
                   },
                   "activateCustomFields": {
                     "type": "boolean",
@@ -3069,6 +3094,26 @@
                     "description": "The approx. amount of tokens required for the response",
                     "example": 1000
                   },
+                  "contentSourceMode": {
+                    "type": "string",
+                    "description": "Which document data is sent to the AI for analysis",
+                    "enum": [
+                      "content",
+                      "raw_document",
+                      "both"
+                    ],
+                    "example": "content"
+                  },
+                  "rawDocumentMode": {
+                    "type": "string",
+                    "description": "How raw document data is sent to the AI",
+                    "enum": [
+                      "text",
+                      "file",
+                      "image"
+                    ],
+                    "example": "text"
+                  },
                   "tags": {
                     "type": "string",
                     "description": "Comma-separated list of tags to use for filtering",
@@ -3104,7 +3149,7 @@
                     "description": "Enable AI-based tag suggestions",
                     "example": true
                   },
-                  "activateCorrespondents": {
+                  "activateCorrespondent": {
                     "type": "boolean",
                     "description": "Enable AI-based correspondent suggestions",
                     "example": true
@@ -3118,6 +3163,11 @@
                     "type": "boolean",
                     "description": "Enable AI-based title suggestions",
                     "example": true
+                  },
+                  "activateContent": {
+                    "type": "boolean",
+                    "description": "Enable AI-based document content updates",
+                    "example": false
                   },
                   "activateCustomFields": {
                     "type": "boolean",
