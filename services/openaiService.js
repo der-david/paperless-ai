@@ -210,8 +210,6 @@ class OpenAIService {
       // Convert template to string for replacement and wrap in custom_fields
       const customFieldsStr = '"custom_fields": ' + JSON.stringify(responseSchema.properties.custom_fields.properties);
 
-      let 
-
       // Get system prompt and model
       if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
         systemPrompt += `
