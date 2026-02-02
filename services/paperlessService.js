@@ -952,6 +952,21 @@ class PaperlessService {
     }
   }
 
+  async getDocumentFile(documentId, original = true) {
+    this.initialize();
+    try {
+      const response = await this.client.get(`/documents/${documentId}/download`, { original: !!original });
+      return {
+        'content-type': response.headers['content-type'],
+        'size': response.headers['content-length'],
+        'content': response.data
+      };
+    } catch (error) {
+      console.error(`[ERROR] fetching document file ${documentId}:`, error.message);
+      throw error;
+    }
+  }
+
   async searchForCorrespondentById(id) {
     try {
       const response = await this.client.get('/correspondents/', {
