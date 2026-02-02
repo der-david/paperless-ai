@@ -261,7 +261,7 @@ class OpenAIService {
       // Replace %JSON_SCHEMA% placeholder
       // can be used if OpenAI-Middleware does not support response_format
       if (systemPrompt.includes('%JSON_SCHEMA%')) {
-        systemPrompt = systemPrompt.replace(/%JSON_SCHEMA%/g, '\n```json\nJSON.stringify(responseSchema, null, 2))\n```\n';
+        systemPrompt = systemPrompt.replace(/%JSON_SCHEMA%/g, '\n```json\n' + JSON.stringify(responseSchema, null, 2) + '\n```\n');
       } else {
         systemPrompt = systemPrompt + '\n\n' + config.mustHavePrompt;
       }
