@@ -2,6 +2,28 @@ const tiktoken = require('tiktoken');
 const fs = require('fs').promises;
 const path = require('path');
 
+function truncateValues(obj, maxLen) {
+  if (obj == null) return obj;
+
+  if (typeof obj === 'string') {
+    return obj.length > maxLen ? obj.slice(0, maxLen) : obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => truncateValues(item, maxLen));
+  }
+
+  if (typeof obj === 'object') {
+    const out = {};
+    for (const [key, value] of Object.entries(obj)) {
+      out[key] = truncateValues(value, maxLen);
+    }
+    return out;
+  }
+
+  return obj; // numbers, booleans, functions, etc.
+}
+
 // Map non-OpenAI models to compatible OpenAI encodings or use estimation
 function getCompatibleModel(model) {
     const openaiModels = [
@@ -189,6 +211,7 @@ async function writePromptToFile(systemPrompt, truncatedContent, filePath = './l
 }
 
 module.exports = {
+    truncateValues,
     calculateTokens,
     calculateTotalPromptTokens,
     truncateToTokenLimit,

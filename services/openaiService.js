@@ -1,4 +1,5 @@
 const {
+  truncateValues,
   calculateTokens,
   calculateTotalPromptTokens,
   truncateToTokenLimit,
@@ -388,20 +389,7 @@ class OpenAIService {
       let lastError = null;
       const maxRetries = 3;
       
-      let strippedApiPayload = JSON.parse(JSON.stringify(apiPayload));
-      for (let message of apiPayload.messages) {
-        if (!Array.isArray(message.content)) {
-          continue;
-        }
-        for (let part of message.content) {
-          for (let prop in part) {
-            let propValue = String(part[prop]);
-            if (propValue.length > 100) {
-              part[prop] = propValue.substring(0, 99) + '...';
-            }
-          }
-        }
-      }
+      let strippedApiPayload = truncateValues(JSON.parse(JSON.stringify(apiPayload)));
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
