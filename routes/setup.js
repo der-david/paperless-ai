@@ -1567,13 +1567,15 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     paperlessService.getDocument(doc.id)
   ]);
 
-  if (!content || !content.length >= 10) {
-    console.log(`[DEBUG] Document ${doc.id} has no content, skipping analysis`);
-    return null;
-  }
+  if ((config.contentSourceMode || 'content') === 'content') {
+    if (!content || content.length < 10) {
+      console.log(`[DEBUG] Document ${doc.id} has no content, skipping analysis`);
+      return null;
+    }
 
-  if (content.length > 50000) {
-    content = content.substring(0, 50000);
+    if (content.length > 50000) {
+      content = content.substring(0, 50000);
+    }
   }
 
   // Prepare options for AI service
@@ -1924,6 +1926,8 @@ router.get('/setup', async (req, res) => {
       PROCESS_PREDEFINED_DOCUMENTS: process.env.PROCESS_PREDEFINED_DOCUMENTS || 'no',
       TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
       RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
+      CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
+      RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
       TAGS: normalizeArray(process.env.TAGS),
       ADD_AI_PROCESSED_TAG: process.env.ADD_AI_PROCESSED_TAG || 'no',
       AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
@@ -2725,6 +2729,8 @@ router.get('/settings', authenticateUI, async (req, res) => {
     
     TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
     RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
+    CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
+    RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
     TAGS: normalizeArray(process.env.TAGS),
     ADD_AI_PROCESSED_TAG: process.env.ADD_AI_PROCESSED_TAG || 'no',
     AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
@@ -3638,6 +3644,8 @@ router.post('/setup', express.json(), async (req, res) => {
       showTags,
       tokenLimit,
       responseTokens,
+      contentSourceMode,
+      rawDocumentMode,
       tags,
       aiProcessedTag,
       aiTagName,
@@ -3661,6 +3669,19 @@ router.post('/setup', express.json(), async (req, res) => {
       azureDeploymentName,
       azureApiVersion
     } = req.body;
+
+    const allowedContentSourceModes = new Set(['content', 'raw_document', 'both']);
+    if (contentSourceMode && !allowedContentSourceModes.has(contentSourceMode)) {
+      return res.status(400).json({
+        error: 'Invalid content source mode. Must be one of: content, raw_document, both.'
+      });
+    }
+    const allowedRawDocumentModes = new Set(['text', 'file', 'image']);
+    if (rawDocumentMode && !allowedRawDocumentModes.has(rawDocumentMode)) {
+      return res.status(400).json({
+        error: 'Invalid raw document mode. Must be one of: text, file, image.'
+      });
+    }
 
     // Log setup request with sensitive data redacted
     const sensitiveKeys = ['paperlessToken', 'openaiKey', 'customApiKey', 'password', 'confirmPassword'];
@@ -3757,6 +3778,8 @@ router.post('/setup', express.json(), async (req, res) => {
       PROCESS_PREDEFINED_DOCUMENTS: showTags || 'no',
       TOKEN_LIMIT: tokenLimit || 128000,
       RESPONSE_TOKENS: responseTokens || 1000,
+      CONTENT_SOURCE_MODE: contentSourceMode || 'content',
+      RAW_DOCUMENT_MODE: rawDocumentMode || 'text',
       TAGS: normalizeArray(tags),
       ADD_AI_PROCESSED_TAG: aiProcessedTag || 'no',
       AI_PROCESSED_TAG_NAME: aiTagName || 'ai-processed',
@@ -3937,6 +3960,11 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: integer
  *                 description: The approx. amount of tokens required for the response
  *                 example: 1000
+ *               contentSourceMode:
+ *                 type: string
+ *                 description: Which document data is sent to the AI for analysis
+ *                 enum: ["content", "raw_document", "both"]
+ *                 example: "content"
  *               tags:
  *                 type: string
  *                 description: Comma-separated list of tags to use for filtering
@@ -4049,6 +4077,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       showTags,
       tokenLimit,
       responseTokens,
+      contentSourceMode,
+      rawDocumentMode,
       tags,
       aiProcessedTag,
       aiTagName,
@@ -4077,6 +4107,18 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       ? systemPrompt.replace(/\r\n/g, '\n').replace(/=/g, '')
       : '';
 
+    const allowedContentSourceModes = new Set(['content', 'raw_document', 'both']);
+    if (contentSourceMode && !allowedContentSourceModes.has(contentSourceMode)) {
+      return res.status(400).json({
+        error: 'Invalid content source mode. Must be one of: content, raw_document, both.'
+      });
+    }
+    const allowedRawDocumentModes = new Set(['text', 'file', 'image']);
+    if (rawDocumentMode && !allowedRawDocumentModes.has(rawDocumentMode)) {
+      return res.status(400).json({
+        error: 'Invalid raw document mode. Must be one of: text, file, image.'
+      });
+    }
 
     const currentConfig = {
       PAPERLESS_API_URL: process.env.PAPERLESS_API_URL || '',
@@ -4086,6 +4128,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
       OPENAI_MODEL: process.env.OPENAI_MODEL || '',
       OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
+      CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
+      RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
       OLLAMA_API_URL: process.env.OLLAMA_API_URL || '',
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || '',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
@@ -4237,6 +4281,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     if (showTags) updatedConfig.PROCESS_PREDEFINED_DOCUMENTS = showTags;
     if (tokenLimit) updatedConfig.TOKEN_LIMIT = tokenLimit;
     if (responseTokens) updatedConfig.RESPONSE_TOKENS = responseTokens;
+    if (contentSourceMode) updatedConfig.CONTENT_SOURCE_MODE = contentSourceMode;
+    if (rawDocumentMode) updatedConfig.RAW_DOCUMENT_MODE = rawDocumentMode;
     if (tags !== undefined) updatedConfig.TAGS = normalizeArray(tags);
     if (aiProcessedTag) updatedConfig.ADD_AI_PROCESSED_TAG = aiProcessedTag;
     if (aiTagName) updatedConfig.AI_PROCESSED_TAG_NAME = aiTagName;

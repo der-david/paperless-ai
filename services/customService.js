@@ -163,7 +163,46 @@ class CustomOpenAIService {
       console.log(`[DEBUG] Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
       console.log(`[DEBUG] External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
 
-      const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
+      const contentSourceMode = config.contentSourceMode || 'content';
+      const includeContent = contentSourceMode === 'content' || contentSourceMode === 'both';
+      const includeRaw = contentSourceMode === 'raw_document' || contentSourceMode === 'both';
+
+      let rawDocText = '';
+      let rawDocTokens = 0;
+      let rawDocBase64 = '';
+      let rawDocContentType = 'application/octet-stream';
+      if (includeRaw) {
+        const rawDoc = await paperlessService.getDocumentFile(id, true);
+        const rawBuffer = Buffer.isBuffer(rawDoc.content)
+          ? rawDoc.content
+          : Buffer.from(rawDoc.content, 'binary');
+        rawDocBase64 = rawBuffer.toString('base64');
+        rawDocContentType = rawDoc['content-type'] || 'application/octet-stream';
+        const rawMeta = `RAW_DOCUMENT_BASE64 (content-type: ${rawDocContentType}, size: ${rawDoc.size || rawBuffer.length} bytes):\n`;
+        rawDocText = `${rawMeta}${rawDocBase64}`;
+        rawDocTokens = await calculateTokens(
+          (config.rawDocumentMode || 'text') === 'text' ? rawDocText : rawDocBase64,
+          model
+        );
+      }
+
+      let availableTokensForContent = availableTokens;
+      if (includeRaw) {
+        if (!includeContent && rawDocTokens > availableTokens) {
+          throw new Error('Token limit exceeded: raw document is too large for the configured token limit');
+        }
+        if (includeContent) {
+          availableTokensForContent = availableTokens - rawDocTokens;
+          if (availableTokensForContent <= 0) {
+            throw new Error('Token limit exceeded: raw document leaves no room for content');
+          }
+        }
+      }
+
+      let truncatedContent = '';
+      if (includeContent) {
+        truncatedContent = await truncateToTokenLimit(content, availableTokensForContent, model);
+      }
 
       // Build response schema with enum constraints for tags and document types
       // First, build the base enum list for document types (all available types plus null)
@@ -236,6 +275,40 @@ class CustomOpenAIService {
         console.log(`[DEBUG] Document type enum set with all ${allDocTypesList.length} available types`);
       }
 
+      const rawDocumentMode = config.rawDocumentMode || 'text';
+      let rawPart = null;
+      if (includeRaw) {
+        if (rawDocumentMode === 'file') {
+          rawPart = {
+            type: "file",
+            file: {
+              filename: `document_${id}`,
+              file_data: rawDocBase64
+            }
+          };
+        } else if (rawDocumentMode === 'image') {
+          rawPart = {
+            type: "image_url",
+            image_url: {
+              url: `data:${rawDocContentType};base64,${rawDocBase64}`
+            }
+          };
+        } else {
+          rawPart = { type: "text", text: rawDocText };
+        }
+      }
+
+      const userContentParts = [];
+      if (includeContent) {
+        userContentParts.push({ type: "text", text: truncatedContent });
+      }
+      if (rawPart) {
+        userContentParts.push(rawPart);
+      }
+      const userContent = userContentParts.length === 1 && userContentParts[0].type === 'text'
+        ? userContentParts[0].text
+        : userContentParts;
+
       const apiPayload = {
         model: model,
         messages: [
@@ -245,7 +318,7 @@ class CustomOpenAIService {
           },
           {
             role: "user",
-            content: truncatedContent
+            content: userContent
           }
         ],
         temperature: 0.3,

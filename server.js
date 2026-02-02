@@ -200,13 +200,15 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     paperlessService.getDocument(doc.id)
   ]);
 
-  if (!content || !content.length >= 10) {
-    console.log(`[DEBUG] Document ${doc.id} has no content, skipping analysis`);
-    return null;
-  }
+  if ((config.contentSourceMode || 'content') === 'content') {
+    if (!content || content.length < 10) {
+      console.log(`[DEBUG] Document ${doc.id} has no content, skipping analysis`);
+      return null;
+    }
 
-  if (content.length > 50000) {
-    content = content.substring(0, 50000);
+    if (content.length > 50000) {
+      content = content.substring(0, 50000);
+    }
   }
 
   // Prepare options for AI service

@@ -385,6 +385,28 @@
                                                class="modern-input"
                                                placeholder="Enter approximate token amount for the response">
                                     </div>
+
+                                    <div class="form-group">
+                                        <label for="contentSourceMode">Content Source Mode</label>
+                                        <select id="contentSourceMode" 
+                                                name="contentSourceMode"
+                                                class="modern-input">
+                                            <option value="content" <%= config.CONTENT_SOURCE_MODE === 'content' ? 'selected' : '' %>>Content only (default)</option>
+                                            <option value="raw_document" <%= config.CONTENT_SOURCE_MODE === 'raw_document' ? 'selected' : '' %>>Raw document only</option>
+                                            <option value="both" <%= config.CONTENT_SOURCE_MODE === 'both' ? 'selected' : '' %>>Both</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="rawDocumentMode">Raw Document Mode</label>
+                                        <select id="rawDocumentMode" 
+                                                name="rawDocumentMode"
+                                                class="modern-input">
+                                            <option value="text" <%= config.RAW_DOCUMENT_MODE === 'text' ? 'selected' : '' %>>Text (base64)</option>
+                                            <option value="file" <%= config.RAW_DOCUMENT_MODE === 'file' ? 'selected' : '' %>>File</option>
+                                            <option value="image" <%= config.RAW_DOCUMENT_MODE === 'image' ? 'selected' : '' %>>Image</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </section>
                         </div>

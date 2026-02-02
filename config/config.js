@@ -58,6 +58,8 @@ module.exports = {
   predefinedMode: process.env.PROCESS_PREDEFINED_DOCUMENTS,
   tokenLimit: process.env.TOKEN_LIMIT || 128000,
   responseTokens: process.env.RESPONSE_TOKENS || 1000,
+  contentSourceMode: process.env.CONTENT_SOURCE_MODE || 'content',
+  rawDocumentMode: process.env.RAW_DOCUMENT_MODE || 'text',
   addAIProcessedTag: process.env.ADD_AI_PROCESSED_TAG || 'no',
   addAIProcessedTags: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
   // AI restrictions config

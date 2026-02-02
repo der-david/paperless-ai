@@ -80,6 +80,20 @@ class OllamaService {
             // Truncate content if needed
             content = this._truncateContent(content);
 
+            const contentSourceMode = config.contentSourceMode || 'content';
+            if (contentSourceMode === 'raw_document' || contentSourceMode === 'both') {
+                const rawDoc = await paperlessService.getDocumentFile(id, true);
+                const rawBuffer = Buffer.isBuffer(rawDoc.content)
+                    ? rawDoc.content
+                    : Buffer.from(rawDoc.content, 'binary');
+                const rawBase64 = rawBuffer.toString('base64');
+                const rawMeta = `RAW_DOCUMENT_BASE64 (content-type: ${rawDoc['content-type'] || 'application/octet-stream'}, size: ${rawDoc.size || rawBuffer.length} bytes):\n`;
+                const rawDocText = `${rawMeta}${rawBase64}`;
+                content = contentSourceMode === 'raw_document'
+                    ? rawDocText
+                    : `${content}\n\n${rawDocText}`;
+            }
+
             // Cache thumbnail
             await this._handleThumbnailCaching(id);
 
