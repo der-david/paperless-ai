@@ -955,7 +955,7 @@ class PaperlessService {
   async getDocumentFile(documentId, original = true) {
     this.initialize();
     try {
-      const response = await this.client.get(`/documents/${documentId}/download`, {
+      const response = await this.client.get(`/documents/${documentId}/download/`, {
         params: { original: !!original },
         responseType: 'arraybuffer'
       });
