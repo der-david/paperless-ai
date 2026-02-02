@@ -45,7 +45,7 @@ class PaperlessService {
         console.log('[ERROR] status:', error.response.status);
         console.log('[ERROR] headers:', error.response.headers);
       }
-      return null; // Behalten Sie das return null bei, damit der Prozess weiterlaufen kann
+      return null;
     }
   }
 
@@ -959,13 +959,23 @@ class PaperlessService {
         params: { original: !!original },
         responseType: 'arraybuffer'
       });
-      return {
-        'content-type': response.headers['content-type'],
-        'size': response.headers['content-length'],
-        'content': response.data
-      };
+
+      if (response.data && response.data.byteLength > 0) {      
+        return {
+          'content-type': response.headers['content-type'],
+          'size': response.headers['content-length'],
+          'content': Buffer.from(response.data)
+        }
+      }
+      
+      console.error(`[DEBUG] No file data for document ${documentId}`);
+      throw `No file data for document ${documentId}`;
     } catch (error) {
       console.error(`[ERROR] fetching document file ${documentId}:`, error.message);
+      if (error.response) {
+        console.debug('[ERROR] status:', error.response.status);
+        console.debug('[ERROR] headers:', error.response.headers);
+      }
       throw error;
     }
   }
