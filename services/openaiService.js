@@ -45,6 +45,7 @@ class OpenAIService {
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
       
+      const envSystemPrompt = process.env.SYSTEM_PROMPT.replace(/\\n/g, /\n/);
       let systemPrompt = '';
       let promptTags = '';
       const baseModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
@@ -209,16 +210,18 @@ class OpenAIService {
       // Convert template to string for replacement and wrap in custom_fields
       const customFieldsStr = '"custom_fields": ' + JSON.stringify(responseSchema.properties.custom_fields.properties);
 
+      let 
+
       // Get system prompt and model
       if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
         systemPrompt += `
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
         Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
-        ` + process.env.SYSTEM_PROMPT;
+        ` + envSystemPrompt;
         promptTags = '';
       } else {
-        systemPrompt += process.env.SYSTEM_PROMPT;
+        systemPrompt += envSystemPrompt;
         promptTags = '';
       }
       console.log(1);
