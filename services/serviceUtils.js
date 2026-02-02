@@ -75,7 +75,7 @@ async function calculateTokens(text, model = process.env.OPENAI_MODEL || "gpt-4o
         
         if (!compatibleModel) {
             // Non-OpenAI model - use character-based estimation
-            console.log(`[DEBUG] Using character-based token estimation for model: ${model}`);
+            console.debug(`Using character-based token estimation for model: ${model}`);
             return estimateTokensForNonOpenAI(text);
         }
         
@@ -88,7 +88,7 @@ async function calculateTokens(text, model = process.env.OPENAI_MODEL || "gpt-4o
         return tokenCount;
         
     } catch (error) {
-        console.warn(`[WARNING] Tiktoken failed for model ${model}, falling back to character estimation:`, error.message);
+        console.warn(`Tiktoken failed for model ${model}, falling back to character estimation:`, error.message);
         return estimateTokensForNonOpenAI(text);
     }
 }
@@ -121,7 +121,7 @@ async function truncateToTokenLimit(text, maxTokens, model = process.env.OPENAI_
         
         if (!compatibleModel) {
             // Non-OpenAI model - use character-based estimation
-            console.log(`[DEBUG] Using character-based truncation for model: ${model}`);
+            console.debug(`Using character-based truncation for model: ${model}`);
             
             const estimatedTokens = estimateTokensForNonOpenAI(text);
             
@@ -159,7 +159,7 @@ async function truncateToTokenLimit(text, maxTokens, model = process.env.OPENAI_
         return truncatedText;
         
     } catch (error) {
-        console.warn(`[WARNING] Token truncation failed for model ${model}, falling back to character estimation:`, error.message);
+        console.warn(`Token truncation failed for model ${model}, falling back to character estimation:`, error.message);
         
         // Fallback to character-based estimation
         const estimatedTokens = estimateTokensForNonOpenAI(text);
@@ -192,11 +192,11 @@ async function writePromptToFile(systemPrompt, truncatedContent, filePath = './l
             const stats = await fs.stat(filePath);
             if (stats.size > maxSize) {
                 await fs.unlink(filePath); // Delete the file if it exceeds max size
-                console.log(`[DEBUG] Cleared log file ${filePath} due to size limit`);
+                console.debug(`Cleared log file ${filePath} due to size limit`);
             }
         } catch (error) {
             if (error.code !== 'ENOENT') {
-                console.warn('[WARNING] Error checking file size:', error);
+                console.warn('Error checking file size:', error);
             }
         }
 
@@ -206,7 +206,7 @@ async function writePromptToFile(systemPrompt, truncatedContent, filePath = './l
         
         await fs.appendFile(filePath, content);
     } catch (error) {
-        console.error('[ERROR] Error writing to file:', error);
+        console.error('Error writing to file:', error);
     }
 }
 

@@ -76,7 +76,7 @@ class SetupService {
         });
         const now = new Date();
         const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
-        console.log(`[DEBUG] [${timestamp}] OpenAI request sent`);
+        console.debug(`[${timestamp}] OpenAI request sent`);
         return response.choices && response.choices.length > 0;
       } catch (error) {
         console.error('OpenAI validation error:', error.message);
@@ -140,7 +140,7 @@ class SetupService {
         });
         const now = new Date();
         const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
-        console.log(`[DEBUG] [${timestamp}] OpenAI request sent`);
+        console.debug(`[${timestamp}] OpenAI request sent`);
         return response.choices && response.choices.length > 0;
       } catch (error) {
         console.error('OpenAI validation error:', error.message);

@@ -13,7 +13,7 @@ class ExternalApiService {
     try {
       // Check if external API integration is enabled
       if (!config.externalApiConfig || config.externalApiConfig.enabled !== 'yes') {
-        console.log('[DEBUG] External API integration is disabled');
+        console.debug('External API integration is disabled');
         return null;
       }
 
@@ -27,11 +27,11 @@ class ExternalApiService {
       } = config.externalApiConfig;
 
       if (!url) {
-        console.error('[ERROR] External API URL not configured');
+        console.error('External API URL not configured');
         return null;
       }
 
-      console.log(`[DEBUG] Fetching data from external API: ${url}`);
+      console.debug(`Fetching data from external API: ${url}`);
 
       // Parse headers if they're a string
       let parsedHeaders = headers;
@@ -39,7 +39,7 @@ class ExternalApiService {
         try {
           parsedHeaders = JSON.parse(headers);
         } catch (error) {
-          console.error('[ERROR] Failed to parse external API headers:', error.message);
+          console.error('Failed to parse external API headers:', error.message);
           parsedHeaders = {};
         }
       }
@@ -50,7 +50,7 @@ class ExternalApiService {
         try {
           parsedBody = JSON.parse(body);
         } catch (error) {
-          console.error('[ERROR] Failed to parse external API body:', error.message);
+          console.error('Failed to parse external API body:', error.message);
           parsedBody = {};
         }
       }
@@ -78,17 +78,17 @@ class ExternalApiService {
           // Create a safe transform function
           const transformFn = new Function('data', transform);
           data = transformFn(data);
-          console.log('[DEBUG] Successfully transformed external API data');
+          console.debug('Successfully transformed external API data');
         } catch (error) {
-          console.error('[ERROR] Failed to execute transform function:', error.message);
+          console.error('Failed to execute transform function:', error.message);
         }
       }
 
       return data;
     } catch (error) {
-      console.error('[ERROR] Failed to fetch data from external API:', error.message);
+      console.error('Failed to fetch data from external API:', error.message);
       if (error.response) {
-        console.error('[ERROR] API Response:', error.response.status, error.response.data);
+        console.error('API Response:', error.response.status, error.response.data);
       }
       return null;
     }

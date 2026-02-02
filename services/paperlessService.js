@@ -37,13 +37,13 @@ class PaperlessService {
         return Buffer.from(response.data);
       }
       
-      console.warn(`[DEBUG] No thumbnail data for document ${documentId}`);
+      console.debug(`No thumbnail data for document ${documentId}`);
       return null;
     } catch (error) {
-      console.error(`[ERROR] fetching thumbnail for document ${documentId}:`, error.message);
+      console.error(`fetching thumbnail for document ${documentId}:`, error.message);
       if (error.response) {
-        console.log('[ERROR] status:', error.response.status);
-        console.log('[ERROR] headers:', error.response.headers);
+        console.error('status:', error.response.status);
+        console.error('headers:', error.response.headers);
       }
       return null;
     }
@@ -61,7 +61,7 @@ class PaperlessService {
   // Lädt alle existierenden Tags
   async refreshTagCache() {
       try {
-        console.log('[DEBUG] Refreshing tag cache...');
+        console.debug('Refreshing tag cache...');
         this.tagCache.clear();
         let nextUrl = '/tags/';
         while (nextUrl) {
@@ -69,7 +69,7 @@ class PaperlessService {
 
           // Validate response structure
           if (!response?.data?.results) {
-            console.error('[ERROR] Invalid response structure from API:', response?.data);
+            console.error('Invalid response structure from API:', response?.data);
             break;
           }
 
@@ -95,9 +95,9 @@ class PaperlessService {
               }
 
               nextUrl = relativePath + nextUrlObj.search;
-              console.log('[DEBUG] Next page URL:', nextUrl);
+              console.debug('Next page URL:', nextUrl);
             } catch (e) {
-              console.error('[ERROR] Failed to parse next URL:', e.message);
+              console.error('Failed to parse next URL:', e.message);
               nextUrl = null;
             }
           } else {
@@ -105,9 +105,9 @@ class PaperlessService {
           }
         }
         this.lastTagRefresh = Date.now();
-        console.log(`[DEBUG] Tag cache refreshed. Found ${this.tagCache.size} tags.`);
+        console.debug(`Tag cache refreshed. Found ${this.tagCache.size} tags.`);
       } catch (error) {
-        console.error('[ERROR] refreshing tag cache:', error.message);
+        console.error('refreshing tag cache:', error.message);
         throw error;
       }
     }
@@ -126,7 +126,7 @@ class PaperlessService {
       await this.client.get('/');
       return true;
     } catch (error) {
-      console.error('[ERROR] Failed to initialize with credentials:', error.message);
+      console.error('Failed to initialize with credentials:', error.message);
       this.client = null;
       return false;
     }
@@ -143,7 +143,7 @@ class PaperlessService {
         }
       });
       const newField = response.data;
-      console.log(`[DEBUG] Successfully created custom field "${fieldName}" with ID ${newField.id}`);
+      console.debug(`Successfully created custom field "${fieldName}" with ID ${newField.id}`);
       this.customFieldCache.set(fieldName.toLowerCase(), newField);
       return newField;
     } catch (error) { 
@@ -161,10 +161,10 @@ class PaperlessService {
   async getExistingCustomFields(documentId) {
     try {
       const response = await this.client.get(`/documents/${documentId}/`);
-      console.log('[DEBUG] Document response custom fields:', response.data.custom_fields);
+      console.debug('Document response custom fields:', response.data.custom_fields);
       return response.data.custom_fields || [];
     } catch (error) {
-      console.error(`[ERROR] fetching document ${documentId}:`, error.message);
+      console.error(`fetching document ${documentId}:`, error.message);
       return [];
     }
   }
@@ -174,7 +174,7 @@ class PaperlessService {
     
     const cachedField = this.customFieldCache.get(normalizedName);
     if (cachedField) {
-      console.log(`[DEBUG] Found custom field "${fieldName}" in cache with ID ${cachedField.id}`);
+      console.debug(`Found custom field "${fieldName}" in cache with ID ${cachedField.id}`);
       return cachedField;
     }
 
@@ -187,12 +187,12 @@ class PaperlessService {
 
       if (response.data.results.length > 0) {
         const foundField = response.data.results[0];
-        console.log(`[DEBUG] Found existing custom field "${fieldName}" via API with ID ${foundField.id}`);
+        console.debug(`Found existing custom field "${fieldName}" via API with ID ${foundField.id}`);
         this.customFieldCache.set(normalizedName, foundField);
         return foundField;
       }
     } catch (error) {
-      console.warn(`[ERROR] searching for custom field "${fieldName}":`, error.message);
+      console.error(`searching for custom field "${fieldName}":`, error.message);
     }
 
     return null;
@@ -200,7 +200,7 @@ class PaperlessService {
 
   async refreshCustomFieldCache() {
       try {
-        console.log('[DEBUG] Refreshing custom field cache...');
+        console.debug('Refreshing custom field cache...');
         this.customFieldCache.clear();
         let nextUrl = '/custom_fields/';
         while (nextUrl) {
@@ -208,7 +208,7 @@ class PaperlessService {
 
           // Validate response structure
           if (!response?.data?.results) {
-            console.error('[ERROR] Invalid response structure from API:', response?.data);
+            console.error('Invalid response structure from API:', response?.data);
             break;
           }
 
@@ -234,9 +234,9 @@ class PaperlessService {
               }
 
               nextUrl = relativePath + nextUrlObj.search;
-              console.log('[DEBUG] Next page URL:', nextUrl);
+              console.debug('Next page URL:', nextUrl);
             } catch (e) {
-              console.error('[ERROR] Failed to parse next URL:', e.message);
+              console.error('Failed to parse next URL:', e.message);
               nextUrl = null;
             }
           } else {
@@ -244,9 +244,9 @@ class PaperlessService {
           }
         }
         this.lastCustomFieldRefresh = Date.now();
-        console.log(`[DEBUG] Custom field cache refreshed. Found ${this.customFieldCache.size} fields.`);
+        console.debug(`Custom field cache refreshed. Found ${this.customFieldCache.size} fields.`);
       } catch (error) {
-        console.error('[ERROR] refreshing custom field cache:', error.message);
+        console.error('refreshing custom field cache:', error.message);
         throw error;
       }
     }
@@ -258,7 +258,7 @@ class PaperlessService {
     // 1. Zuerst im Cache suchen
     const cachedTag = this.tagCache.get(normalizedName);
     if (cachedTag) {
-      console.log(`[DEBUG] Found tag "${tagName}" in cache with ID ${cachedTag.id}`);
+      console.debug(`Found tag "${tagName}" in cache with ID ${cachedTag.id}`);
       return cachedTag;
     }
 
@@ -272,12 +272,12 @@ class PaperlessService {
 
       if (response.data.results.length > 0) {
         const foundTag = response.data.results[0];
-        console.log(`[DEBUG] Found existing tag "${tagName}" via API with ID ${foundTag.id}`);
+        console.debug(`Found existing tag "${tagName}" via API with ID ${foundTag.id}`);
         this.tagCache.set(normalizedName, foundTag);
         return foundTag;
       }
     } catch (error) {
-      console.warn(`[ERROR] searching for tag "${tagName}":`, error.message);
+      console.error(`searching for tag "${tagName}":`, error.message);
     }
 
     return null;
@@ -290,7 +290,7 @@ class PaperlessService {
       // Versuche zuerst, den Tag zu erstellen
       const response = await this.client.post('/tags/', { name: tagName });
       const newTag = response.data;
-      console.log(`[DEBUG] Successfully created tag "${tagName}" with ID ${newTag.id}`);
+      console.debug(`Successfully created tag "${tagName}" with ID ${newTag.id}`);
       this.tagCache.set(normalizedName, newTag);
       return newTag;
     } catch (error) {
@@ -322,7 +322,7 @@ class PaperlessService {
       
       // Input validation
       if (!tagNames) {
-        console.warn('[DEBUG] No tags provided to processTags');
+        console.debug('No tags provided to processTags');
         return { tagIds: [], errors: [] };
       }
 
@@ -334,7 +334,7 @@ class PaperlessService {
           : [];
 
       if (tagsArray.length === 0) {
-        console.warn('[DEBUG] No valid tags to process');
+        console.debug('No valid tags to process');
         return { tagIds: [], errors: [] };
       }
   
@@ -342,12 +342,12 @@ class PaperlessService {
       const errors = [];
       const processedTags = new Set(); // Prevent duplicates
       
-      console.log(`[DEBUG] Processing tags with restrictToExistingTags=${restrictToExistingTags}`);
+      console.debug(`Processing tags with restrictToExistingTags=${restrictToExistingTags}`);
   
       // Process regular tags
       for (const tagName of tagsArray) {
         if (!tagName || typeof tagName !== 'string') {
-          console.warn(`[DEBUG] Skipping invalid tag name: ${tagName}`);
+          console.debug(`Skipping invalid tag name: ${tagName}`);
           errors.push({ tagName, error: 'Invalid tag name' });
           continue;
         }
@@ -367,7 +367,7 @@ class PaperlessService {
           if (!tag && !restrictToExistingTags) {
             tag = await this.createTagSafely(tagName);
           } else if (!tag && restrictToExistingTags) {
-            console.log(`[DEBUG] Tag "${tagName}" does not exist and restrictions are enabled, skipping`);
+            console.debug(`Tag "${tagName}" does not exist and restrictions are enabled, skipping`);
             errors.push({ tagName, error: 'Tag does not exist and restrictions are enabled' });
             continue;
           }
@@ -378,7 +378,7 @@ class PaperlessService {
           }
   
         } catch (error) {
-          console.error(`[ERROR] processing tag "${tagName}":`, error.message);
+          console.error(`processing tag "${tagName}":`, error.message);
           errors.push({ tagName, error: error.message });
         }
       }
@@ -397,7 +397,7 @@ class PaperlessService {
             tagIds.push(aiTag.id);
           }
         } catch (error) {
-          console.error(`[ERROR] processing AI tag "${process.env.AI_PROCESSED_TAG_NAME}":`, error.message);
+          console.error(`processing AI tag "${process.env.AI_PROCESSED_TAG_NAME}":`, error.message);
           errors.push({ tagName: process.env.AI_PROCESSED_TAG_NAME, error: error.message });
         }
       }
@@ -407,7 +407,7 @@ class PaperlessService {
         errors 
       };      
     } catch (error) {
-      console.error('[ERROR] in processTags:', error);
+      console.error('in processTags:', error);
       throw new Error(`[ERROR] Failed to process tags: ${error.message}`);
     }
   }
@@ -415,7 +415,7 @@ class PaperlessService {
   async getTags() {
     this.initialize();
     if (!this.client) {
-      console.error('[DEBUG] Client not initialized');
+      console.debug('Client not initialized');
       return [];
     }
 
@@ -434,7 +434,7 @@ class PaperlessService {
         const response = await this.client.get('/tags/', { params });
         
         if (!response?.data?.results || !Array.isArray(response.data.results)) {
-          console.error(`[DEBUG] Invalid API response on page ${page}`);
+          console.debug(`Invalid API response on page ${page}`);
           break;
         }
 
@@ -451,10 +451,10 @@ class PaperlessService {
         await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (error) {
-        console.error(`[ERRRO] fetching tags page ${page}:`, error.message);
+        console.error(`fetching tags page ${page}:`, error.message);
         if (error.response) {
-          console.error('[DEBUG] Response status:', error.response.status);
-          console.error('[DEBUG] Response data:', error.response.data);
+          console.debug('Response status:', error.response.status);
+          console.debug('Response data:', error.response.data);
         }
         break;
       }
@@ -471,7 +471,7 @@ class PaperlessService {
       });
       return response.data.count;
     } catch (error) {
-      console.error('[ERROR] fetching tag count:', error.message);
+      console.error('fetching tag count:', error.message);
       return 0;
     }
   }
@@ -484,7 +484,7 @@ class PaperlessService {
       });
       return response.data.count;
     } catch (error) {
-      console.error('[ERROR] fetching correspondent count:', error.message);
+      console.error('fetching correspondent count:', error.message);
       return 0;
     }
   }
@@ -497,7 +497,7 @@ class PaperlessService {
       });
       return response.data.count;
     } catch (error) {
-      console.error('[ERROR] fetching document count:', error.message);
+      console.error('fetching document count:', error.message);
       return 0;
     }
   }
@@ -542,7 +542,7 @@ class PaperlessService {
       return allCorrespondents;
   
     } catch (error) {
-      console.error('[ERROR] fetching correspondent names:', error.message);
+      console.error('fetching correspondent names:', error.message);
       return [];
     }
   }
@@ -583,7 +583,7 @@ class PaperlessService {
       return allDocumentTypes;
   
     } catch (error) {
-      console.error('[ERROR] fetching document type names:', error.message);
+      console.error('fetching document type names:', error.message);
       return [];
     }
   }
@@ -620,7 +620,7 @@ class PaperlessService {
   
       return allTags;
     } catch (error) {
-      console.error('[DEBUG] Error fetching tag names:', error.message);
+      console.error('Error fetching tag names:', error.message);
       return [];
     }
   }
@@ -628,7 +628,7 @@ class PaperlessService {
   async getAllDocuments() {
     this.initialize();
     if (!this.client) {
-      console.error('[DEBUG] Client not initialized');
+      console.debug('Client not initialized');
       return [];
     }
 
@@ -641,7 +641,7 @@ class PaperlessService {
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
       if (!process.env.TAGS) {
-        console.warn('[DEBUG] PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
+        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
         return [];
       }
       
@@ -657,11 +657,11 @@ class PaperlessService {
       }
       
       if (tagIds.length === 0) {
-        console.warn('[DEBUG] None of the specified tags were found');
+        console.debug('None of the specified tags were found');
         return [];
       }
       
-      console.log('[DEBUG] Filtering documents for tag IDs:', tagIds);
+      console.debug('Filtering documents for tag IDs:', tagIds);
     }
 
     while (hasMore) {
@@ -684,7 +684,7 @@ class PaperlessService {
         const response = await this.client.get('/documents/', { params });
         
         if (!response?.data?.results || !Array.isArray(response.data.results)) {
-          console.error(`[DEBUG] Invalid API response on page ${page}`);
+          console.debug(`Invalid API response on page ${page}`);
           break;
         }
 
@@ -701,15 +701,15 @@ class PaperlessService {
         await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (error) {
-        console.error(`[ERROR]  fetching documents page ${page}:`, error.message);
+        console.error(` fetching documents page ${page}:`, error.message);
         if (error.response) {
-          console.error('[ERROR] Response status:', error.response.status);
+          console.error('Response status:', error.response.status);
         }
         break;
       }
     }
 
-    console.log(`[DEBUG] Finished fetching. Found ${documents.length} documents.`);
+    console.debug(`Finished fetching. Found ${documents.length} documents.`);
     return documents;
 }
 
@@ -732,7 +732,7 @@ class PaperlessService {
       });
       return response.data.results.map(doc => doc.id);
     } catch (error) {
-      console.error('[ERROR] fetching document IDs:', error.message);
+      console.error('fetching document IDs:', error.message);
       return [];
     }
   }
@@ -747,7 +747,7 @@ class PaperlessService {
      */
     this.initialize();
     if (!this.client) {
-      console.error('[DEBUG] Client not initialized');
+      console.debug('Client not initialized');
       return [];
     }
 
@@ -760,7 +760,7 @@ class PaperlessService {
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
       if (!process.env.TAGS) {
-        console.warn('[DEBUG] PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
+        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
         return [];
       }
       
@@ -776,11 +776,11 @@ class PaperlessService {
       }
       
       if (tagIds.length === 0) {
-        console.warn('[DEBUG] None of the specified tags were found');
+        console.debug('None of the specified tags were found');
         return [];
       }
       
-      console.log('[DEBUG] Filtering documents for tag IDs:', tagIds);
+      console.debug('Filtering documents for tag IDs:', tagIds);
     }
 
     while (hasMore) {
@@ -794,7 +794,7 @@ class PaperlessService {
         const response = await this.client.get('/documents/', { params });
         
         if (!response?.data?.results || !Array.isArray(response.data.results)) {
-          console.error(`[ERROR] Invalid API response on page ${page}`);
+          console.error(`Invalid API response on page ${page}`);
           break;
         }
 
@@ -811,15 +811,15 @@ class PaperlessService {
         await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (error) {
-        console.error(`[ERROR] fetching documents page ${page}:`, error.message);
+        console.error(`fetching documents page ${page}:`, error.message);
         if (error.response) {
-          console.error('[DEBUG] Response status:', error.response.status);
+          console.debug('Response status:', error.response.status);
         }
         break;
       }
     }
 
-    console.log(`[DEBUG] Finished fetching. Found ${documents.length} documents.`);
+    console.debug(`Finished fetching. Found ${documents.length} documents.`);
     return documents;
   }
 
@@ -835,7 +835,7 @@ class PaperlessService {
       const response = await this.client.get(`/correspondents/${correspondentId}/`);
       return response.data;
     } catch (error) {
-      console.error(`[ERROR] fetching correspondent ${correspondentId}:`, error.message);
+      console.error(`fetching correspondent ${correspondentId}:`, error.message);
       return null;
     }
   }
@@ -852,7 +852,7 @@ class PaperlessService {
       const response = await this.client.get(`/tags/${tagId}/`);
       return response.data.name;
     } catch (error) {
-      console.error(`[ERROR] fetching tag name for ID ${tagId}:`, error.message);
+      console.error(`fetching tag name for ID ${tagId}:`, error.message);
       return null;
     }
   }
@@ -875,7 +875,7 @@ class PaperlessService {
       });
       return response.data.results;
     } catch (error) {
-      console.error('[ERROR] fetching documents with metadata:', error.message);
+      console.error('fetching documents with metadata:', error.message);
       return [];
     }
   }
@@ -907,7 +907,7 @@ class PaperlessService {
           response = await this.client.get('/documents/', { params });
 
           if (!response?.data?.results || !Array.isArray(response.data.results)) {
-            console.error(`[DEBUG] Invalid API response on page ${page}`);
+            console.debug(`Invalid API response on page ${page}`);
             break;
           }
 
@@ -915,16 +915,16 @@ class PaperlessService {
           page++;
         
         } catch (error) {
-          console.error(`[ERROR] fetching documents page ${page}:`, error.message);
+          console.error(`fetching documents page ${page}:`, error.message);
           if (error.response) {
-            console.error('[ERROR] Response status:', error.response.status);
+            console.error('Response status:', error.response.status);
           }
           break;
         }
       }  
       return response.data.results;
     } catch (error) {
-      console.error('[ERROR] fetching documents with metadata:', error.message);
+      console.error('fetching documents with metadata:', error.message);
       return [];
     }
   }
@@ -947,7 +947,7 @@ class PaperlessService {
       const response = await this.client.get(`/documents/${documentId}/`);
       return response.data;
     } catch (error) {
-      console.error(`[ERROR] fetching document ${documentId}:`, error.message);
+      console.error(`fetching document ${documentId}:`, error.message);
       throw error;
     }
   }
@@ -968,13 +968,13 @@ class PaperlessService {
         }
       }
       
-      console.error(`[DEBUG] No file data for document ${documentId}`);
+      console.debug(`No file data for document ${documentId}`);
       throw `No file data for document ${documentId}`;
     } catch (error) {
-      console.error(`[ERROR] fetching document file ${documentId}:`, error.message);
+      console.error(`fetching document file ${documentId}:`, error.message);
       if (error.response) {
-        console.debug('[ERROR] status:', error.response.status);
-        console.debug('[ERROR] headers:', error.response.headers);
+        console.error('status:', error.response.status);
+        console.error('headers:', error.response.headers);
       }
       throw error;
     }
@@ -991,12 +991,12 @@ class PaperlessService {
       const results = response.data.results;
       
       if (results.length === 0) {
-          console.log(`[DEBUG] No correspondent with "${id}" found`);
+          console.debug(`No correspondent with "${id}" found`);
           return null;
       }
       
       if (results.length > 1) {
-          console.log(`[DEBUG] Multiple correspondents found:`);
+          console.debug(`Multiple correspondents found:`);
           results.forEach(c => {
               console.log(`- ID: ${c.id}, Name: ${c.name}`);
           });
@@ -1010,7 +1010,7 @@ class PaperlessService {
       };
 
   } catch (error) {
-      console.error('[ERROR] while seraching for existing correspondent:', error.message);
+      console.error('while seraching for existing correspondent:', error.message);
       throw error;
   }
 }
@@ -1026,14 +1026,14 @@ async searchForExistingCorrespondent(correspondent) {
       const results = response.data.results;
       
       if (results.length === 0) {
-          console.log(`[DEBUG] No correspondent with name "${correspondent}" found`);
+          console.debug(`No correspondent with name "${correspondent}" found`);
           return null;
       }
       
       // Check for exact match in the results - thanks to @skius for the hint!
       const exactMatch = results.find(c => c.name.toLowerCase() === correspondent.toLowerCase());
       if (exactMatch) {
-          console.log(`[DEBUG] Found exact match for correspondent "${correspondent}" with ID ${exactMatch.id}`);
+          console.debug(`Found exact match for correspondent "${correspondent}" with ID ${exactMatch.id}`);
           return {
               id: exactMatch.id,
               name: exactMatch.name
@@ -1041,11 +1041,11 @@ async searchForExistingCorrespondent(correspondent) {
       }
 
       // No exact match found, return null
-      console.log(`[DEBUG] No exact match found for "${correspondent}"`);
+      console.debug(`No exact match found for "${correspondent}"`);
       return null;
 
   } catch (error) {
-      console.error('[ERROR] while searching for existing correspondent:', error.message);
+      console.error('while searching for existing correspondent:', error.message);
       throw error;
   }
 }
@@ -1059,21 +1059,21 @@ async searchForExistingCorrespondent(correspondent) {
                                            (options.restrictToExistingCorrespondents === undefined && 
                                             process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS === 'yes');
     
-    console.log(`[DEBUG] Processing correspondent with restrictToExistingCorrespondents=${restrictToExistingCorrespondents}`);
+    console.debug(`Processing correspondent with restrictToExistingCorrespondents=${restrictToExistingCorrespondents}`);
   
     try {
         // Search for the correspondent
         const existingCorrespondent = await this.searchForExistingCorrespondent(name);
-        console.log("[DEBUG] Response Correspondent Search: ", existingCorrespondent);
+        console.debug("Response Correspondent Search: ", existingCorrespondent);
     
         if (existingCorrespondent) {
-            console.log(`[DEBUG] Found existing correspondent "${name}" with ID ${existingCorrespondent.id}`);
+            console.debug(`Found existing correspondent "${name}" with ID ${existingCorrespondent.id}`);
             return existingCorrespondent;
         }
         
         // If we're restricting to existing correspondents and none was found, return null
         if (restrictToExistingCorrespondents) {
-            console.log(`[DEBUG] Correspondent "${name}" does not exist and restrictions are enabled, returning null`);
+            console.debug(`Correspondent "${name}" does not exist and restrictions are enabled, returning null`);
             return null;
         }
     
@@ -1083,7 +1083,7 @@ async searchForExistingCorrespondent(correspondent) {
                 name: name,
                 matching_algorithm: 0
             });
-            console.log(`[DEBUG] Created new correspondent "${name}" with ID ${createResponse.data.id}`);
+            console.debug(`Created new correspondent "${name}" with ID ${createResponse.data.id}`);
             return createResponse.data;
         } catch (createError) {
             if (createError.response?.status === 400 && 
@@ -1099,14 +1099,14 @@ async searchForExistingCorrespondent(correspondent) {
                 );
               
                 if (justCreatedCorrespondent) {
-                    console.log(`[DEBUG] Retrieved correspondent "${name}" after constraint error with ID ${justCreatedCorrespondent.id}`);
+                    console.debug(`Retrieved correspondent "${name}" after constraint error with ID ${justCreatedCorrespondent.id}`);
                     return justCreatedCorrespondent;
                 }
             }
             throw createError;
         }
     } catch (error) {
-        console.error(`[ERROR] Failed to process correspondent "${name}":`, error.message);
+        console.error(`Failed to process correspondent "${name}":`, error.message);
         throw error;
     }
 }
@@ -1122,14 +1122,14 @@ async searchForExistingDocumentType(documentType) {
       const results = response.data.results;
       
       if (results.length === 0) {
-          console.log(`[DEBUG] No document type with name "${documentType}" found`);
+          console.debug(`No document type with name "${documentType}" found`);
           return null;
       }
       
       // Check for exact match in the results
       const exactMatch = results.find(dt => dt.name.toLowerCase() === documentType.toLowerCase());
       if (exactMatch) {
-          console.log(`[DEBUG] Found exact match for document type "${documentType}" with ID ${exactMatch.id}`);
+          console.debug(`Found exact match for document type "${documentType}" with ID ${exactMatch.id}`);
           return {
               id: exactMatch.id,
               name: exactMatch.name
@@ -1137,11 +1137,11 @@ async searchForExistingDocumentType(documentType) {
       }
 
       // No exact match found, return null
-      console.log(`[DEBUG] No exact match found for "${documentType}"`);
+      console.debug(`No exact match found for "${documentType}"`);
       return null;
 
   } catch (error) {
-      console.error('[ERROR] while searching for existing document type:', error.message);
+      console.error('while searching for existing document type:', error.message);
       throw error;
   }
 }
@@ -1152,10 +1152,10 @@ async getOrCreateDocumentType(name) {
   try {
       // Suche nach existierendem document_type
       const existingDocType = await this.searchForExistingDocumentType(name);
-      console.log("[DEBUG] Response Document Type Search: ", existingDocType);
+      console.debug("Response Document Type Search: ", existingDocType);
   
       if (existingDocType) {
-          console.log(`[DEBUG] Found existing document type "${name}" with ID ${existingDocType.id}`);
+          console.debug(`Found existing document type "${name}" with ID ${existingDocType.id}`);
           return existingDocType;
       }
   
@@ -1167,7 +1167,7 @@ async getOrCreateDocumentType(name) {
               match: "",  // Optional: Kann später angepasst werden
               is_insensitive: true
           });
-          console.log(`[DEBUG] Created new document type "${name}" with ID ${createResponse.data.id}`);
+          console.debug(`Created new document type "${name}" with ID ${createResponse.data.id}`);
           return createResponse.data;
       } catch (createError) {
           if (createError.response?.status === 400 && 
@@ -1183,14 +1183,14 @@ async getOrCreateDocumentType(name) {
               );
             
               if (justCreatedDocType) {
-                  console.log(`[DEBUG] Retrieved document type "${name}" after constraint error with ID ${justCreatedDocType.id}`);
+                  console.debug(`Retrieved document type "${name}" after constraint error with ID ${justCreatedDocType.id}`);
                   return justCreatedDocType;
               }
           }
           throw createError;
       }
   } catch (error) {
-      console.error(`[ERROR] Failed to process document type "${name}":`, error.message);
+      console.error(`Failed to process document type "${name}":`, error.message);
       throw error;
   }
 }
@@ -1200,7 +1200,7 @@ async getOrCreateDocumentType(name) {
     if (!this.client) return;
   
     try {
-      console.log(`[DEBUG] Removing unused tags from document ${documentId}, keeping tags:`, keepTagIds);
+      console.debug(`Removing unused tags from document ${documentId}, keeping tags:`, keepTagIds);
       
       // Hole aktuelles Dokument
       const currentDoc = await this.getDocument(documentId);
@@ -1209,7 +1209,7 @@ async getOrCreateDocumentType(name) {
       const tagsToRemove = currentDoc.tags.filter(tagId => !keepTagIds.includes(tagId));
       
       if (tagsToRemove.length === 0) {
-        console.log('[DEBUG] No tags to remove');
+        console.debug('No tags to remove');
         return currentDoc;
       }
   
@@ -1220,11 +1220,11 @@ async getOrCreateDocumentType(name) {
   
       // Führe das Update durch
       await this.client.patch(`/documents/${documentId}/`, updateData);
-      console.log(`[DEBUG] Successfully removed ${tagsToRemove.length} tags from document ${documentId}`);
+      console.debug(`Successfully removed ${tagsToRemove.length} tags from document ${documentId}`);
       
       return await this.getDocument(documentId);
     } catch (error) {
-      console.error(`[ERROR] Error removing unused tags from document ${documentId}:`, error.message);
+      console.error(`Error removing unused tags from document ${documentId}:`, error.message);
       throw error;
     }
   }
@@ -1235,7 +1235,7 @@ async getOrCreateDocumentType(name) {
       const response = await this.client.get(`/tags/${tagId}/`);
       return response.data.name;
     } catch (error) {
-      console.error(`[ERROR] fetching tag text for ID ${tagId}:`, error.message);
+      console.error(`fetching tag text for ID ${tagId}:`, error.message);
       return null;
     }
   }
@@ -1255,13 +1255,13 @@ async getOrCreateDocumentType(name) {
             //filter for username by process.env.PAPERLESS_USERNAME
             const user = userInfo.find(user => user.username === process.env.PAPERLESS_USERNAME);
             if (user) {
-                console.log(`[DEBUG] Found own user ID: ${user.id}`);
+                console.debug(`Found own user ID: ${user.id}`);
                 return user.id;
             }
         }
         return null;
     } catch (error) {
-        console.error('[ERROR] fetching own user ID:', error.message);
+        console.error('fetching own user ID:', error.message);
         return null;
     }
 }
@@ -1272,7 +1272,7 @@ async getOrCreateDocumentType(name) {
       const response = await this.client.get(`/documents/${documentId}/`);
       return response.data.owner;
     } catch (error) {
-      console.error(`[ERROR] fetching owner of document ${documentId}:`, error.message);
+      console.error(`fetching owner of document ${documentId}:`, error.message);
       return null;
     }
   }
@@ -1284,7 +1284,7 @@ async getOrCreateDocumentType(name) {
       const response = await this.client.get(`/documents/${documentId}/`);
       return response.data.user_can_change;
     } catch (error) {
-      console.error(`[ERROR] No Permission to edit document ${documentId}:`, error.message);
+      console.error(`No Permission to edit document ${documentId}:`, error.message);
       return null;
     }
   }
@@ -1297,19 +1297,19 @@ async getOrCreateDocumentType(name) {
       const currentDoc = await this.getDocument(documentId);
       
       if (updates.tags) {
-        console.log(`[DEBUG] Current tags for document ${documentId}:`, currentDoc.tags);
-        console.log(`[DEBUG] Adding new tags:`, updates.tags);
+        console.debug(`Current tags for document ${documentId}:`, currentDoc.tags);
+        console.debug(`Adding new tags:`, updates.tags);
                 
         const combinedTags = [...new Set([...currentDoc.tags, ...updates.tags])];
         updates.tags = combinedTags;
         
-        console.log(`[DEBUG] Combined tags:`, combinedTags);
+        console.debug(`Combined tags:`, combinedTags);
       }
 
       if (currentDoc.correspondent && updates.correspondent) {
-        console.log(`[DEBUG] Current correspondent:`, currentDoc.correspondent);
-        console.log(`[DEBUG] New correspondent:`, updates.correspondent);
-        console.log('[DEBUG] Document already has a correspondent, keeping existing one:', currentDoc.correspondent);
+        console.debug(`Current correspondent:`, currentDoc.correspondent);
+        console.debug(`New correspondent:`, updates.correspondent);
+        console.debug('Document already has a correspondent, keeping existing one:', currentDoc.correspondent);
         delete updates.correspondent;
       }
 
@@ -1328,7 +1328,7 @@ async getOrCreateDocumentType(name) {
           }
           
           if (!isValid(dateObject)) {
-            console.warn(`[WARN] Invalid date format: ${updates.created}, using fallback date: 01.01.1990`);
+            console.warn(`Invalid date format: ${updates.created}, using fallback date: 01.01.1990`);
             dateObject = new Date(1990, 0, 1);
           }
       
@@ -1340,8 +1340,8 @@ async getOrCreateDocumentType(name) {
           updateData = { ...updates };
         }
       } catch (error) {
-        console.warn('[WARN] Error parsing date:', error.message);
-        console.warn('[DEBUG] Received Date:', updates);
+        console.warn('Error parsing date:', error.message);
+        console.debug('Received Date:', updates);
         updateData = {
           ...updates,
           created: format(new Date(1990, 0, 1), 'yyyy-MM-dd'),
@@ -1350,14 +1350,14 @@ async getOrCreateDocumentType(name) {
 
       // // Handle custom fields update
       // if (updateData.custom_fields) {
-      //   console.log('[DEBUG] Custom fields update detected');
+      //   console.debug('Custom fields update detected');
       //   try {
       //     // First, delete existing custom fields
-      //     console.log(`[DEBUG] Deleting existing custom fields for document ${documentId}`);
+      //     console.debug(`Deleting existing custom fields for document ${documentId}`);
       //     await this.client.delete(`/documents/${documentId}/custom_fields/`);
       //   } catch (error) {
       //     // If deletion fails, try updating with empty array first
-      //     console.warn('[WARN] Could not delete custom fields, trying to clear them:', error.message);
+      //     console.warn('Could not delete custom fields, trying to clear them:', error.message);
       //     await this.client.patch(`/documents/${documentId}/`, { custom_fields: [] });
       //   }
       // }
@@ -1365,16 +1365,16 @@ async getOrCreateDocumentType(name) {
       // Validate title length before sending to API
       if (updateData.title && updateData.title.length > 128) {
         updateData.title = updateData.title.substring(0, 124) + '…';
-        console.warn(`[WARN] Title truncated to 128 characters for document ${documentId}`);
+        console.warn(`Title truncated to 128 characters for document ${documentId}`);
       }
       
-      console.log('[DEBUG] Final update data:', updateData);
+      console.debug('Final update data:', updateData);
       await this.client.patch(`/documents/${documentId}/`, updateData);
-      console.log(`[SUCCESS] Updated document ${documentId} with:`, updateData);
+      console.info(`Updated document ${documentId} with:`, updateData);
       return await this.getDocument(documentId);
     } catch (error) {
       console.log(error);
-      console.error(`[ERROR] updating document ${documentId}:`, error.message);
+      console.error(`updating document ${documentId}:`, error.message);
       return null;
     }
   }

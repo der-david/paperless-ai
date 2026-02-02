@@ -106,9 +106,9 @@ class OllamaService {
             if (externalApiData) {
                 try {
                     validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData);
-                    console.log('[DEBUG] External API data validated and included');
+                    console.debug('External API data validated and included');
                 } catch (error) {
-                    console.warn('[WARNING] External API data validation failed:', error.message);
+                    console.warn('External API data validation failed:', error.message);
                     validatedExternalApiData = null;
                 }
             }
@@ -141,7 +141,7 @@ class OllamaService {
                     .join('\n');
 
                 prompt = customPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr) + "\n\n" + JSON.stringify(content);
-                console.log('[DEBUG] Ollama Service started with custom prompt');
+                console.debug('Ollama Service started with custom prompt');
             }
 
             // Generate custom fields for the prompt
@@ -154,8 +154,8 @@ class OllamaService {
             const promptTokenCount = this._calculatePromptTokenCount(prompt);
             const numCtx = this._calculateNumCtx(promptTokenCount, 1024);
 
-            console.log(`[DEBUG] Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
-            console.log(`[DEBUG] External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
+            console.debug(`Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
+            console.debug(`External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
 
             // Build response schema with enum constraints for tags and document types
             let responseSchema = JSON.parse(JSON.stringify(this.documentAnalysisSchema));
@@ -171,7 +171,7 @@ class OllamaService {
                 },
                 description: "Array of tags from the available pool"
               };
-              console.log(`[DEBUG] Tag enum constraint set with ${tagsList.length} available tags for Ollama`);
+              console.debug(`Tag enum constraint set with ${tagsList.length} available tags for Ollama`);
             }
 
             if (config.restrictToExistingDocumentTypes === 'yes' && Array.isArray(existingDocumentTypesList) && existingDocumentTypesList.length > 0) {
@@ -181,7 +181,7 @@ class OllamaService {
                 enum: docTypesList,
                 description: "Document type from the available pool only"
               };
-              console.log(`[DEBUG] Document type enum constraint set with ${docTypesList.length} available types for Ollama`);
+              console.debug(`Document type enum constraint set with ${docTypesList.length} available types for Ollama`);
             }
 
             // Call Ollama API
@@ -393,9 +393,9 @@ class OllamaService {
         if (options.externalApiData) {
             try {
                 validatedExternalApiData = this._validateAndTruncateExternalApiData(options.externalApiData);
-                console.log('[DEBUG] External API data validated and included');
+                console.debug('External API data validated and included');
             } catch (error) {
-                console.warn('[WARNING] External API data validation failed:', error.message);
+                console.warn('External API data validation failed:', error.message);
                 validatedExternalApiData = null;
             }
         }
@@ -445,13 +445,13 @@ class OllamaService {
         const dataTokens = Math.ceil(dataString.length / 4);
 
         if (dataTokens > maxTokens) {
-            console.warn(`[WARNING] External API data (${dataTokens} tokens) exceeds limit (${maxTokens}), truncating`);
+            console.warn(`External API data (${dataTokens} tokens) exceeds limit (${maxTokens}), truncating`);
             // Simple truncation based on character count
             const maxChars = maxTokens * 4;
             return dataString.substring(0, maxChars);
         }
 
-        console.log(`[DEBUG] External API data validated: ${dataTokens} tokens`);
+        console.debug(`External API data validated: ${dataTokens} tokens`);
         return dataString;
     }
 
@@ -584,7 +584,7 @@ class OllamaService {
         const cachePath = path.join('./public/images', `${id}.png`);
         try {
             await fs.access(cachePath);
-            console.log('[DEBUG] Thumbnail already cached');
+            console.debug('Thumbnail already cached');
         } catch (err) {
             console.log('Thumbnail not cached, fetching from Paperless');
             const thumbnailData = await paperlessService.getThumbnailImage(id);

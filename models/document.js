@@ -157,13 +157,13 @@ module.exports = {
       // Bei UNIQUE constraint failure wird der existierende Eintrag aktualisiert
       const result = insertDocument.run(documentId, title, documentId);
       if (result.changes > 0) {
-        console.log(`[DEBUG] Document ${title} ${result.lastInsertRowid ? 'added to' : 'updated in'} processed_documents`);
+        console.debug(`Document ${title} ${result.lastInsertRowid ? 'added to' : 'updated in'} processed_documents`);
         return true;
       }
       return false;
     } catch (error) {
       // Log error but don't throw
-      console.error('[ERROR] adding document:', error);
+      console.error('adding document:', error);
       return false;
     }
   },
@@ -172,12 +172,12 @@ module.exports = {
     try {
       const result = insertMetrics.run(documentId, promptTokens, completionTokens, totalTokens);
       if (result.changes > 0) {
-        console.log(`[DEBUG] Metrics added for document ${documentId}`);
+        console.debug(`Metrics added for document ${documentId}`);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('[ERROR] adding metrics:', error);
+      console.error('adding metrics:', error);
       return false;
     }
   },
@@ -186,7 +186,7 @@ module.exports = {
     try {
       return db.prepare('SELECT * FROM openai_metrics').all();
     } catch (error) {
-      console.error('[ERROR] getting metrics:', error);
+      console.error('getting metrics:', error);
       return [];
     }
   },
@@ -195,7 +195,7 @@ module.exports = {
     try {
       return db.prepare('SELECT * FROM processed_documents').all();
     } catch (error) {
-      console.error('[ERROR] getting processed documents:', error);
+      console.error('getting processed documents:', error);
       return [];
     }
   },
@@ -204,7 +204,7 @@ module.exports = {
     try {
       return db.prepare('SELECT COUNT(*) FROM processed_documents').pluck().get();
     } catch (error) {
-      console.error('[ERROR] getting processed documents count:', error);
+      console.error('getting processed documents count:', error);
       return 0;
     }
   },
@@ -214,7 +214,7 @@ module.exports = {
       const row = findDocument.get(documentId);
       return !!row;
     } catch (error) {
-      console.error('[ERROR] checking document:', error);
+      console.error('checking document:', error);
       // Im Zweifelsfall true zurückgeben, um doppelte Verarbeitung zu vermeiden
       return true;
     }
@@ -228,12 +228,12 @@ module.exports = {
         VALUES (?, ?, ?, ?)
       `).run(documentId, title, tagsString, correspondent);
       if (result.changes > 0) {
-        console.log(`[DEBUG] Original data for document ${title} saved`);
+        console.debug(`Original data for document ${title} saved`);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('[ERROR] saving original data:', error);
+      console.error('saving original data:', error);
       return false;
     }
   },
@@ -246,12 +246,12 @@ module.exports = {
         VALUES (?, ?, ?, ?)
       `).run(documentId, tagIdsString, title, correspondent);
       if (result.changes > 0) {
-        console.log(`[DEBUG] Document ${title} added to history`);
+        console.debug(`Document ${title} added to history`);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('[ERROR] adding to history:', error);
+      console.error('adding to history:', error);
       return false;
     }
   },
@@ -263,14 +263,14 @@ module.exports = {
         //only one document with id exists
         return db.prepare('SELECT * FROM history_documents WHERE document_id = ?').get(id);
       } catch (error) {
-        console.error('[ERROR] getting history for id:', id, error);
+        console.error('getting history for id:', id, error);
         return [];
       }
     } else {
       try {
         return db.prepare('SELECT * FROM history_documents').all();
       } catch (error) {
-        console.error('[ERROR] getting history for id:', id, error);
+        console.error('getting history for id:', id, error);
         return [];
       }
     }
@@ -283,14 +283,14 @@ module.exports = {
         //only one document with id exists
         return db.prepare('SELECT * FROM original_documents WHERE document_id = ?').get(id);
       } catch (error) {
-        console.error('[ERROR] getting original data for id:', id, error);
+        console.error('getting original data for id:', id, error);
         return [];
       }
     } else {
       try {
         return db.prepare('SELECT * FROM original_documents').all();
       } catch (error) {
-        console.error('[ERROR] getting original data for id:', id, error);
+        console.error('getting original data for id:', id, error);
         return [];
       }
     }
@@ -300,7 +300,7 @@ module.exports = {
     try {
       return db.prepare('SELECT * FROM original_documents').all();
     } catch (error) {
-      console.error('[ERROR] getting original data:', error);
+      console.error('getting original data:', error);
       return [];
     }
   },
@@ -309,7 +309,7 @@ module.exports = {
     try {
       return db.prepare('SELECT * FROM history_documents').all();
     } catch (error) {
-      console.error('[ERROR] getting history:', error);
+      console.error('getting history:', error);
       return [];
     }
   },
@@ -319,7 +319,7 @@ module.exports = {
       const result = getHistoryDocumentsCount.get();
       return result.count;
     } catch (error) {
-      console.error('[ERROR] getting history documents count:', error);
+      console.error('getting history documents count:', error);
       return 0;
     }
   },
@@ -328,7 +328,7 @@ module.exports = {
     try {
       return getPaginatedHistoryDocuments.all(limit, offset);
     } catch (error) {
-      console.error('[ERROR] getting paginated history:', error);
+      console.error('getting paginated history:', error);
       return [];
     }
   },
@@ -336,26 +336,26 @@ module.exports = {
   async deleteAllDocuments() {
     try {
       db.prepare('DELETE FROM processed_documents').run();
-      console.log('[DEBUG] All processed_documents deleted');
+      console.debug('All processed_documents deleted');
       db.prepare('DELETE FROM history_documents').run();
-      console.log('[DEBUG] All history_documents deleted');
+      console.debug('All history_documents deleted');
       db.prepare('DELETE FROM original_documents').run();
-      console.log('[DEBUG] All original_documents deleted');
+      console.debug('All original_documents deleted');
       return true;
     } catch (error) {
-      console.error('[ERROR] deleting documents:', error);
+      console.error('deleting documents:', error);
       return false;
     }
   },
 
   async deleteDocumentsIdList(idList) {
     try {
-      console.log('[DEBUG] Received idList:', idList);
+      console.debug('Received idList:', idList);
   
       const ids = Array.isArray(idList) ? idList : (idList?.ids || []);
   
       if (!Array.isArray(ids) || ids.length === 0) {
-        console.error('[ERROR] Invalid input: must provide an array of ids');
+        console.error('Invalid input: must provide an array of ids');
         return false;
       }
   
@@ -366,10 +366,10 @@ module.exports = {
       const query = `DELETE FROM processed_documents WHERE document_id IN (${placeholders})`;
       const query2 = `DELETE FROM history_documents WHERE document_id IN (${placeholders})`;
       const query3 = `DELETE FROM original_documents WHERE document_id IN (${placeholders})`;
-      console.log('[DEBUG] Executing SQL query:', query);
-      console.log('[DEBUG] Executing SQL query:', query2);
-      console.log('[DEBUG] Executing SQL query:', query3);
-      console.log('[DEBUG] With parameters:', numericIds);
+      console.debug('Executing SQL query:', query);
+      console.debug('Executing SQL query:', query2);
+      console.debug('Executing SQL query:', query3);
+      console.debug('With parameters:', numericIds);
   
       const stmt = db.prepare(query);
       const stmt2 = db.prepare(query2);
@@ -378,13 +378,13 @@ module.exports = {
       const result2 = stmt2.run(numericIds);
       const result3 = stmt3.run(numericIds);
 
-      console.log('[DEBUG] SQL result:', result);
-      console.log('[DEBUG] SQL result:', result2);
-      console.log('[DEBUG] SQL result:', result3);
-      console.log(`[DEBUG] Documents with IDs ${numericIds.join(', ')} deleted`);
+      console.debug('SQL result:', result);
+      console.debug('SQL result:', result2);
+      console.debug('SQL result:', result3);
+      console.debug(`Documents with IDs ${numericIds.join(', ')} deleted`);
       return true;
     } catch (error) {
-      console.error('[ERROR] deleting documents:', error);
+      console.error('deleting documents:', error);
       return false;
     }
   },
@@ -394,17 +394,17 @@ module.exports = {
     try {
       // Lösche alle vorhandenen Benutzer
       const deleteResult = db.prepare('DELETE FROM users').run();
-      console.log(`[DEBUG] ${deleteResult.changes} existing users deleted`);
+      console.debug(`${deleteResult.changes} existing users deleted`);
   
       // Füge den neuen Benutzer hinzu
       const result = insertUser.run(username, password);
       if (result.changes > 0) {
-        console.log(`[DEBUG] User ${username} added`);
+        console.debug(`User ${username} added`);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('[ERROR] adding user:', error);
+      console.error('adding user:', error);
       return false;
     }
   },
@@ -413,7 +413,7 @@ module.exports = {
     try {
       return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
     } catch (error) {
-      console.error('[ERROR] getting user:', error);
+      console.error('getting user:', error);
       return [];
     }
   },
@@ -422,7 +422,7 @@ module.exports = {
     try {
       return db.prepare('SELECT * FROM users').all();
     } catch (error) {
-      console.error('[ERROR] getting users:', error);
+      console.error('getting users:', error);
       return [];
     }
   },
@@ -439,7 +439,7 @@ module.exports = {
         ORDER BY hour
       `).all();
     } catch (error) {
-      console.error('[ERROR] getting processing time stats:', error);
+      console.error('getting processing time stats:', error);
       return [];
     }
   },
@@ -462,7 +462,7 @@ module.exports = {
         ORDER BY range
       `).all();
     } catch (error) {
-      console.error('[ERROR] getting token distribution:', error);
+      console.error('getting token distribution:', error);
       return [];
     }
   },
@@ -477,7 +477,7 @@ module.exports = {
         GROUP BY type
       `).all();
     } catch (error) {
-      console.error('[ERROR] getting document type stats:', error);
+      console.error('getting document type stats:', error);
       return [];
     }
 },
@@ -492,7 +492,7 @@ async setProcessingStatus(documentId, title, status) {
           return result.changes > 0;
       }
   } catch (error) {
-      console.error('[ERROR] updating processing status:', error);
+      console.error('updating processing status:', error);
       return false;
   }
 },
@@ -534,7 +534,7 @@ async getCurrentProcessingStatus() {
           isProcessing: !!active
       };
   } catch (error) {
-      console.error('[ERROR] getting current processing status:', error);
+      console.error('getting current processing status:', error);
       return {
           currentlyProcessing: null,
           lastProcessed: null,
@@ -550,10 +550,10 @@ async getCurrentProcessingStatus() {
     return new Promise((resolve, reject) => {
       try {
         db.close();
-        console.log('[DEBUG] Database closed successfully');
+        console.debug('Database closed successfully');
         resolve();
       } catch (error) {
-        console.error('[ERROR] closing database:', error);
+        console.error('closing database:', error);
         reject(error);
       }
     });

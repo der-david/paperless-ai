@@ -65,7 +65,7 @@ class CustomOpenAIService {
       // Handle thumbnail caching
       try {
         await fs.access(cachePath);
-        console.log('[DEBUG] Thumbnail already cached');
+        console.debug('Thumbnail already cached');
       } catch (err) {
         console.log('Thumbnail not cached, fetching from Paperless');
 
@@ -89,9 +89,9 @@ class CustomOpenAIService {
       if (externalApiData) {
         try {
           validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData);
-          console.log('[DEBUG] External API data validated and included');
+          console.debug('External API data validated and included');
         } catch (error) {
-          console.warn('[WARNING] External API data validation failed:', error.message);
+          console.warn('External API data validation failed:', error.message);
           validatedExternalApiData = null;
         }
       }
@@ -162,7 +162,7 @@ class CustomOpenAIService {
 
       // Custom prompt override if provided
       if (customPrompt) {
-        console.log('[DEBUG] Replace system prompt with custom prompt');
+        console.debug('Replace system prompt with custom prompt');
         systemPrompt = customPrompt + '\n\n' + config.mustHavePrompt;
       }
 
@@ -179,13 +179,13 @@ class CustomOpenAIService {
 
       // Validate that we have positive available tokens
       if (availableTokens <= 0) {
-        console.warn(`[WARNING] No available tokens for content. Reserved: ${reservedTokens}, Max: ${maxTokens}`);
+        console.warn(`No available tokens for content. Reserved: ${reservedTokens}, Max: ${maxTokens}`);
         throw new Error('Token limit exceeded: prompt too large for available token limit');
       }
 
-      console.log(`[DEBUG] Token calculation - Prompt: ${totalPromptTokens}, Reserved: ${reservedTokens}, Available: ${availableTokens}`);
-      console.log(`[DEBUG] Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
-      console.log(`[DEBUG] External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
+      console.debug(`Token calculation - Prompt: ${totalPromptTokens}, Reserved: ${reservedTokens}, Available: ${availableTokens}`);
+      console.debug(`Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
+      console.debug(`External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
 
       const contentSourceMode = config.contentSourceMode || 'content';
       const includeContent = contentSourceMode === 'content' || contentSourceMode === 'both';
@@ -287,7 +287,7 @@ class CustomOpenAIService {
           },
           description: "Array of tags from the available pool"
         };
-        console.log(`[DEBUG] Tag enum constraint set with ${tagsList.length} available tags`);
+        console.debug(`Tag enum constraint set with ${tagsList.length} available tags`);
       }
 
       // If restrictions enabled, further constrain to only allowed types
@@ -298,9 +298,9 @@ class CustomOpenAIService {
           enum: [...restrictedDocTypesList, null],
           description: "Document type from the restricted pool only, or null if no match"
         };
-        console.log(`[DEBUG] Document type restricted enum with ${restrictedDocTypesList.length} allowed types`);
+        console.debug(`Document type restricted enum with ${restrictedDocTypesList.length} allowed types`);
       } else if (allDocTypesList.length > 0) {
-        console.log(`[DEBUG] Document type enum set with all ${allDocTypesList.length} available types`);
+        console.debug(`Document type enum set with all ${allDocTypesList.length} available types`);
       }
 
       const rawDocumentMode = config.rawDocumentMode || 'text';
@@ -362,7 +362,7 @@ class CustomOpenAIService {
             strict: true
           }
         };
-        console.log('[DEBUG] Using structured JSON schema mode for response validation');
+        console.debug('Using structured JSON schema mode for response validation');
       }
 
       // Retry logic: try up to 3 times if response is null or empty
@@ -376,17 +376,17 @@ class CustomOpenAIService {
           
           // Check if response has content
           if (response?.usage.completion_tokens > 0 && response?.choices?.[0]?.message?.content) {
-            console.log(`[DEBUG] Got valid response on attempt ${attempt}/${maxRetries}`);
+            console.debug(`Got valid response on attempt ${attempt}/${maxRetries}`);
             break; // Success, exit retry loop
           } else {
-            console.warn(`[DEBUG] Empty response on attempt ${attempt}/${maxRetries}, retrying...`);
+            console.warn(`Empty response on attempt ${attempt}/${maxRetries}, retrying...`);
             lastError = new Error('Empty API response');
             if (attempt < maxRetries) {
               await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
             }
           }
         } catch (err) {
-          console.warn(`[DEBUG] Error on attempt ${attempt}/${maxRetries}: ${err.message}`);
+          console.warn(`Attempt ${attempt}/${maxRetries} failed: ${err.message}`);
           lastError = err;
           if (attempt < maxRetries) {
             await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
@@ -402,8 +402,8 @@ class CustomOpenAIService {
       //console.log(`MESSAGE: ${response?.choices?.[0]?.message?.content}`);
 
       // Log token usage
-      console.log(`[DEBUG] [${timestamp}] Custom OpenAI request sent`);
-      console.log(`[DEBUG] [${timestamp}] Total tokens: ${response.usage.total_tokens}`);
+      console.debug(`[${timestamp}] Custom OpenAI request sent`);
+      console.debug(`[${timestamp}] Total tokens: ${response.usage.total_tokens}`);
 
       const usage = response.usage;
       const mappedUsage = {
@@ -475,11 +475,11 @@ class CustomOpenAIService {
     const dataTokens = await calculateTokens(dataString, config.custom.model);
 
     if (dataTokens > maxTokens) {
-      console.warn(`[WARNING] External API data (${dataTokens} tokens) exceeds limit (${maxTokens}), truncating`);
+      console.warn(`External API data (${dataTokens} tokens) exceeds limit (${maxTokens}), truncating`);
       return await truncateToTokenLimit(dataString, maxTokens, config.custom.model);
     }
 
-    console.log(`[DEBUG] External API data validated: ${dataTokens} tokens`);
+    console.debug(`External API data validated: ${dataTokens} tokens`);
     return dataString;
   }
 
@@ -538,8 +538,8 @@ class CustomOpenAIService {
       }
 
       // Log token usage
-      console.log(`[DEBUG] [${timestamp}] Custom OpenAI request sent`);
-      console.log(`[DEBUG] [${timestamp}] Total tokens: ${response.usage.total_tokens}`);
+      console.debug(`[${timestamp}] Custom OpenAI request sent`);
+      console.debug(`[${timestamp}] Total tokens: ${response.usage.total_tokens}`);
 
       const usage = response.usage;
       const mappedUsage = {

@@ -341,7 +341,7 @@ router.post('/login', async (req, res) => {
     
     // Check if user was found and has required fields
     if (!user || !user.password) {
-      console.log('[FAILED LOGIN] User not found or invalid data:', username);
+      console.warn('Failed login  User not found or invalid data:', username);
       return res.render('login', { error: 'Invalid credentials' });
     }
 
@@ -491,7 +491,7 @@ router.get('/sampleData/:id', authenticateAPI, async (req, res) => {
     const correspondents = await paperlessService.getCorrespondentsFromDocument(document.id);
 
   } catch (error) {
-    console.error('[ERRO] loading sample data:', error);
+    console.error('loading sample data:', error);
     res.status(500).json({ error: 'Error loading sample data' });
   }
 });
@@ -559,7 +559,7 @@ router.get('/playground', authenticateUI, async (req, res) => {
       version: configFile.PAPERLESS_AI_VERSION || ' '
     });
   } catch (error) {
-    console.error('[ERRO] loading documents view:', error);
+    console.error('loading documents view:', error);
     res.status(500).send('Error loading documents');
   }
 });
@@ -706,7 +706,7 @@ router.get('/chat', authenticateUI, async (req, res) => {
       const version = configFile.PAPERLESS_AI_VERSION || ' ';
       res.render('chat', { documents, open, version });
   } catch (error) {
-    console.error('[ERRO] loading documents:', error);
+    console.error('loading documents:', error);
     res.status(500).send('Error loading documents');
   }
 });
@@ -989,7 +989,7 @@ router.get('/chat/init/:documentId', authenticateAPI, async (req, res) => {
       const result = await ChatService.initializeChat(documentId);
       res.json(result);
   } catch (error) {
-      console.error('[ERRO] initializing chat:', error);
+      console.error('initializing chat:', error);
       res.status(500).json({ error: 'Failed to initialize chat' });
   }
 });
@@ -1053,7 +1053,7 @@ router.get('/history', authenticateUI, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[ERROR] loading history page:', error);
+    console.error('loading history page:', error);
     res.status(500).send('Error loading history page');
   }
 });
@@ -1286,7 +1286,7 @@ router.get('/api/history', authenticateAPI, async (req, res) => {
       data: filteredDocs.slice(start, start + length)
     });
   } catch (error) {
-    console.error('[ERROR] loading history data:', error);
+    console.error('loading history data:', error);
     res.status(500).json({ error: 'Error loading history data' });
   }
 });
@@ -1346,7 +1346,7 @@ router.post('/api/reset-all-documents', authenticateAPI, async (req, res) => {
     res.json({ success: true });
   }
   catch (error) {
-    console.error('[ERROR] resetting documents:', error);
+    console.error('resetting documents:', error);
     res.status(500).json({ error: 'Error resetting documents' });
   }
 });
@@ -1436,7 +1436,7 @@ router.post('/api/reset-documents', authenticateAPI, async (req, res) => {
     res.json({ success: true });
   }
   catch (error) {
-    console.error('[ERROR] resetting documents:', error);
+    console.error('resetting documents:', error);
     res.status(500).json({ error: 'Error resetting documents' });
   }
 });
@@ -1533,18 +1533,18 @@ router.post('/api/scan/now', authenticateAPI, async (req, res) => {
             const updateData = await buildUpdateData(analysis, doc);
             await saveDocumentChanges(doc.id, updateData, analysis, originalData);
           } catch (error) {
-            console.error(`[ERROR] processing document ${doc.id}:`, error);
+            console.error(`processing document ${doc.id}:`, error);
           }
         }
       } catch (error) {
-        console.error('[ERROR]  during document scan:', error);
+        console.error(' during document scan:', error);
       } finally {
         runningTask = false;
-        console.log('[INFO] Task completed');
+        console.info('Task completed');
         res.send('Task completed');
       }
   } catch (error) {
-    console.error('[ERROR] in startScanning:', error);
+    console.error('in startScanning:', error);
   }
 });
 
@@ -1555,11 +1555,11 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
 
   const documentEditable = await paperlessService.getPermissionOfDocument(doc.id);
   if (!documentEditable) {
-    console.log(`[DEBUG] Document belongs to: ${documentEditable}, skipping analysis`);
-    console.log(`[DEBUG] Document ${doc.id} Not Editable by Paper-Ai User, skipping analysis`);
+    console.debug(`Document belongs to: ${documentEditable}, skipping analysis`);
+    console.debug(`Document ${doc.id} Not Editable by Paper-Ai User, skipping analysis`);
     return null;
   }else {
-    console.log(`[DEBUG] Document ${doc.id} rights for AI User - processed`);
+    console.debug(`Document ${doc.id} rights for AI User - processed`);
   }
 
   let [content, originalData] = await Promise.all([
@@ -1569,7 +1569,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
 
   if ((config.contentSourceMode || 'content') === 'content') {
     if (!content || content.length < 10) {
-      console.log(`[DEBUG] Document ${doc.id} has no content, skipping analysis`);
+      console.debug(`Document ${doc.id} has no content, skipping analysis`);
       return null;
     }
 
@@ -1591,17 +1591,17 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
       const externalData = await externalApiService.fetchData();
       if (externalData) {
         options.externalApiData = externalData;
-        console.log('[DEBUG] Retrieved external API data for prompt enrichment');
+        console.debug('Retrieved external API data for prompt enrichment');
       }
     } catch (error) {
-      console.error('[ERROR] Failed to fetch external API data:', error.message);
+      console.error('Failed to fetch external API data:', error.message);
     }
   }
 
   const aiService = AIServiceFactory.getService();
   let analysis;
   if(customPrompt) {
-    console.log('[DEBUG] Starting document analysis with custom prompt');
+    console.debug('Starting document analysis with custom prompt');
     analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, options);
   }else{
     analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, options);
@@ -1623,26 +1623,26 @@ async function buildUpdateData(analysis, doc) {
     restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes' ? true : false
   };
 
-  console.log(`[DEBUG] Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondents=${options.restrictToExistingCorrespondents}`);
+  console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondents=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
   if (config.limitFunctions?.activateTagging !== 'no') {
     const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
-      console.warn('[ERROR] Some tags could not be processed:', errors);
+      console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
   } else if (config.limitFunctions?.activateTagging === 'no' && config.addAIProcessedTag === 'yes') {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     // get tags from .env file and split them by comma and make an array
-    console.log('[DEBUG] Tagging is deactivated but AI processed tag will be added');
+    console.debug('Tagging is deactivated but AI processed tag will be added');
     const tags = config.addAIProcessedTags.split(',');
     const { tagIds, errors } = await paperlessService.processTags(tags, options);
     if (errors.length > 0) {
-      console.warn('[ERROR] Some tags could not be processed:', errors);
+      console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-    console.log('[DEBUG] Tagging is deactivated');
+    console.debug('Tagging is deactivated');
   }
 
   // Only process title if title generation is activated
@@ -1670,10 +1670,10 @@ async function buildUpdateData(analysis, doc) {
       if (config.restrictToExistingDocumentTypes === 'yes') {
         documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
         if (documentType) {
-          console.log(`[DEBUG] Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
+          console.debug(`Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
           updateData.document_type = documentType.id;
         } else {
-          console.log(`[DEBUG] Document type "${analysis.document.document_type}" does not exist in Paperless and restrict mode is enabled - skipping`);
+          console.debug(`Document type "${analysis.document.document_type}" does not exist in Paperless and restrict mode is enabled - skipping`);
         }
       } else {
         // Original behavior: get or create document type
@@ -1683,7 +1683,7 @@ async function buildUpdateData(analysis, doc) {
         }
       }
     } catch (error) {
-      console.error(`[ERROR] Error processing document type:`, error);
+      console.error(`Error processing document type:`, error);
     }
   }
 
@@ -1694,7 +1694,7 @@ async function buildUpdateData(analysis, doc) {
 
     // Get existing custom fields
     const existingFields = await paperlessService.getExistingCustomFields(doc.id);
-    console.log(`[DEBUG] Found existing fields:`, existingFields);
+    console.debug(`Found existing fields:`, existingFields);
 
     // Keep track of which fields we've processed to avoid duplicates
     const processedFieldIds = new Set();
@@ -1705,7 +1705,7 @@ async function buildUpdateData(analysis, doc) {
       const customField = customFields[key];
       
       if (!customField.field_name || !customField.value?.trim()) {
-        console.log(`[DEBUG] Skipping empty/invalid custom field`);
+        console.debug(`Skipping empty/invalid custom field`);
         continue;
       }
 
@@ -1720,21 +1720,21 @@ async function buildUpdateData(analysis, doc) {
     }
     */
     for (const key in customFields) {
-      console.log(`[DEBUG] Processing AI-provided custom field "${key}"`);
+      console.debug(`Processing AI-provided custom field "${key}"`);
       if (customFields[key] === null) {
-        console.log(`[DEBUG] Skipping AI-provided custom field "${key}" because of null value`);
+        console.debug(`Skipping AI-provided custom field "${key}" because of null value`);
         continue;
       }
       const fieldDetails = await paperlessService.findExistingCustomField(key);
       if (fieldDetails?.id) {
-        console.log(`[DEBUG] Found custom field "${fieldDetails.name}" with id "${fieldDetails.id}" and type "${fieldDetails.data_type}"`);
+        console.debug(`Found custom field "${fieldDetails.name}" with id "${fieldDetails.id}" and type "${fieldDetails.data_type}"`);
         processedFields.push({
           field: fieldDetails.id,
           value: customFields[key]
         });
         processedFieldIds.add(fieldDetails.id);
       } else {
-        console.log(`[DEBUG] No matching custom field found for "${key}"`);
+        console.debug(`No matching custom field found for "${key}"`);
       }
     }
 
@@ -1758,7 +1758,7 @@ async function buildUpdateData(analysis, doc) {
         updateData.correspondent = correspondent.id;
       }
     } catch (error) {
-      console.error(`[ERROR] Error processing correspondent:`, error);
+      console.error(`Error processing correspondent:`, error);
     }
   }
 
@@ -2434,11 +2434,11 @@ async function processQueue(customPrompt) {
         const updateData = await buildUpdateData(analysis, doc);
         await saveDocumentChanges(doc.id, updateData, analysis, originalData);
       } catch (error) {
-        console.error(`[ERROR] Failed to process document ${doc.id}:`, error);
+        console.error(`Failed to process document ${doc.id}:`, error);
       }
     }
   } catch (error) {
-    console.error('[ERROR] Error during queue processing:', error);
+    console.error('Error during queue processing:', error);
   } finally {
     isProcessing = false;
     
@@ -2561,7 +2561,7 @@ router.post('/api/webhook/document', [express.json(), authenticateAPI], async (r
       documentQueue.push(document);
       if (prompt) {
         usePrompt = true;
-        console.log('[DEBUG] Using custom prompt:', prompt);
+        console.debug('Using custom prompt:', prompt);
         await processQueue(prompt);
       } else {
         await processQueue();
@@ -2575,12 +2575,12 @@ router.post('/api/webhook/document', [express.json(), authenticateAPI], async (r
       });
       
     } catch (error) {
-      console.error('[ERROR] Failed to extract document ID or fetch document:', error);
+      console.error('Failed to extract document ID or fetch document:', error);
       return res.status(200).send('Invalid document URL format');
     }
     
   } catch (error) {
-    console.error('[ERROR] Error in webhook endpoint:', error);
+    console.error('Error in webhook endpoint:', error);
     res.status(200).send('Internal server error');
   }
 });
@@ -3783,14 +3783,14 @@ router.post('/setup', express.json(), async (req, res) => {
                 data_type: field.data_type,
                 ...(field.currency && { currency: field.currency })
               });
-              console.log(`[SUCCESS] Created/found custom field: ${field.value}`);
+              console.info(`Created/found custom field: ${field.value}`);
             }
           } catch (fieldError) {
-            console.error(`[WARNING] Error creating custom field ${field.value}:`, fieldError);
+            console.warn(`Error creating custom field ${field.value}:`, fieldError);
           }
         }
       } catch (error) {
-        console.error('[ERROR] Error processing custom fields:', error);
+        console.error('Error processing custom fields:', error);
       }
     }
 
@@ -3900,7 +3900,7 @@ router.post('/setup', express.json(), async (req, res) => {
     }, 5000);
 
   } catch (error) {
-    console.error('[ERROR] Setup error:', error);
+    console.error('Setup error:', error);
     res.status(500).json({ 
       error: 'An error occurred: ' + error.message
     });
@@ -4241,7 +4241,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
         await paperlessService.createCustomFieldSafely(field.value, field.data_type, field.currency);
       }
     } catch (error) {
-      console.log('[ERROR] Error creating custom fields:', error);
+      console.error('Error creating custom fields:', error);
     }
 
     const normalizeArray = (value) => {
@@ -4389,7 +4389,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
         await paperlessService.createCustomFieldSafely(field.value, field.data_type, field.currency);
       }
     } catch (error) {
-      console.log('[ERROR] Error creating custom fields:', error);
+      console.error('Error creating custom fields:', error);
     }
 
     res.json({ 
