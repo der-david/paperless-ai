@@ -246,8 +246,6 @@ class OpenAIService {
         systemPrompt += envSystemPrompt;
         promptTags = '';
       }
-      console.log(1);
-      console.log(systemPrompt);
 
       // Process placeholder replacements in system prompt
       systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
@@ -257,15 +255,11 @@ class OpenAIService {
         existingDocumentTypesList,
         config
       );
-      console.log(2);
-      console.log(systemPrompt);
 
       // Include validated external API data if available
       if (validatedExternalApiData) {
         systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
       }
-      console.log(3);
-      console.log(systemPrompt);
 
       if (process.env.USE_PROMPT_TAGS === 'yes') {
         promptTags = process.env.PROMPT_TAGS;
@@ -273,15 +267,11 @@ class OpenAIService {
         Take these tags and try to match one or more to the document content.\n\n
         ` + config.specialPromptPreDefinedTags;
       }
-      console.log(4);
-      console.log(systemPrompt);
       
       if (customPrompt) {
         console.log('[DEBUG] Replace system prompt with custom prompt via WebHook');
         systemPrompt = customPrompt;
       }
-      console.log(5);
-      console.log(systemPrompt);
 
       // Replace %JSON_SCHEMA% placeholder
       // can be used if OpenAI-Middleware does not support response_format
@@ -290,11 +280,7 @@ class OpenAIService {
       } else {
         systemPrompt = systemPrompt + '\n\n' + config.mustHavePrompt;
       }
-      console.log(6);
-      console.log(systemPrompt);
       systemPrompt = systemPrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-      console.log(7);
-      console.log(systemPrompt);
 
       // Calculate tokens AFTER all prompt modifications are complete
       const totalPromptTokens = await calculateTotalPromptTokens(
@@ -394,8 +380,6 @@ class OpenAIService {
       const userContent = userContentParts.length === 1 && userContentParts[0].type === 'text'
         ? userContentParts[0].text
         : userContentParts;
-      console.log(8);
-      console.log(systemPrompt);
 
       const apiPayload = {
         model: model,
@@ -411,8 +395,6 @@ class OpenAIService {
         ],
         ...(model !== 'o3-mini' && { temperature: 0.3 }),
       };
-      console.log(1);
-      console.log(apiPayload.messages[0].content);
 
       // Add JSON schema mode if using OpenAI with schema support
       if (baseModel && (baseModel.includes('gpt-5') || baseModel.includes('gpt-4') || baseModel.includes('gpt-3.5'))) {
