@@ -389,7 +389,7 @@ class OpenAIService {
       let lastError = null;
       const maxRetries = 3;
       
-      let strippedApiPayload = truncateValues(JSON.parse(JSON.stringify(apiPayload)));
+      let strippedApiPayload = truncateValues(JSON.parse(JSON.stringify(apiPayload)), 1000);
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
