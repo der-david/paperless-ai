@@ -397,7 +397,7 @@ class OpenAIService {
           for (let prop in part) {
             let propValue = String(part[prop]);
             if (propValue.length > 100) {
-              part[prop] = propValue.substr(0, 100) + '...';
+              part[prop] = propValue.substring(0, 99) + '...';
             }
           }
         }
