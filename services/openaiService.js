@@ -45,7 +45,7 @@ class OpenAIService {
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
       
-      const envSystemPrompt = process.env.SYSTEM_PROMPT.replace(/\\n/g, /\n/);
+      const envSystemPrompt = process.env.SYSTEM_PROMPT.replace(/\\n/g, '\n');
       let systemPrompt = '';
       let promptTags = '';
       const baseModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
