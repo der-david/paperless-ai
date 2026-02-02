@@ -18,49 +18,7 @@
     </button>
 
     <div class="layout-container">
-        <button id="mobileMenuButton" class="mobile-menu-button">
-            <i class="fas fa-bars"></i>
-        </button>
-        <!-- Sidebar -->
-        <div id="sidebarOverlay" class="sidebar-overlay"></div>
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <img src="/favicon.ico" class="no-invert" alt="Paperless AI Logo" style="height: 60px;">
-                <h1 class="brand-title">Paperless-AI<small style="display: block;"><%= version %></small></h1>
-            </div>
-
-            <nav class="sidebar-nav">
-                <ul>
-                    <li><a href="/dashboard" class="sidebar-link"><i class="fas fa-home"></i><span>Dashboard</span></a></li>
-                    <li><a href="/manual" class="sidebar-link"><i class="fas fa-file-alt"></i><span>Manual</span></a></li>
-                    <li><a href="/chat" class="sidebar-link active"><i class="fa-solid fa-comment"></i><span>Chat</span></a></li>
-                    <li>
-                        <a href="/rag" class="sidebar-link">
-                            <i class="fa-solid fa-comment"></i>
-                            <span>RAG Chat</span>
-                        </a>
-                    </li>
-                    <li><a href="/playground" class="sidebar-link"><i class="fa-solid fa-flask-vial"></i><span>Playground</span></a></li>
-                    <li><a href="/history" class="sidebar-link"><i class="fa-solid fa-clock-rotate-left"></i><span>History</span></a></li>
-                    <li><a href="/settings" class="sidebar-link"><i class="fas fa-cog"></i><span>Settings</span></a></li>
-                    <li><a href="/logout" class="sidebar-link"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></a></li>
-                </ul>
-                <a href="https://github.com/clusterzx/paperless-ai" 
-                class="github-button" 
-                style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
-                <span class="star-button">
-                    <svg class="star-icon" height="16" width="16" viewBox="0 0 16 16">
-                        <path d="M8 .25a.75.75 0 01.673.418l1.882 3.815 4.21.612a.75.75 0 01.416 1.279l-3.046 2.97.719 4.192a.75.75 0 01-1.088.791L8 12.347l-3.766 1.98a.75.75 0 01-1.088-.79l.72-4.194L.818 6.374a.75.75 0 01.416-1.28l4.21-.611L7.327.668A.75.75 0 018 .25z"></path>
-                    </svg>
-                    Star
-                </span>
-                <span id="starCount" class="star-count">1.2k</span>
-            </a>
-            <p style="position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); font-size: 10px; color: #555; text-align: center;">
-                Please support us on GitHub
-            </p>
-            </nav>
-        </aside>
+        <%- include('partials/sidebar', { active: 'chat', version }) %>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -112,54 +70,7 @@
             </div>
         </main>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const mobileMenuButton = document.getElementById('mobileMenuButton');
-            const sidebar = document.querySelector('.sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            
-            function toggleSidebar(event) {
-                event.stopPropagation(); // Prevent event bubbling
-                sidebar.classList.toggle('active');
-                sidebarOverlay.classList.toggle('active');
-                
-                // Toggle menu icon
-                const icon = mobileMenuButton.querySelector('i');
-                if (sidebar.classList.contains('active')) {
-                    icon.classList.remove('fa-bars');
-                    icon.classList.add('fa-times');
-                } else {
-                    icon.classList.remove('fa-times');
-                    icon.classList.add('fa-bars');
-                }
-            }
-
-            // Toggle sidebar when clicking the menu button
-            mobileMenuButton.addEventListener('click', toggleSidebar);
-
-            // Close sidebar when clicking the overlay
-            sidebarOverlay.addEventListener('click', function(event) {
-                event.stopPropagation(); // Prevent event bubbling
-                if (sidebar.classList.contains('active')) {
-                    toggleSidebar(event);
-                }
-            });
-
-            // Prevent sidebar from closing when clicking inside it
-            sidebar.addEventListener('click', function(event) {
-                event.stopPropagation();
-            });
-
-            // Handle links in sidebar
-            const sidebarLinks = document.querySelectorAll('.sidebar-link');
-            sidebarLinks.forEach(link => {
-                link.addEventListener('click', function(event) {
-                    // Don't prevent default here to allow navigation
-                    event.stopPropagation();
-                });
-            });
-        });
-    </script>
+    <%- include('partials/sidebar-script') %>
     <script>
         // get github stars count from repo
         async function getStarsCount() {
