@@ -3,10 +3,9 @@ const cron = require('node-cron');
 const path = require('path');
 const fs = require('fs').promises;
 const config = require('./config/config');
-const paperlessService = require('./services/paperlessService');
-const AIServiceFactory = require('./services/aiServiceFactory');
+const container = require('./services/container');
 const documentModel = require('./models/document');
-const setupService = require('./services/setupService');
+const setupService = container.getSetupService();
 const setupRoutes = require('./routes/setup');
 
 // Add environment variables for RAG service if not already set
@@ -36,6 +35,7 @@ const txtLogger = new Logger({
 
 const app = express();
 let runningTask = false;
+const paperlessService = container.getPaperlessService();
 
 
 const corsOptions = {
@@ -224,19 +224,15 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     }
   }
 
-  // Prepare options for AI service
-  const options = {
-    restrictToExistingTags: config.restrictToExistingTags === 'yes',
-    restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes'
-  };
+  let externalApiData = null;
 
   // Get external API data if enabled
   if (config.externalApiConfig.enabled === 'yes') {
     try {
       const externalApiService = require('../services/externalApiService');
-      const externalData = await externalApiService.fetchData();
+      const externalData = await externalApiService.fetchData(config.externalApiConfig);
       if (externalData) {
-        options.externalApiData = externalData;
+        externalApiData = externalData;
         console.debug('Retrieved external API data for prompt enrichment');
       }
     } catch (error) {
@@ -244,15 +240,15 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     }
   }
 
-  const aiService = AIServiceFactory.getService();
+  const aiService = container.getAIService();
   let analysis;
   if(customPrompt) {
     console.debug('Starting document analysis with custom prompt');
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, options);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, externalApiData, config);
   }else{
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, options);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData, config);
   }
-  console.log('Repsonse from AI service:', analysis);
+  console.log('Response from AI service:', analysis);
   if (analysis.error) {
     throw new Error(`[ERROR] Document analysis failed: ${analysis.error}`);
   }
@@ -265,11 +261,11 @@ async function buildUpdateData(analysis, doc) {
 
   // Create options object with restriction settings
   const options = {
-    restrictToExistingTags: config.restrictToExistingTags === 'yes' ? true : false,
-    restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes' ? true : false
+    restrictToExistingTags: config.restrictToExisting.tags === 'yes' ? true : false,
+    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes' ? true : false
   };
 
-  console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondents=${options.restrictToExistingCorrespondents}`);
+  console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
   if (config.limitFunctions?.activateTagging !== 'no') {
@@ -305,7 +301,11 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  updateData.created = analysis.document.document_date || doc.created;
+  if (config.limitFunctions?.activateDocumentDate !== 'no' && analysis.document.document_date) {
+    updateData.created = analysis.document.document_date;
+  } else {
+    updateData.created = doc.created;
+  }
 
   // Only process document type if document type classification is activated
   if (config.limitFunctions?.activateDocumentType !== 'no' && analysis.document.document_type) {
@@ -313,7 +313,7 @@ async function buildUpdateData(analysis, doc) {
       let documentType;
 
       // If restricting to existing document types, search for exact match only
-      if (config.restrictToExistingDocumentTypes === 'yes') {
+      if (config.restrictToExisting.documentTypes === 'yes') {
         documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
         if (documentType) {
           console.debug(`Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
@@ -408,8 +408,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  // Always include language if provided as it's a core field
-  if (analysis.document.language) {
+  if (config.limitFunctions?.activateLanguage !== 'no' && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 

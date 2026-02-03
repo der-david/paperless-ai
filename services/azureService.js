@@ -2,47 +2,28 @@ const {
   calculateTokens,
   calculateTotalPromptTokens,
   truncateToTokenLimit,
-  writePromptToFile
+  writePromptToFile,
+  extractSchemaData,
+  buildResponseSchema,
+  parseCustomFields
 } = require('./serviceUtils');
 const OpenAI = require('openai');
 const AzureOpenAI = require('openai').AzureOpenAI;
-const config = require('../config/config');
-const paperlessService = require('./paperlessService');
 const fs = require('fs').promises;
 const path = require('path');
 const RestrictionPromptService = require('./restrictionPromptService');
+const BaseAIService = require('./baseAiService');
 
-function extractSchemaData(parsedResponse) {
-  if (
-    parsedResponse &&
-    typeof parsedResponse === 'object' &&
-    parsedResponse.properties &&
-    typeof parsedResponse.properties === 'object'
-  ) {
-    const props = parsedResponse.properties;
-    const looksLikeData =
-      Array.isArray(props.tags) ||
-      typeof props.title === 'string' ||
-      typeof props.correspondent === 'string' ||
-      typeof props.document_type === 'string' ||
-      typeof props.document_date === 'string' ||
-      typeof props.language === 'string' ||
-      typeof props.content === 'string' ||
-      typeof props.custom_fields === 'object';
-    if (looksLikeData) {
-      return props;
-    }
-  }
-  return parsedResponse;
-}
-
-class AzureOpenAIService {
-  constructor() {
+class AzureOpenAIService extends BaseAIService {
+  constructor({ paperlessService, defaults = {} } = {}) {
+    super({ paperlessService });
     this.client = null;
+    this.defaults = defaults;
   }
 
-  initialize() {
-    if (!this.client && config.aiProvider === 'azure') {
+  initialize(serviceConfig = {}) {
+    const config = serviceConfig;
+    if (!this.client && config.azure?.apiKey) {
       this.client = new AzureOpenAI({
         apiKey: config.azure.apiKey,
         endpoint: config.azure.endpoint,
@@ -52,10 +33,11 @@ class AzureOpenAIService {
     }
   }
 
-  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, options = {}) {
+  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
     const cachePath = path.join('./public/images', `${id}.png`);
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -70,7 +52,7 @@ class AzureOpenAIService {
       } catch (err) {
         console.log('Thumbnail not cached, fetching from Paperless');
 
-        const thumbnailData = await paperlessService.getThumbnailImage(id);
+        const thumbnailData = await this.paperlessService.getThumbnailImage(id);
 
         if (!thumbnailData) {
           console.warn('Thumbnail nicht gefunden');
@@ -84,12 +66,11 @@ class AzureOpenAIService {
       let existingTagsList = existingTags.join(', ');
 
       // Get external API data if available and validate it
-      let externalApiData = options.externalApiData || null;
       let validatedExternalApiData = null;
 
       if (externalApiData) {
         try {
-          validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData);
+          validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData, 500, config.azure?.deploymentName);
           console.debug('External API data validated and included');
         } catch (error) {
           console.warn('External API data validation failed:', error.message);
@@ -99,44 +80,27 @@ class AzureOpenAIService {
 
       let systemPrompt = '';
       let promptTags = '';
-      const model = process.env.AZURE_DEPLOYMENT_NAME;
+      const model = config.azure?.deploymentName || this.defaults.deploymentName;
 
-      // Parse CUSTOM_FIELDS from environment variable
-      let customFieldsObj;
-      try {
-        customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
-      } catch (error) {
-        console.error('Failed to parse CUSTOM_FIELDS:', error);
-        customFieldsObj = { custom_fields: [] };
-      }
-
-      // Generate custom fields template for the prompt
-      const customFieldsTemplate = {};
-
-      customFieldsObj.custom_fields.forEach((field, index) => {
-        customFieldsTemplate[index] = {
-          field_name: field.value,
-          value: "Fill in the value based on your analysis"
-        };
+      const promptCustomFields = parseCustomFields(config.customFields);
+      const { customFieldsStr } = buildResponseSchema({
+        includeCustomFieldProperties: true,
+        customFields: promptCustomFields,
+        customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'
       });
-
-      // Convert template to string for replacement and wrap in custom_fields
-      const customFieldsStr = '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
-        .split('\n')
-        .map(line => '    ' + line)  // Add proper indentation
-        .join('\n');
+      const promptCustomFieldsStr = customFieldsStr || '"custom_fields": {}';
 
       // Get system prompt and model
-      if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
+      if (config.useExistingData === 'yes' && config.restrictToExisting.tags === 'no' && config.restrictToExisting.correspondents === 'no') {
         systemPrompt += `
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
         Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
-        ` + process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
+        ` + config.systemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
         promptTags = '';
       } else {
-        config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-        systemPrompt += process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
+        config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
+        systemPrompt += config.systemPrompt + '\n\n' + config.mustHavePrompt;
         promptTags = '';
       }
 
@@ -154,9 +118,9 @@ class AzureOpenAIService {
         systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
       }
 
-      if (process.env.USE_PROMPT_TAGS === 'yes') {
-        promptTags = process.env.PROMPT_TAGS;
-        systemPrompt = `
+      if (config.usePromptTags === 'yes') {
+        promptTags = config.promptTags;
+        systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
         ` + config.specialPromptPreDefinedTags;
       }
@@ -169,7 +133,7 @@ class AzureOpenAIService {
       // Calculate tokens AFTER all prompt modifications are complete
       const totalPromptTokens = await calculateTotalPromptTokens(
         systemPrompt,
-        process.env.USE_PROMPT_TAGS === 'yes' ? [promptTags] : [],
+        config.usePromptTags === 'yes' ? [promptTags] : [],
         model
       );
 
@@ -196,7 +160,7 @@ class AzureOpenAIService {
       let rawDocBase64 = '';
       let rawDocContentType = 'application/octet-stream';
       if (includeRaw) {
-        const rawDoc = await paperlessService.getDocumentFile(id, true);
+        const rawDoc = await this.paperlessService.getDocumentFile(id, true);
         const rawBuffer = Buffer.isBuffer(rawDoc.content)
           ? rawDoc.content
           : Buffer.from(rawDoc.content, 'binary');
@@ -230,79 +194,38 @@ class AzureOpenAIService {
 
       await writePromptToFile(systemPrompt, truncatedContent);
 
-      // Build response schema with enum constraints for tags and document types
-      // First, build the base enum list for document types (all available types plus null)
-      const allDocTypesList = Array.isArray(existingDocumentTypesList)
-        ? existingDocumentTypesList.map(t => typeof t === 'string' ? t : t.name).filter(Boolean)
-        : [];
+      const customFields = parseCustomFields(config.customFields);
+      const {
+        responseSchema,
+        tagsList,
+        restrictedDocTypesList,
+        allDocTypesList,
+        correspondentsList
+      } = buildResponseSchema({
+        existingTags,
+        existingDocumentTypesList,
+        existingCorrespondents: existingCorrespondentList,
+        restrictToExistingTags: config.restrictToExisting.tags === 'yes',
+        restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes === 'yes',
+        restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes',
+        limitFunctions: config.limitFunctions,
+        includeCustomFieldProperties: true,
+        customFields,
+        customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'
+      });
 
-      const responseSchema = {
-        type: "object",
-        properties: {
-          title: {
-            type: "string",
-            description: "A meaningful and short title for the document"
-          },
-          correspondent: {
-            type: ["string", "null"],
-            description: "The sender/correspondent of the document"
-          },
-          tags: {
-            type: "array",
-            items: {
-              type: "string"
-            },
-            description: "Array of tags to assign to the document"
-          },
-          document_type: {
-            type: ["string", "null"],
-            description: "The document type classification - can be null if no type matches"
-          },
-          document_date: {
-            type: "string",
-            description: "The document date in YYYY-MM-DD format"
-          },
-          content: {
-            type: "string",
-            description: "Optimized document content (optional)"
-          },
-          language: {
-            type: "string",
-            description: "The language of the document (en/de/es/etc)"
-          },
-          custom_fields: {
-            type: "object",
-            description: "Custom fields extracted from the document"
-          }
-        },
-        required: ["title", "tags", "document_type", "document_date", "correspondent", "language"]
-      };
-
-      // Add enum constraints if restrictions are enabled
-      if (config.restrictToExistingTags === 'yes' && Array.isArray(existingTags) && existingTags.length > 0) {
-        const tagsList = existingTags.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
-        responseSchema.properties.tags = {
-          type: "array",
-          items: {
-            type: "string",
-            enum: tagsList
-          },
-          description: "Array of tags from the available pool"
-        };
+      if (tagsList.length > 0) {
         console.debug(`Tag enum constraint set with ${tagsList.length} available tags`);
       }
 
-      // If restrictions enabled, further constrain to only allowed types
-      if (config.restrictToExistingDocumentTypes === 'yes' && Array.isArray(existingDocumentTypesList) && existingDocumentTypesList.length > 0) {
-        const restrictedDocTypesList = existingDocumentTypesList.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
-        responseSchema.properties.document_type = {
-          type: ["string", "null"],
-          enum: [...restrictedDocTypesList, null],
-          description: "Document type from the restricted pool only, or null if no match"
-        };
+      if (restrictedDocTypesList.length > 0) {
         console.debug(`Document type restricted enum with ${restrictedDocTypesList.length} allowed types`);
       } else if (allDocTypesList.length > 0) {
         console.debug(`Document type enum set with all ${allDocTypesList.length} available types`);
+      }
+
+      if (correspondentsList.length > 0) {
+        console.debug(`Correspondent restricted enum with ${correspondentsList.length} available correspondents`);
       }
 
       const rawDocumentMode = config.rawDocumentMode || 'text';
@@ -451,7 +374,7 @@ class AzureOpenAIService {
    * @param {number} maxTokens - Maximum tokens allowed for external data (default: 500)
    * @returns {string} - Validated and potentially truncated data string
    */
-  async _validateAndTruncateExternalApiData(apiData, maxTokens = 500) {
+  async _validateAndTruncateExternalApiData(apiData, maxTokens = 500, model = 'gpt-4o-mini') {
     if (!apiData) {
       return null;
     }
@@ -461,18 +384,18 @@ class AzureOpenAIService {
       : String(apiData);
 
     // Calculate tokens for the data
-    const dataTokens = await calculateTokens(dataString, process.env.AZURE_DEPLOYMENT_NAME);
+    const dataTokens = await calculateTokens(dataString, model);
 
     if (dataTokens > maxTokens) {
       console.warn(`External API data (${dataTokens} tokens) exceeds limit (${maxTokens}), truncating`);
-      return await truncateToTokenLimit(dataString, maxTokens, process.env.AZURE_DEPLOYMENT_NAME);
+      return await truncateToTokenLimit(dataString, maxTokens, model);
     }
 
     console.debug(`External API data validated: ${dataTokens} tokens`);
     return dataString;
   }
 
-  async analyzePlayground(content, prompt) {
+  async analyzePlayground(content, prompt, serviceConfig = {}) {
     const musthavePrompt = `
     Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
         {
@@ -484,7 +407,8 @@ class AzureOpenAIService {
         }`;
 
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -498,16 +422,17 @@ class AzureOpenAIService {
       );
 
       // Calculate available tokens
-      const maxTokens = Number(config.tokenLimit);
-      const reservedTokens = totalPromptTokens + Number(config.responseTokens);
+      const maxTokens = Number(config.tokenLimit || 128000);
+      const reservedTokens = totalPromptTokens + Number(config.responseTokens || 1000);
       const availableTokens = maxTokens - reservedTokens;
 
       // Truncate content if necessary
-      const truncatedContent = await truncateToTokenLimit(content, availableTokens);
+      const model = config.azure?.deploymentName || this.defaults.deploymentName;
+      const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
 
       // Make API request
       const response = await this.client.chat.completions.create({
-        model: process.env.AZURE_DEPLOYMENT_NAME,
+        model: model,
         messages: [
           {
             role: "system",
@@ -582,15 +507,16 @@ class AzureOpenAIService {
    * @param {string} prompt - The prompt to generate text from
    * @returns {Promise<string>} - The generated text
    */
-  async generateText(prompt) {
+  async generateText(prompt, serviceConfig = {}) {
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
 
       if (!this.client) {
         throw new Error('AzureOpenAI client not initialized - missing API key');
       }
 
-      const model = process.env.AZURE_DEPLOYMENT_NAME;
+      const model = config.azure?.deploymentName || this.defaults.deploymentName;
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -615,15 +541,16 @@ class AzureOpenAIService {
     }
   }
 
-  async checkStatus() {
+  async checkStatus(serviceConfig = {}) {
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
 
       if (!this.client) {
         throw new Error('AzureOpenAI client not initialized - missing API key');
       }
 
-      const model = process.env.AZURE_DEPLOYMENT_NAME;
+      const model = config.azure?.deploymentName || this.defaults.deploymentName;
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -648,15 +575,16 @@ class AzureOpenAIService {
     }
   }
 
-  async checkStatus() {
+  async checkStatus(serviceConfig = {}) {
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
 
       if (!this.client) {
         throw new Error('Azure OpenAI client not initialized - missing API key');
       }
 
-      const model = process.env.AZURE_DEPLOYMENT_NAME;
+      const model = config.azure?.deploymentName;
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -682,4 +610,4 @@ class AzureOpenAIService {
   }
 }
 
-module.exports = new AzureOpenAIService();
+module.exports = AzureOpenAIService;

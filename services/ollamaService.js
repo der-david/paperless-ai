@@ -2,52 +2,33 @@ const {
     calculateTokens,
     calculateTotalPromptTokens,
     truncateToTokenLimit,
-    writePromptToFile
+    writePromptToFile,
+    buildResponseSchema,
+    parseCustomFields
 } = require('./serviceUtils');
 const axios = require('axios');
-const config = require('../config/config');
 const fs = require('fs').promises;
 const path = require('path');
-const paperlessService = require('./paperlessService');
 const os = require('os');
 const OpenAI = require('openai');
 const RestrictionPromptService = require('./restrictionPromptService');
+const BaseAIService = require('./baseAiService');
 
 /**
  * Service for document analysis using Ollama
  */
-class OllamaService {
+class OllamaService extends BaseAIService {
     /**
      * Initialize the Ollama service
      */
-    constructor() {
-        this.apiUrl = config.ollama.apiUrl;
-        this.model = config.ollama.model;
+    constructor({ paperlessService, defaults = {} } = {}) {
+        super({ paperlessService });
+        this.apiUrl = null;
+        this.model = null;
         this.client = axios.create({
             timeout: 1800000 // 30 minutes timeout
         });
-
-        // JSON schema for document analysis output
-        this.documentAnalysisSchema = {
-            type: "object",
-            properties: {
-                title: { type: "string" },
-                correspondent: { type: "string" },
-                tags: {
-                    type: "array",
-                    items: { type: "string" }
-                },
-                document_type: { type: "string" },
-                document_date: { type: "string" },
-                content: { type: "string" },
-                language: { type: "string" },
-                custom_fields: {
-                    type: "object",
-                    additionalProperties: true
-                }
-            },
-            required: ["title", "correspondent", "tags", "document_type", "document_date", "language"]
-        };
+        this.defaults = defaults;
 
         // Schema for playground analysis (simpler version)
         this.playgroundSchema = {
@@ -68,6 +49,7 @@ class OllamaService {
         };
     }
 
+
     /**
      * Analyze a document and extract metadata
      * @param {string} content - Document content
@@ -77,14 +59,17 @@ class OllamaService {
      * @param {string} customPrompt - Custom prompt (optional)
      * @returns {Object} Analysis results
      */
-    async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, options = {}) {
+    async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
         try {
+            const config = serviceConfig;
+            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || this.defaults.apiUrl || 'http://localhost:11434';
+            this.model = config.ollama?.model || this.model || this.defaults.model;
             // Truncate content if needed
-            content = this._truncateContent(content);
+            content = this._truncateContent(content, config.contentMaxLength);
 
             const contentSourceMode = config.contentSourceMode || 'content';
             if (contentSourceMode === 'raw_document' || contentSourceMode === 'both') {
-                const rawDoc = await paperlessService.getDocumentFile(id, true);
+                const rawDoc = await this.paperlessService.getDocumentFile(id, true);
                 const rawBuffer = Buffer.isBuffer(rawDoc.content)
                     ? rawDoc.content
                     : Buffer.from(rawDoc.content, 'binary');
@@ -100,7 +85,6 @@ class OllamaService {
             await this._handleThumbnailCaching(id);
 
             // Get external API data if available and validate it
-            let externalApiData = options.externalApiData || null;
             let validatedExternalApiData = null;
 
             if (externalApiData) {
@@ -116,72 +100,58 @@ class OllamaService {
             // Build prompt
             let prompt;
             if (!customPrompt) {
-                prompt = this._buildPrompt(content, existingTags, existingCorrespondentList, existingDocumentTypesList, options);
+                prompt = this._buildPrompt(content, existingTags, existingCorrespondentList, existingDocumentTypesList, externalApiData, config);
             } else {
-                // Parse CUSTOM_FIELDS for custom prompt
-                let customFieldsObj;
-                try {
-                    customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
-                } catch (error) {
-                    console.error('Failed to parse CUSTOM_FIELDS:', error);
-                    customFieldsObj = { custom_fields: [] };
-                }
-
-                const customFieldsTemplate = {};
-                customFieldsObj.custom_fields.forEach((field, index) => {
-                    customFieldsTemplate[index] = {
-                        field_name: field.value,
-                        value: "Fill in the value based on your analysis"
-                    };
-                });
-
-                const customFieldsStr = '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
-                    .split('\n')
-                    .map(line => '    ' + line)
-                    .join('\n');
-
+                const customFieldsStr = this._generateCustomFieldsTemplate(config);
                 prompt = customPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr) + "\n\n" + JSON.stringify(content);
                 console.debug('Ollama Service started with custom prompt');
             }
 
             // Generate custom fields for the prompt
-            const customFieldsStr = this._generateCustomFieldsTemplate();
+            const customFieldsStr = this._generateCustomFieldsTemplate(config);
 
             // Generate system prompt
             const systemPrompt = this._generateSystemPrompt(customFieldsStr);
 
             // Calculate context window size
             const promptTokenCount = this._calculatePromptTokenCount(prompt);
-            const numCtx = this._calculateNumCtx(promptTokenCount, 1024);
+            const numCtx = this._calculateNumCtx(promptTokenCount, 1024, Number(config.tokenLimit || this.defaults.tokenLimit) || undefined);
 
             console.debug(`Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
             console.debug(`External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
 
-            // Build response schema with enum constraints for tags and document types
-            let responseSchema = JSON.parse(JSON.stringify(this.documentAnalysisSchema));
+            const customFields = parseCustomFields(config.customFields);
+            const {
+                responseSchema,
+                tagsList,
+                restrictedDocTypesList,
+                allDocTypesList,
+                correspondentsList
+            } = buildResponseSchema({
+                existingTags,
+                existingDocumentTypesList,
+                existingCorrespondents: existingCorrespondentList,
+                restrictToExistingTags: config.restrictToExisting.tags === 'yes',
+                restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes === 'yes',
+                restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes',
+                limitFunctions: config.limitFunctions,
+                includeCustomFieldProperties: true,
+                customFields,
+                customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'
+            });
 
-            // Add enum constraints if restrictions are enabled
-            if (config.restrictToExistingTags === 'yes' && Array.isArray(existingTags) && existingTags.length > 0) {
-              const tagsList = existingTags.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
-              responseSchema.properties.tags = {
-                type: "array",
-                items: {
-                  type: "string",
-                  enum: tagsList
-                },
-                description: "Array of tags from the available pool"
-              };
-              console.debug(`Tag enum constraint set with ${tagsList.length} available tags for Ollama`);
+            if (tagsList.length > 0) {
+                console.debug(`Tag enum constraint set with ${tagsList.length} available tags for Ollama`);
             }
 
-            if (config.restrictToExistingDocumentTypes === 'yes' && Array.isArray(existingDocumentTypesList) && existingDocumentTypesList.length > 0) {
-              const docTypesList = existingDocumentTypesList.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
-              responseSchema.properties.document_type = {
-                type: "string",
-                enum: docTypesList,
-                description: "Document type from the available pool only"
-              };
-              console.debug(`Document type enum constraint set with ${docTypesList.length} available types for Ollama`);
+            if (restrictedDocTypesList.length > 0) {
+                console.debug(`Document type restricted enum with ${restrictedDocTypesList.length} available types for Ollama`);
+            } else if (allDocTypesList.length > 0) {
+                console.debug(`Document type enum set with all ${allDocTypesList.length} available types for Ollama`);
+            }
+
+            if (correspondentsList.length > 0) {
+                console.debug(`Correspondent restricted enum with ${correspondentsList.length} available correspondents for Ollama`);
             }
 
             // Call Ollama API
@@ -224,11 +194,14 @@ class OllamaService {
      * @param {string} prompt - User-provided prompt
      * @returns {Object} Analysis results
      */
-    async analyzePlayground(content, prompt) {
+    async analyzePlayground(content, prompt, serviceConfig = {}) {
         try {
+            const config = serviceConfig;
+            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || 'http://localhost:11434';
+            this.model = config.ollama?.model || this.model;
             // Calculate context window size
-            const promptTokenCount = await calculateTokens(prompt);
-            const numCtx = this._calculateNumCtx(promptTokenCount, 1024);
+            const promptTokenCount = await calculateTokens(prompt, this.model || 'gpt-4o-mini');
+            const numCtx = this._calculateNumCtx(promptTokenCount, 1024, Number(config.tokenLimit || this.defaults.tokenLimit) || undefined);
 
             // Generate playground system prompt (simpler than full analysis)
             const systemPrompt = this._generatePlaygroundSystemPrompt();
@@ -274,11 +247,11 @@ class OllamaService {
      * @param {string} content - Content to truncate
      * @returns {string} Truncated content
      */
-    _truncateContent(content) {
+    _truncateContent(content, contentMaxLength = null) {
         try {
-            if (process.env.CONTENT_MAX_LENGTH) {
-                console.log('Truncating content to max length:', process.env.CONTENT_MAX_LENGTH);
-                return content.substring(0, process.env.CONTENT_MAX_LENGTH);
+            if (contentMaxLength) {
+                console.log('Truncating content to max length:', contentMaxLength);
+                return content.substring(0, contentMaxLength);
             }
         } catch (error) {
             console.error('Error truncating content:', error);
@@ -294,7 +267,8 @@ class OllamaService {
      * @param {Array} existingDocumentTypes - List of existing document types
      * @returns {string} Formatted prompt
      */
-    _buildPrompt(content, existingTags = [], existingCorrespondent = [], existingDocumentTypes = [], options = {}) {
+    _buildPrompt(content, existingTags = [], existingCorrespondent = [], existingDocumentTypes = [], externalApiData = null, serviceConfig = {}) {
+        const config = serviceConfig;
         let systemPrompt;
         let promptTags = '';
 
@@ -303,33 +277,10 @@ class OllamaService {
             ? existingCorrespondent
             : [];
 
-        // Parse CUSTOM_FIELDS from environment variable
-        let customFieldsObj;
-        try {
-            customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
-        } catch (error) {
-            console.error('Failed to parse CUSTOM_FIELDS:', error);
-            customFieldsObj = { custom_fields: [] };
-        }
-
-        // Generate custom fields template for the prompt
-        const customFieldsTemplate = {};
-
-        customFieldsObj.custom_fields.forEach((field, index) => {
-            customFieldsTemplate[index] = {
-                field_name: field.value,
-                value: "Fill in the value based on your analysis"
-            };
-        });
-
-        // Convert template to string for replacement and wrap in custom_fields
-        const customFieldsStr = '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
-            .split('\n')
-            .map(line => '    ' + line)  // Add proper indentation
-            .join('\n');
+        const customFieldsStr = this._generateCustomFieldsTemplate(config);
 
         // Get system prompt based on configuration
-        if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
+        if (config.useExistingData === 'yes' && config.restrictToExisting.tags === 'no' && config.restrictToExisting.correspondents === 'no') {
             // Format existing tags
             const existingTagsList = existingTags.join(', ');
 
@@ -355,10 +306,10 @@ class OllamaService {
 
             // Build system prompt with restrictions at the beginning if enabled
             systemPrompt = '';
-            if (config.restrictToExistingTags === 'yes') {
+            if (config.restrictToExisting.tags === 'yes') {
                 systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n`;
             }
-            if (config.restrictToExistingDocumentTypes === 'yes') {
+            if (config.restrictToExisting.documentTypes === 'yes') {
                 systemPrompt += `You can ONLY use these document types: ${existingDocumentTypesList}\n\n`;
             }
 
@@ -366,15 +317,15 @@ class OllamaService {
             Pre-existing tags: ${existingTagsList}\n\n
             Pre-existing correspondents: ${existingCorrespondentList}\n\n
             Pre-existing document types: ${existingDocumentTypesList}\n\n
-            ` + process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
+            ` + config.systemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
             promptTags = '';
         } else {
             config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-            let systemPrompt = process.env.SYSTEM_PROMPT + '\n\n' + config.mustHavePrompt;
-            if (config.restrictToExistingTags === 'yes') {
+            let systemPrompt = config.systemPrompt + '\n\n' + config.mustHavePrompt;
+            if (config.restrictToExisting.tags === 'yes') {
                 systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n` + systemPrompt;
             }
-            if (config.restrictToExistingDocumentTypes === 'yes') {
+            if (config.restrictToExisting.documentTypes === 'yes') {
                 const existingDocumentTypesList = existingDocumentTypes
                     .filter(Boolean)
                     .map(docType => {
@@ -390,9 +341,9 @@ class OllamaService {
 
         // Get validated external API data if available
         let validatedExternalApiData = null;
-        if (options.externalApiData) {
+        if (externalApiData) {
             try {
-                validatedExternalApiData = this._validateAndTruncateExternalApiData(options.externalApiData);
+                validatedExternalApiData = this._validateAndTruncateExternalApiData(externalApiData);
                 console.debug('External API data validated and included');
             } catch (error) {
                 console.warn('External API data validation failed:', error.message);
@@ -414,9 +365,9 @@ class OllamaService {
             systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
         }
 
-        if (process.env.USE_PROMPT_TAGS === 'yes') {
-            promptTags = process.env.PROMPT_TAGS;
-            systemPrompt = `
+        if (config.usePromptTags === 'yes') {
+            promptTags = config.promptTags;
+            systemPrompt += `
             Take these tags and try to match one or more to the document content.\n\n
             ` + config.specialPromptPreDefinedTags;
         }
@@ -459,30 +410,15 @@ class OllamaService {
      * Generate custom fields template for prompts
      * @returns {string} Custom fields template as a string
      */
-    _generateCustomFieldsTemplate() {
-        let customFieldsObj;
-        try {
-            customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
-        } catch (error) {
-            console.error('Failed to parse CUSTOM_FIELDS:', error);
-            customFieldsObj = { custom_fields: [] };
-        }
-
-        // Generate custom fields template for the prompt
-        const customFieldsTemplate = {};
-
-        customFieldsObj.custom_fields.forEach((field, index) => {
-            customFieldsTemplate[index] = {
-                field_name: field.value,
-                value: "Fill in the value based on your analysis"
-            };
+    _generateCustomFieldsTemplate(serviceConfig = {}) {
+        const customFields = parseCustomFields(serviceConfig.customFields);
+        const { customFieldsStr } = buildResponseSchema({
+            includeCustomFieldProperties: true,
+            customFields,
+            customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'
         });
 
-        // Convert template to string for replacement and wrap in custom_fields
-        return '"custom_fields": ' + JSON.stringify(customFieldsTemplate, null, 2)
-            .split('\n')
-            .map(line => '    ' + line)  // Add proper indentation
-            .join('\n');
+        return customFieldsStr || '"custom_fields": {}';
     }
 
     /**
@@ -549,9 +485,8 @@ class OllamaService {
      * @param {number} expectedResponseTokens - Expected response token count
      * @returns {number} Context window size
      */
-    _calculateNumCtx(promptTokenCount, expectedResponseTokens) {
+    _calculateNumCtx(promptTokenCount, expectedResponseTokens, maxCtxLimit = 8192) {
         const totalTokenUsage = promptTokenCount + expectedResponseTokens;
-        const maxCtxLimit = Number(config.tokenLimit);
 
         const numCtx = Math.min(totalTokenUsage, maxCtxLimit);
 
@@ -587,7 +522,7 @@ class OllamaService {
             console.debug('Thumbnail already cached');
         } catch (err) {
             console.log('Thumbnail not cached, fetching from Paperless');
-            const thumbnailData = await paperlessService.getThumbnailImage(id);
+            const thumbnailData = await this.paperlessService.getThumbnailImage(id);
             if (!thumbnailData) {
                 console.warn('Thumbnail nicht gefunden');
                 return;
@@ -747,11 +682,14 @@ class OllamaService {
      * @param {string} prompt - The prompt to generate text from
      * @returns {Promise<string>} - The generated text
      */
-    async generateText(prompt) {
+    async generateText(prompt, serviceConfig = {}) {
         try {
+            const config = serviceConfig;
+            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || 'http://localhost:11434';
+            this.model = config.ollama?.model || this.model;
             // Calculate context window size based on prompt length
             const promptTokenCount = this._calculatePromptTokenCount(prompt);
-            const numCtx = this._calculateNumCtx(promptTokenCount, 512);
+            const numCtx = this._calculateNumCtx(promptTokenCount, 512, Number(config.tokenLimit || this.defaults.tokenLimit) || undefined);
 
             // Simple system prompt for text generation
             const systemPrompt = `You are a helpful assistant. Generate a clear, concise, and informative response to the user's question or request.`;
@@ -785,9 +723,11 @@ class OllamaService {
      * Check if the Ollama service is running
      * @returns {Promise<boolean>} - True if the service is running, false otherwise
      */
-    async checkStatus() {
+    async checkStatus(serviceConfig = {}) {
         // use ollama status endpoint
         try {
+            const config = serviceConfig;
+            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || 'http://localhost:11434';
             const response = await this.client.get(`${this.apiUrl}/api/ps`);
             if (response.status === 200) {
                 const data = response.data;
@@ -806,4 +746,4 @@ class OllamaService {
     }
 }
 
-module.exports = new OllamaService();
+module.exports = OllamaService;

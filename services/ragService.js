@@ -1,12 +1,24 @@
 // services/ragService.js
 const axios = require('axios');
-const config = require('../config/config');
-const AIServiceFactory = require('./aiServiceFactory');
-const paperlessService = require('./paperlessService');
 
 class RagService {
-  constructor() {
+  constructor({ aiService, paperlessService, serviceConfig } = {}) {
+    this.aiService = aiService;
+    this.paperlessService = paperlessService;
+    this.serviceConfig = serviceConfig || {};
     this.baseUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+  }
+
+  setAIService(aiService) {
+    this.aiService = aiService;
+  }
+
+  setPaperlessService(paperlessService) {
+    this.paperlessService = paperlessService;
+  }
+
+  setServiceConfig(serviceConfig = {}) {
+    this.serviceConfig = serviceConfig;
   }
 
   /**
@@ -53,7 +65,7 @@ class RagService {
    * @param {string} question - The question to ask
    * @returns {Promise<{answer: string, sources: Array}>} - AI response and source documents
    */
-  async askQuestion(question) {
+  async askQuestion(question, serviceConfig = this.serviceConfig || {}) {
     try {
       // 1. Get context from the RAG service
       const response = await axios.post(`${this.baseUrl}/context`, {
@@ -72,7 +84,7 @@ class RagService {
           sources.map(async (source) => {
             if (source.doc_id) {
               try {
-                const fullContent = await paperlessService.getDocumentContent(source.doc_id);
+                const fullContent = await this.paperlessService.getDocumentContent(source.doc_id);
                 return `Full document content for ${source.title || 'Document ' + source.doc_id}:\n${fullContent}`;
               } catch (error) {
                 console.error(`Error fetching content for document ${source.doc_id}:`, error.message);
@@ -88,8 +100,6 @@ class RagService {
       }
 
       // 3. Use AI service to generate an answer based on the enhanced context
-      const aiService = AIServiceFactory.getService();
-
       // Create a language-agnostic prompt that works in any language
       const prompt = `
         You are a helpful assistant that answers questions about documents.
@@ -111,7 +121,7 @@ class RagService {
 
       let answer;
       try {
-        answer = await aiService.generateText(prompt);
+        answer = await this.aiService.generateText(prompt, serviceConfig);
       } catch (error) {
         console.error('Error generating answer with AI service:', error);
         answer = "An error occurred while generating an answer. Please try again later.";
@@ -192,10 +202,9 @@ class RagService {
    * Get AI status
    * @returns {Promise<{status: string}>}
    */
-  async getAIStatus() {
+  async getAIStatus(serviceConfig = this.serviceConfig || {}) {
     try {
-      const aiService = AIServiceFactory.getService();
-      const status = await aiService.checkStatus();
+      const status = await this.aiService.checkStatus(serviceConfig);
       return status;
     } catch (error) {
       console.error('Error checking AI service status:', error);
@@ -205,4 +214,4 @@ class RagService {
 }
 
 
-module.exports = new RagService();
+module.exports = RagService;

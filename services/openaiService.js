@@ -3,46 +3,26 @@ const {
   calculateTokens,
   calculateTotalPromptTokens,
   truncateToTokenLimit,
-  writePromptToFile
+  writePromptToFile,
+  extractSchemaData,
+  parseCustomFields,
+  buildResponseSchema
 } = require('./serviceUtils');
 const OpenAI = require('openai');
-const config = require('../config/config');
-const paperlessService = require('./paperlessService');
 const fs = require('fs').promises;
 const path = require('path');
-const { model } = require('./ollamaService');
 const RestrictionPromptService = require('./restrictionPromptService');
+const BaseAIService = require('./baseAiService');
 
-function extractSchemaData(parsedResponse) {
-  if (
-    parsedResponse &&
-    typeof parsedResponse === 'object' &&
-    parsedResponse.properties &&
-    typeof parsedResponse.properties === 'object'
-  ) {
-    const props = parsedResponse.properties;
-    const looksLikeData =
-      Array.isArray(props.tags) ||
-      typeof props.title === 'string' ||
-      typeof props.correspondent === 'string' ||
-      typeof props.document_type === 'string' ||
-      typeof props.document_date === 'string' ||
-      typeof props.language === 'string' ||
-      typeof props.content === 'string' ||
-      typeof props.custom_fields === 'object';
-    if (looksLikeData) {
-      return props;
-    }
-  }
-  return parsedResponse;
-}
-
-class OpenAIService {
-  constructor() {
+class OpenAIService extends BaseAIService {
+  constructor({ paperlessService, defaults = {} } = {}) {
+    super({ paperlessService });
     this.client = null;
+    this.defaults = defaults;
   }
 
-  initialize() {
+  initialize(serviceConfig = {}) {
+    const config = serviceConfig;
     if (!this.client && config.aiProvider === 'ollama') {
       this.client = new OpenAI({
         baseURL: config.ollama.apiUrl + '/v1',
@@ -62,17 +42,18 @@ class OpenAIService {
     }
   }
 
-  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, options = {}) {
+  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
     const cachePath = path.join('./public/images', `${id}.png`);
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
-      const envSystemPrompt = process.env.SYSTEM_PROMPT.replace(/\\n/g, '\n');
+      const envSystemPrompt = (config.systemPrompt || '').replace(/\\n/g, '\n');
       let systemPrompt = '';
       let promptTags = '';
-      const baseModel = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      const baseModel = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
       const gizmoId = config.openai.gizmoId;
       const model = gizmoId ? `${baseModel}-gizmo-${gizmoId}` : baseModel;
       const modelForTokens = baseModel || model;
@@ -88,7 +69,7 @@ class OpenAIService {
       } catch (err) {
         console.log('Thumbnail not cached, fetching from Paperless');
 
-        const thumbnailData = await paperlessService.getThumbnailImage(id);
+        const thumbnailData = await this.paperlessService.getThumbnailImage(id);
 
         if (!thumbnailData) {
           console.warn('Thumbnail nicht gefunden');
@@ -102,12 +83,11 @@ class OpenAIService {
       let existingTagsList = existingTags.join(', ');
 
       // Get external API data if available and validate it
-      let externalApiData = options.externalApiData || null;
       let validatedExternalApiData = null;
 
       if (externalApiData) {
         try {
-          validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData);
+          validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData, 500, modelForTokens);
           console.debug('External API data validated and included');
         } catch (error) {
           console.warn('External API data validation failed:', error.message);
@@ -116,126 +96,43 @@ class OpenAIService {
       }
 
 
-      // Build response schema with enum constraints for tags and document types
-      // First, build the base enum list for document types (all available types plus null)
-      const allDocTypesList = Array.isArray(existingDocumentTypesList)
-        ? existingDocumentTypesList.map(t => typeof t === 'string' ? t : t.name).filter(Boolean)
-        : [];
+      const customFields = parseCustomFields(config.customFields);
+      const {
+        responseSchema,
+        tagsList,
+        restrictedDocTypesList,
+        allDocTypesList,
+        correspondentsList,
+        customFieldsStr
+      } = buildResponseSchema({
+        existingTags,
+        existingDocumentTypesList,
+        existingCorrespondents: existingCorrespondentList,
+        restrictToExistingTags: config.restrictToExisting.tags === 'yes',
+        restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes === 'yes',
+        restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes',
+        limitFunctions: config.limitFunctions,
+        includeCustomFieldProperties: true,
+        customFields,
+        customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'
+      });
 
-      const responseSchema = {
-        type: "object",
-        properties: {
-          title: {
-            type: "string",
-            description: "A meaningful and short title for the document"
-          },
-          correspondent: {
-            type: ["string", "null"],
-            description: "The sender/correspondent of the document"
-          },
-          tags: {
-            type: "array",
-            items: {
-              type: "string"
-            },
-            description: "Array of tags to assign to the document"
-          },
-          document_type: {
-            type: ["string", "null"],
-            description: "The document type classification - can be null if no type matches"
-          },
-          document_date: {
-            type: "string",
-            description: "The document date in YYYY-MM-DD format"
-          },
-          content: {
-            type: "string",
-            description: "Optimized OCR document content (optional)"
-          },
-          language: {
-            type: "string",
-            description: "The language of the document (en/de/es/etc)"
-          },
-          custom_fields: {
-            type: "object",
-            description: "Custom fields extracted from the document, fill only if you are sure!",
-            properties: {}
-          }
-        },
-        required: ["title", "tags", "document_type", "document_date", "correspondent", "language"]
-      };
-
-      // Add enum constraints if restrictions are enabled
-      if (config.restrictToExistingTags === 'yes' && Array.isArray(existingTags) && existingTags.length > 0) {
-        const tagsList = existingTags.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
-        responseSchema.properties.tags = {
-          type: "array",
-          items: {
-            type: "string",
-            enum: tagsList
-          },
-          description: "Array of tags from the available pool"
-        };
+      if (tagsList.length > 0) {
         console.debug(`Tag enum constraint set with ${tagsList.length} available tags`);
       }
 
-      // If restrictions enabled, further constrain to only allowed types
-      if (config.restrictToExistingDocumentTypes === 'yes' && Array.isArray(existingDocumentTypesList) && existingDocumentTypesList.length > 0) {
-        const restrictedDocTypesList = existingDocumentTypesList.map(t => typeof t === 'string' ? t : t.name).filter(Boolean);
-        responseSchema.properties.document_type = {
-          type: ["string", "null"],
-          enum: [...restrictedDocTypesList, null],
-          description: "Document type from the restricted pool only, or null if no match"
-        };
+      if (restrictedDocTypesList.length > 0) {
         console.debug(`Document type restricted enum with ${restrictedDocTypesList.length} allowed types`);
       } else if (allDocTypesList.length > 0) {
         console.debug(`Document type enum set with all ${allDocTypesList.length} available types`);
       }
 
-      // Parse CUSTOM_FIELDS from environment variable
-      let customFieldsObj;
-      try {
-        customFieldsObj = JSON.parse(process.env.CUSTOM_FIELDS);
-      } catch (error) {
-        console.error('Failed to parse CUSTOM_FIELDS:', error);
-        customFieldsObj = { custom_fields: [] };
+      if (correspondentsList.length > 0) {
+        console.debug(`Correspondent restricted enum with ${correspondentsList.length} available correspondents`);
       }
 
-      customFieldsObj.custom_fields.forEach((field, index) => {
-        let customField = {
-          description: 'Fill in the value based on your analysis'
-        };
-        switch(field.data_type) {
-          case 'boolean':
-            customField.type = 'boolean';
-            break;
-          case 'date':
-            customField.type = 'string';
-            customField.format = 'date';
-            break;
-          case 'number':
-            customField.type = 'number';
-            break;
-          case 'integer':
-            customField.type = 'integer';
-            break;
-          case 'monetary':
-            customField.type = 'number';
-            break;
-          case 'url':
-            customField.type = 'string';
-            break;
-          default:
-            customField.type = 'string';
-        }
-        responseSchema.properties.custom_fields.properties[field.value] = customField;
-      });
-
-      // Convert template to string for replacement and wrap in custom_fields
-      const customFieldsStr = '"custom_fields": ' + JSON.stringify(responseSchema.properties.custom_fields.properties);
-
       // Get system prompt and model
-      if (config.useExistingData === 'yes' && config.restrictToExistingTags === 'no' && config.restrictToExistingCorrespondents === 'no') {
+      if (config.useExistingData === 'yes' && config.restrictToExisting.tags === 'no' && config.restrictToExisting.correspondents === 'no') {
         systemPrompt += `
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
@@ -261,8 +158,8 @@ class OpenAIService {
         systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
       }
 
-      if (process.env.USE_PROMPT_TAGS === 'yes') {
-        promptTags = process.env.PROMPT_TAGS;
+      if (config.usePromptTags === 'yes') {
+        promptTags = config.promptTags;
         systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
         ` + config.specialPromptPreDefinedTags;
@@ -285,7 +182,7 @@ class OpenAIService {
       // Calculate tokens AFTER all prompt modifications are complete
       const totalPromptTokens = await calculateTotalPromptTokens(
         systemPrompt,
-        process.env.USE_PROMPT_TAGS === 'yes' ? [promptTags] : [],
+        config.usePromptTags === 'yes' ? [promptTags] : [],
         modelForTokens
       );
 
@@ -312,7 +209,7 @@ class OpenAIService {
       let rawDocBase64 = '';
       let rawDocContentType = 'application/octet-stream';
       if (includeRaw) {
-        const rawDoc = await paperlessService.getDocumentFile(id, true);
+          const rawDoc = await this.paperlessService.getDocumentFile(id, true);
         const rawBuffer = Buffer.isBuffer(rawDoc.content)
           ? rawDoc.content
           : Buffer.from(rawDoc.content, 'binary');
@@ -385,7 +282,7 @@ class OpenAIService {
         model: model,
         messages: [
           {
-            role: config.openai.systemPromptRole, /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
+            role: config.openai.systemPromptRole || this.defaults.systemPromptRole || 'system', /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
             content: systemPrompt
           },
           {
@@ -517,7 +414,7 @@ class OpenAIService {
    * @param {number} maxTokens - Maximum tokens allowed for external data (default: 500)
    * @returns {string} - Validated and potentially truncated data string
    */
-  async _validateAndTruncateExternalApiData(apiData, maxTokens = 500) {
+  async _validateAndTruncateExternalApiData(apiData, maxTokens = 500, model = 'gpt-4o-mini') {
     if (!apiData) {
       return null;
     }
@@ -527,18 +424,18 @@ class OpenAIService {
       : String(apiData);
 
     // Calculate tokens for the data
-    const dataTokens = await calculateTokens(dataString, process.env.OPENAI_MODEL);
+    const dataTokens = await calculateTokens(dataString, model);
 
     if (dataTokens > maxTokens) {
       console.warn(`External API data (${dataTokens} tokens) exceeds limit (${maxTokens}), truncating`);
-      return await truncateToTokenLimit(dataString, maxTokens, process.env.OPENAI_MODEL);
+      return await truncateToTokenLimit(dataString, maxTokens, model);
     }
 
     console.debug(`External API data validated: ${dataTokens} tokens`);
     return dataString;
   }
 
-  async analyzePlayground(content, prompt) {
+  async analyzePlayground(content, prompt, serviceConfig = {}) {
     const musthavePrompt = `
     Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
         {
@@ -550,7 +447,8 @@ class OpenAIService {
         }`;
 
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -564,19 +462,19 @@ class OpenAIService {
       );
 
       // Calculate available tokens
-      const maxTokens = Number(config.tokenLimit);
-      const reservedTokens = totalPromptTokens + Number(config.responseTokens); // Reserve for response
+      const maxTokens = Number(config.tokenLimit || 128000);
+      const reservedTokens = totalPromptTokens + Number(config.responseTokens || 1000); // Reserve for response
       const availableTokens = maxTokens - reservedTokens;
 
       // Truncate content if necessary
-      const truncatedContent = await truncateToTokenLimit(content, availableTokens);
-      const model = process.env.OPENAI_MODEL;
+      const model = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
+      const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
       // Make API request
       const response = await this.client.chat.completions.create({
         model: model,
         messages: [
           {
-            role: config.openai.systemPromptRole,
+            role: config.openai?.systemPromptRole || this.defaults.systemPromptRole || 'system',
             content: prompt + musthavePrompt
           },
           {
@@ -651,15 +549,16 @@ class OpenAIService {
    * @param {string} prompt - The prompt to generate text from
    * @returns {Promise<string>} - The generated text
    */
-  async generateText(prompt) {
+  async generateText(prompt, serviceConfig = {}) {
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
 
       if (!this.client) {
         throw new Error('OpenAI client not initialized - missing API key');
       }
 
-      const model = process.env.OPENAI_MODEL || config.openai.model;
+      const model = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -683,16 +582,18 @@ class OpenAIService {
     }
   }
 
-  async checkStatus() {
+  async checkStatus(serviceConfig = {}) {
     // send test request to OpenAI API and respond with 'ok' or 'error'
     try {
-      this.initialize();
+      const config = serviceConfig;
+      this.initialize(config);
 
       if (!this.client) {
         throw new Error('OpenAI client not initialized - missing API key');
       }
+      const model = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
       const response = await this.client.chat.completions.create({
-        model: process.env.OPENAI_MODEL,
+        model: model,
         messages: [
           {
             role: "user",
@@ -704,7 +605,7 @@ class OpenAIService {
       if (!response?.choices?.[0]?.message?.content) {
         throw new Error('Invalid API response structure');
       }
-      return { status: 'ok', model: process.env.OPENAI_MODEL };
+      return { status: 'ok', model: model };
     } catch (error) {
       console.error('Error checking OpenAI status:', error);
       return { status: 'error', error: error.message };
@@ -712,4 +613,4 @@ class OpenAIService {
   }
 }
 
-module.exports = new OpenAIService();
+module.exports = OpenAIService;

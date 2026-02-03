@@ -210,10 +210,214 @@ async function writePromptToFile(systemPrompt, truncatedContent, filePath = './l
     }
 }
 
+function extractSchemaData(parsedResponse) {
+    if (
+        parsedResponse &&
+        typeof parsedResponse === 'object' &&
+        parsedResponse.properties &&
+        typeof parsedResponse.properties === 'object'
+    ) {
+        const props = parsedResponse.properties;
+        const looksLikeData =
+            Array.isArray(props.tags) ||
+            typeof props.title === 'string' ||
+            typeof props.correspondent === 'string' ||
+            typeof props.document_type === 'string' ||
+            typeof props.document_date === 'string' ||
+            typeof props.language === 'string' ||
+            typeof props.content === 'string' ||
+            typeof props.custom_fields === 'object';
+        if (looksLikeData) {
+            return props;
+        }
+    }
+    return parsedResponse;
+}
+
+function parseCustomFields(rawValue) {
+    if (!rawValue) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(rawValue);
+        if (parsed && Array.isArray(parsed.custom_fields)) {
+            return parsed.custom_fields;
+        }
+    } catch (error) {
+        console.error('Failed to parse CUSTOM_FIELDS:', error);
+    }
+
+    return [];
+}
+
+function buildResponseSchema({
+    existingTags = [],
+    existingDocumentTypesList = [],
+    existingCorrespondents = [],
+    restrictToExistingTags = false,
+    restrictToExistingDocumentTypes = false,
+    restrictToExistingCorrespondents = false,
+    limitFunctions = null,
+    includeCustomFieldProperties = false,
+    customFields = [],
+    customFieldsDescription = "Custom fields extracted from the document"
+} = {}) {
+    const allDocTypesList = Array.isArray(existingDocumentTypesList)
+        ? existingDocumentTypesList.map((t) => typeof t === 'string' ? t : t.name).filter(Boolean)
+        : [];
+
+    const responseSchema = {
+        type: "object",
+        properties: {
+            title: {
+                type: "string",
+                description: "A meaningful and short title for the document"
+            },
+            correspondent: {
+                type: ["string", "null"],
+                description: "The sender/correspondent of the document"
+            },
+            tags: {
+                type: "array",
+                items: {
+                    type: "string"
+                },
+                description: "Array of tags to assign to the document"
+            },
+            document_type: {
+                type: ["string", "null"],
+                description: "The document type classification - can be null if no type matches"
+            },
+            document_date: {
+                type: "string",
+                description: "The document date in YYYY-MM-DD format"
+            },
+            content: {
+                type: "string",
+                description: "Optimized document content (optional)"
+            },
+            language: {
+                type: "string",
+                description: "The language of the document (en/de/es/etc)"
+            },
+            custom_fields: {
+                type: "object",
+                description: customFieldsDescription,
+                properties: {}
+            }
+        },
+        required: []
+    };
+
+    const isEnabled = (value, defaultValue = true) => {
+        if (value == null) return defaultValue;
+        if (typeof value === 'string') {
+            return value.toLowerCase() === 'yes' || value.toLowerCase() === 'true' || value === '1';
+        }
+        return Boolean(value);
+    };
+
+    const required = [];
+    if (isEnabled(limitFunctions?.activateTitle)) required.push('title');
+    if (isEnabled(limitFunctions?.activateTagging)) required.push('tags');
+    if (isEnabled(limitFunctions?.activateDocumentType)) required.push('document_type');
+    if (isEnabled(limitFunctions?.activateCorrespondent)) required.push('correspondent');
+    if (isEnabled(limitFunctions?.activateContent, false)) required.push('content');
+    if (isEnabled(limitFunctions?.activateDocumentDate)) required.push('document_date');
+    if (isEnabled(limitFunctions?.activateLanguage)) required.push('language');
+
+    responseSchema.required = required;
+
+    let tagsList = [];
+    if (restrictToExistingTags && Array.isArray(existingTags) && existingTags.length > 0) {
+        tagsList = existingTags.map((t) => typeof t === 'string' ? t : t.name).filter(Boolean);
+        responseSchema.properties.tags = {
+            type: "array",
+            items: {
+                type: "string",
+                enum: tagsList
+            },
+            description: "Array of tags from the available pool"
+        };
+    }
+
+    let restrictedDocTypesList = [];
+    if (restrictToExistingDocumentTypes && Array.isArray(existingDocumentTypesList) && existingDocumentTypesList.length > 0) {
+        restrictedDocTypesList = existingDocumentTypesList.map((t) => typeof t === 'string' ? t : t.name).filter(Boolean);
+        responseSchema.properties.document_type = {
+            type: ["string", "null"],
+            enum: [...restrictedDocTypesList, null],
+            description: "Document type from the restricted pool only, or null if no match"
+        };
+    }
+
+    let correspondentsList = [];
+    if (restrictToExistingCorrespondents && Array.isArray(existingCorrespondents) && existingCorrespondents.length > 0) {
+        correspondentsList = existingCorrespondents
+            .map((c) => typeof c === 'string' ? c : c?.name)
+            .filter(Boolean);
+        responseSchema.properties.correspondent = {
+            type: ["string", "null"],
+            enum: [...correspondentsList, null],
+            description: "Correspondent from the restricted pool only, or null if no match"
+        };
+    }
+
+    let customFieldsStr = '';
+    if (includeCustomFieldProperties) {
+        customFields.forEach((field) => {
+            const customField = {
+                description: 'Fill in the value based on your analysis'
+            };
+            switch (field.data_type) {
+                case 'boolean':
+                    customField.type = 'boolean';
+                    break;
+                case 'date':
+                    customField.type = 'string';
+                    customField.format = 'date';
+                    break;
+                case 'number':
+                    customField.type = 'number';
+                    break;
+                case 'integer':
+                    customField.type = 'integer';
+                    break;
+                case 'monetary':
+                    customField.type = 'number';
+                    break;
+                case 'url':
+                    customField.type = 'string';
+                    break;
+                default:
+                    customField.type = 'string';
+            }
+            if (field.value) {
+                responseSchema.properties.custom_fields.properties[field.value] = customField;
+            }
+        });
+
+        customFieldsStr = '"custom_fields": ' + JSON.stringify(responseSchema.properties.custom_fields.properties);
+    }
+
+    return {
+        responseSchema,
+        tagsList,
+        restrictedDocTypesList,
+        allDocTypesList,
+        correspondentsList,
+        customFieldsStr
+    };
+}
+
 module.exports = {
     truncateValues,
     calculateTokens,
     calculateTotalPromptTokens,
     truncateToTokenLimit,
-    writePromptToFile
+    writePromptToFile,
+    extractSchemaData,
+    parseCustomFields,
+    buildResponseSchema
 };

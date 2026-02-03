@@ -1,6 +1,4 @@
 const axios = require('axios');
-const config = require('../config/config');
-
 /**
  * Service for fetching data from external APIs to enrich AI prompts
  */
@@ -9,10 +7,11 @@ class ExternalApiService {
    * Fetch data from the configured external API
    * @returns {Promise<Object|string|null>} The data from the API or null if disabled/error
    */
-  async fetchData() {
+  async fetchData(externalApiConfig = {}) {
     try {
+      const resolvedConfig = externalApiConfig || {};
       // Check if external API integration is enabled
-      if (!config.externalApiConfig || config.externalApiConfig.enabled !== 'yes') {
+      if (!resolvedConfig || resolvedConfig.enabled !== 'yes') {
         console.debug('External API integration is disabled');
         return null;
       }
@@ -24,7 +23,7 @@ class ExternalApiService {
         body = {},
         timeout = 5000,
         transform
-      } = config.externalApiConfig;
+      } = resolvedConfig;
 
       if (!url) {
         console.error('External API URL not configured');

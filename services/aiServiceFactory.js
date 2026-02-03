@@ -1,22 +1,57 @@
-const config = require('../config/config');
-const openaiService = require('./openaiService');
-const ollamaService = require('./ollamaService');
-const customService = require('./customService');
-const azureService = require('./azureService');
+const OpenAIService = require('./openaiService');
+const OllamaService = require('./ollamaService');
+const CustomService = require('./customService');
+const AzureService = require('./azureService');
 
 class AIServiceFactory {
-  static getService() {
-    switch (config.aiProvider) {
+  constructor({ paperlessService, config } = {}) {
+    this.paperlessService = paperlessService;
+    this.config = config || {};
+    this.instances = new Map();
+  }
+
+  _createService(provider) {
+    switch (provider) {
       case 'ollama':
-        return ollamaService;
+        return new OllamaService({
+          paperlessService: this.paperlessService,
+          defaults: {
+            apiUrl: this.config.ollama?.apiUrl,
+            model: this.config.ollama?.model,
+            tokenLimit: this.config.tokenLimit
+          }
+        });
+      case 'custom':
+        return new CustomService({
+          paperlessService: this.paperlessService,
+          defaults: {
+            model: this.config.custom?.model
+          }
+        });
+      case 'azure':
+        return new AzureService({
+          paperlessService: this.paperlessService,
+          defaults: {
+            deploymentName: this.config.azure?.deploymentName
+          }
+        });
       case 'openai':
       default:
-        return openaiService;
-      case 'custom':
-        return customService;
-      case 'azure':
-        return azureService;
+        return new OpenAIService({
+          paperlessService: this.paperlessService,
+          defaults: {
+            model: this.config.openai?.model,
+            systemPromptRole: this.config.openai?.systemPromptRole
+          }
+        });
     }
+  }
+
+  getService(provider = 'openai') {
+    if (!this.instances.has(provider)) {
+      this.instances.set(provider, this._createService(provider));
+    }
+    return this.instances.get(provider);
   }
 }
 

@@ -16,21 +16,23 @@ const limitFunctions = {
   activateCorrespondent: parseEnvBoolean(process.env.ACTIVATE_CORRESPONDENT, 'yes'),
   activateDocumentType: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, 'yes'),
   activateTitle: parseEnvBoolean(process.env.ACTIVATE_TITLE, 'yes'),
+  activateDocumentDate: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_DATE, 'yes'),
+  activateLanguage: parseEnvBoolean(process.env.ACTIVATE_LANGUAGE, 'yes'),
   activateContent: parseEnvBoolean(process.env.ACTIVATE_CONTENT, 'no'),
   activateCustomFields: parseEnvBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, 'yes')
 };
 
 // Initialize AI restrictions with defaults
-const aiRestrictions = {
-  restrictToExistingTags: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, 'no'),
-  restrictToExistingCorrespondents: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, 'no'),
-  restrictToExistingDocumentTypes: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, 'no')
+const restrictToExisting = {
+  tags: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, 'no'),
+  correspondents: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, 'no'),
+  documentTypes: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, 'no')
 };
 
 console.log('Loaded restriction settings:', {
-  RESTRICT_TO_EXISTING_TAGS: aiRestrictions.restrictToExistingTags,
-  RESTRICT_TO_EXISTING_CORRESPONDENTS: aiRestrictions.restrictToExistingCorrespondents,
-  RESTRICT_TO_EXISTING_DOCUMENT_TYPES: aiRestrictions.restrictToExistingDocumentTypes
+  RESTRICT_TO_EXISTING_TAGS: restrictToExisting.tags,
+  RESTRICT_TO_EXISTING_CORRESPONDENTS: restrictToExisting.correspondents,
+  RESTRICT_TO_EXISTING_DOCUMENT_TYPES: restrictToExisting.documentTypes
 });
 
 // Initialize external API configuration
@@ -48,7 +50,7 @@ console.log('Loaded environment variables:', {
   PAPERLESS_API_URL: process.env.PAPERLESS_API_URL,
   PAPERLESS_API_TOKEN: '******',
   LIMIT_FUNCTIONS: limitFunctions,
-  AI_RESTRICTIONS: aiRestrictions,
+  AI_RESTRICTIONS: restrictToExisting,
   EXTERNAL_API: externalApiConfig.enabled === 'yes' ? 'enabled' : 'disabled'
 });
 
@@ -59,22 +61,21 @@ module.exports = {
   predefinedMode: process.env.PROCESS_PREDEFINED_DOCUMENTS,
   tokenLimit: process.env.TOKEN_LIMIT || 128000,
   responseTokens: process.env.RESPONSE_TOKENS || 1000,
+  contentMaxLength: process.env.CONTENT_MAX_LENGTH ? parseInt(process.env.CONTENT_MAX_LENGTH, 10) : null,
   contentSourceMode: process.env.CONTENT_SOURCE_MODE || 'content',
   rawDocumentMode: process.env.RAW_DOCUMENT_MODE || 'text',
   addAIProcessedTag: process.env.ADD_AI_PROCESSED_TAG || 'no',
   addAIProcessedTags: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-  // AI restrictions config
-  restrictToExistingTags: aiRestrictions.restrictToExistingTags,
-  restrictToExistingCorrespondents: aiRestrictions.restrictToExistingCorrespondents,
-  restrictToExistingDocumentTypes: aiRestrictions.restrictToExistingDocumentTypes,
   // External API config
   externalApiConfig: externalApiConfig,
   paperless: {
     apiUrl: process.env.PAPERLESS_API_URL,
-    apiToken: process.env.PAPERLESS_API_TOKEN
+    apiToken: process.env.PAPERLESS_API_TOKEN,
+    username: process.env.PAPERLESS_USERNAME || ''
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     systemPromptRole: process.env.OPENAI_SYSTEM_PROMPT_ROLE || 'system',
     gizmoId: process.env.OPENAI_GIZMO_ID || ''
   },
@@ -97,15 +98,14 @@ module.exports = {
   aiProvider: process.env.AI_PROVIDER || 'openai',
   scanInterval: process.env.SCAN_INTERVAL || '*/30 * * * *',
   useExistingData: process.env.USE_EXISTING_DATA || 'no',
+  systemPrompt: process.env.SYSTEM_PROMPT || '',
+  usePromptTags: process.env.USE_PROMPT_TAGS || 'no',
+  promptTags: process.env.PROMPT_TAGS || '',
+  tags: process.env.TAGS || '',
+  // AI restrictions config
+  restrictToExisting,
   // Add limit functions to config
-  limitFunctions: {
-    activateTagging: limitFunctions.activateTagging,
-    activateCorrespondent: limitFunctions.activateCorrespondent,
-    activateDocumentType: limitFunctions.activateDocumentType,
-    activateTitle: limitFunctions.activateTitle,
-    activateContent: limitFunctions.activateContent,
-    activateCustomFields: limitFunctions.activateCustomFields
-  },
+  limitFunctions,
   specialPromptPreDefinedTags: `You are a document analysis AI. You will analyze the document.
   You take the main information to associate tags with the document.
   You will also find the correspondent of the document (Sender not receiver). Also you find a meaningful and short title for the document.

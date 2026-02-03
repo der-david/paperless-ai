@@ -1,7 +1,4 @@
 // services/chatService.js
-const OpenAIService = require('./openaiService');
-const PaperlessService = require('./paperlessService');
-const config = require('../config/config');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -11,15 +8,21 @@ const pipeline = promisify(stream.pipeline);
 const { OpenAI } = require('openai');
 
 class ChatService {
-  constructor() {
+  constructor({ paperlessService } = {}) {
     this.chats = new Map(); // Stores chat histories: documentId -> messages[]
     this.tempDir = path.join(os.tmpdir(), 'paperless-chat');
+    this.paperlessService = paperlessService;
 
     // Create temporary directory if it doesn't exist
     if (!fs.existsSync(this.tempDir)) {
       fs.mkdirSync(this.tempDir, { recursive: true });
     }
   }
+
+  setPaperlessService(paperlessService) {
+    this.paperlessService = paperlessService;
+  }
+
 
   /**
    * Downloads the original file from Paperless
@@ -28,11 +31,11 @@ class ChatService {
    */
   async downloadDocument(documentId) {
     try {
-      const document = await PaperlessService.getDocument(documentId);
+      const document = await this.paperlessService.getDocument(documentId);
       const tempFilePath = path.join(this.tempDir, `${documentId}_${document.original_filename}`);
 
       // Create download stream
-      const response = await PaperlessService.client.get(`/documents/${documentId}/download/`, {
+      const response = await this.paperlessService.client.get(`/documents/${documentId}/download/`, {
         responseType: 'stream'
       });
 
@@ -57,14 +60,14 @@ class ChatService {
    * Initializes a new chat for a document
    * @param {string} documentId - The ID of the document
    */
-  async initializeChat(documentId) {
+  async initializeChat(documentId, serviceConfig = {}) {
     try {
       // Get document information
-      const document = await PaperlessService.getDocument(documentId);
+      const document = await this.paperlessService.getDocument(documentId);
       let documentContent;
 
       try {
-        documentContent = await PaperlessService.getDocumentContent(documentId);
+        documentContent = await this.paperlessService.getDocumentContent(documentId);
       } catch (error) {
         console.warn('Could not get direct document content, trying file download...', error);
         const { filePath } = await this.downloadDocument(documentId);
@@ -99,10 +102,10 @@ class ChatService {
     }
   }
 
-  async sendMessageStream(documentId, userMessage, res) {
+  async sendMessageStream(documentId, userMessage, res, serviceConfig = {}) {
     try {
       if (!this.chats.has(documentId)) {
-        await this.initializeChat(documentId);
+        await this.initializeChat(documentId, serviceConfig);
       }
 
       const chatData = this.chats.get(documentId);
@@ -117,19 +120,23 @@ class ChatService {
       res.setHeader('Connection', 'keep-alive');
 
       let fullResponse = '';
-      const aiProvider = process.env.AI_PROVIDER;
+      const aiProvider = serviceConfig.aiProvider || process.env.AI_PROVIDER;
+      const openaiConfig = serviceConfig.openai || {};
+      const customConfig = serviceConfig.custom || {};
+      const azureConfig = serviceConfig.azure || {};
+      const ollamaConfig = serviceConfig.ollama || {};
 
       if (aiProvider === 'openai') {
         // Make sure OpenAIService is initialized
-        OpenAIService.initialize();
+        // No-op: chat uses direct OpenAI SDK calls per request
 
         // Always create a new client instance for this request to ensure it works
         const openai = new OpenAI({
-          apiKey: process.env.OPENAI_API_KEY
+          apiKey: openaiConfig.apiKey || process.env.OPENAI_API_KEY
         });
 
         const stream = await openai.chat.completions.create({
-          model: process.env.OPENAI_MODEL || 'gpt-4',
+          model: openaiConfig.model || process.env.OPENAI_MODEL || 'gpt-4',
           messages: chatData.messages,
           stream: true,
         });
@@ -144,12 +151,12 @@ class ChatService {
       } else if (aiProvider === 'custom') {
         // Use OpenAI SDK with custom base URL
         const customOpenAI = new OpenAI({
-          baseURL: process.env.CUSTOM_BASE_URL,
-          apiKey: process.env.CUSTOM_API_KEY,
+          baseURL: customConfig.apiUrl || process.env.CUSTOM_BASE_URL,
+          apiKey: customConfig.apiKey || process.env.CUSTOM_API_KEY,
         });
 
         const stream = await customOpenAI.chat.completions.create({
-          model: process.env.CUSTOM_MODEL,
+          model: customConfig.model || process.env.CUSTOM_MODEL,
           messages: chatData.messages,
           stream: true,
         });
@@ -164,13 +171,13 @@ class ChatService {
       } else if (aiProvider === 'azure') {
         // Use OpenAI SDK with Azure configuration
         const azureOpenAI = new OpenAI({
-          apiKey: process.env.AZURE_API_KEY,
-          baseURL: `${process.env.AZURE_ENDPOINT}/openai/deployments/${process.env.AZURE_DEPLOYMENT_NAME}`,
-          defaultQuery: { 'api-version': process.env.AZURE_API_VERSION },
+          apiKey: azureConfig.apiKey || process.env.AZURE_API_KEY,
+          baseURL: `${azureConfig.endpoint || process.env.AZURE_ENDPOINT}/openai/deployments/${azureConfig.deploymentName || process.env.AZURE_DEPLOYMENT_NAME}`,
+          defaultQuery: { 'api-version': azureConfig.apiVersion || process.env.AZURE_API_VERSION },
         });
 
         const stream = await azureOpenAI.chat.completions.create({
-          model: process.env.AZURE_DEPLOYMENT_NAME,
+          model: azureConfig.deploymentName || process.env.AZURE_DEPLOYMENT_NAME,
           messages: chatData.messages,
           stream: true,
         });
@@ -185,12 +192,12 @@ class ChatService {
       } else if (aiProvider === 'ollama') {
         // Use OpenAI SDK for Ollama with OpenAI API compatibility
         const ollamaOpenAI = new OpenAI({
-          baseURL: `${process.env.OLLAMA_API_URL}/v1`,
+          baseURL: `${ollamaConfig.apiUrl || process.env.OLLAMA_API_URL}/v1`,
           apiKey: 'ollama', // Ollama doesn't require a real API key but the SDK requires some value
         });
 
         const stream = await ollamaOpenAI.chat.completions.create({
-          model: process.env.OLLAMA_MODEL,
+          model: ollamaConfig.model || process.env.OLLAMA_MODEL,
           messages: chatData.messages,
           stream: true,
         });
@@ -247,4 +254,4 @@ class ChatService {
   }
 }
 
-module.exports = new ChatService();
+module.exports = ChatService;

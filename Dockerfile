@@ -41,7 +41,7 @@ RUN chmod +x start-services.sh
 # Configure persistent data volume
 VOLUME ["/app/data"]
 
-# Configure application port - aber der tatsächliche Port wird durch PAPERLESS_AI_PORT bestimmt
+# Configure application port
 EXPOSE ${PAPERLESS_AI_PORT:-3000}
 
 # Add health check with dynamic port

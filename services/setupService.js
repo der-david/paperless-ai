@@ -2,7 +2,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 const { OpenAI } = require('openai');
-const config = require('../config/config');
 const AzureOpenAI = require('openai').AzureOpenAI;
 
 class SetupService {
@@ -63,11 +62,11 @@ class SetupService {
       }
     }
     return { success: true, message: 'API permissions validated successfully' };
-}
+  }
 
 
-  async validateOpenAIConfig(apiKey) {
-    if (config.CONFIGURED === false) {
+  async validateOpenAIConfig(apiKey, serviceConfig = { CONFIGURED: false }) {
+    if (serviceConfig.CONFIGURED === false) {
       try {
         const openai = new OpenAI({ apiKey });
         const response = await openai.chat.completions.create({
@@ -126,9 +125,9 @@ class SetupService {
     }
   }
 
-  async validateAzureConfig(apiKey, endpoint, deploymentName, apiVersion) {
+  async validateAzureConfig(apiKey, endpoint, deploymentName, apiVersion, serviceConfig = { CONFIGURED: false }) {
     console.log('Endpoint: ', endpoint);
-    if (config.CONFIGURED === false) {
+    if (serviceConfig.CONFIGURED === false) {
       try {
         const openai = new AzureOpenAI({ apiKey: apiKey,
                 endpoint: endpoint,
@@ -229,7 +228,7 @@ class SetupService {
       const envContent = Object.entries(config)
         .map(([key, value]) => {
           if (key === "SYSTEM_PROMPT") {
-            return `${key}=\`${value}\n\``;
+            return `${key}="${value}"`;
           }
           return `${key}=${value}`;
         })

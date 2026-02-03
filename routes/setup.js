@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const setupService = require('../services/setupService.js');
-const paperlessService = require('../services/paperlessService.js');
-const openaiService = require('../services/openaiService.js');
-const ollamaService = require('../services/ollamaService.js');
-const azureService = require('../services/azureService.js');
+const container = require('../services/container');
+const setupService = container.getSetupService();
+const paperlessService = container.getPaperlessService();
 const documentModel = require('../models/document.js');
-const AIServiceFactory = require('../services/aiServiceFactory');
 const debugService = require('../services/debugService.js');
 const configFile = require('../config/config.js');
-const ChatService = require('../services/chatService.js');
-const documentsService = require('../services/documentsService.js');
-const RAGService = require('../services/ragService.js');
+const ChatService = container.getChatService();
+const documentsService = container.getDocumentsService();
+const RAGService = container.getRagService();
 const fs = require('fs').promises;
 const path = require('path');
 const jwt = require('jsonwebtoken');
@@ -19,7 +16,6 @@ const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const { authenticateJWT, authenticateAPIKey, authenticateAPI, authenticateUI } = require('./auth.js');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const customService = require('../services/customService.js');
 const config = require('../config/config.js');
 require('dotenv').config({ path: '../data/.env' });
 
@@ -800,7 +796,7 @@ router.get('/chat', authenticateUI, async (req, res) => {
  */
 router.get('/chat/init', authenticateAPI, async (req, res) => {
   const documentId = req.query.documentId;
-  const result = await ChatService.initializeChat(documentId);
+  const result = await ChatService.initializeChat(documentId, config);
   res.json(result);
 });
 
@@ -890,7 +886,7 @@ router.post('/chat/message', authenticateAPI, async (req, res) => {
     }
 
     // Use the new streaming method
-    await ChatService.sendMessageStream(documentId, message, res);
+    await ChatService.sendMessageStream(documentId, message, res, config);
   } catch (error) {
     console.error('Chat message error:', error);
     res.status(500).json({ error: error.message });
@@ -988,7 +984,7 @@ router.get('/chat/init/:documentId', authenticateAPI, async (req, res) => {
       if (!documentId) {
           return res.status(400).json({ error: 'Document ID is required' });
       }
-      const result = await ChatService.initializeChat(documentId);
+      const result = await ChatService.initializeChat(documentId, config);
       res.json(result);
   } catch (error) {
       console.error('initializing chat:', error);
@@ -1582,19 +1578,15 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     }
   }
 
-  // Prepare options for AI service
-  const options = {
-    restrictToExistingTags: config.restrictToExistingTags === 'yes',
-    restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes'
-  };
+  let externalApiData = null;
 
   // Get external API data if enabled
   if (config.externalApiConfig.enabled === 'yes') {
     try {
       const externalApiService = require('../services/externalApiService');
-      const externalData = await externalApiService.fetchData();
+      const externalData = await externalApiService.fetchData(config.externalApiConfig);
       if (externalData) {
-        options.externalApiData = externalData;
+        externalApiData = externalData;
         console.debug('Retrieved external API data for prompt enrichment');
       }
     } catch (error) {
@@ -1602,15 +1594,15 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     }
   }
 
-  const aiService = AIServiceFactory.getService();
+  const aiService = container.getAIService();
   let analysis;
   if(customPrompt) {
     console.debug('Starting document analysis with custom prompt');
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, options);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, externalApiData, config);
   }else{
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, options);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData, config);
   }
-  console.log('Repsonse from AI service:', analysis);
+  console.log('Response from AI service:', analysis);
   if (analysis.error) {
     throw new Error(`[ERROR] Document analysis failed: ${analysis.error}`);
   }
@@ -1623,11 +1615,11 @@ async function buildUpdateData(analysis, doc) {
 
   // Create options object with restriction settings
   const options = {
-    restrictToExistingTags: config.restrictToExistingTags === 'yes' ? true : false,
-    restrictToExistingCorrespondents: config.restrictToExistingCorrespondents === 'yes' ? true : false
+    restrictToExistingTags: config.restrictToExisting.tags === 'yes' ? true : false,
+    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes' ? true : false
   };
 
-  console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondents=${options.restrictToExistingCorrespondents}`);
+  console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
   if (config.limitFunctions?.activateTagging !== 'no') {
@@ -1663,7 +1655,11 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  updateData.created = analysis.document.document_date || doc.created;
+  if (config.limitFunctions?.activateDocumentDate !== 'no' && analysis.document.document_date) {
+    updateData.created = analysis.document.document_date;
+  } else {
+    updateData.created = doc.created;
+  }
 
   // Only process document type if document type classification is activated
   if (config.limitFunctions?.activateDocumentType !== 'no' && analysis.document.document_type) {
@@ -1671,7 +1667,7 @@ async function buildUpdateData(analysis, doc) {
       let documentType;
 
       // If restricting to existing document types, search for exact match only
-      if (config.restrictToExistingDocumentTypes === 'yes') {
+      if (config.restrictToExisting.documentTypes === 'yes') {
         documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
         if (documentType) {
           console.debug(`Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
@@ -1766,8 +1762,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  // Always include language if provided as it's a core field
-  if (analysis.document.language) {
+  if (config.limitFunctions?.activateLanguage !== 'no' && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 
@@ -3104,7 +3099,7 @@ router.post('/manual/analyze', [express.json(), authenticateAPI], async (req, re
     }
 
     if (process.env.AI_PROVIDER === 'openai') {
-      const analyzeDocument = await openaiService.analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || []);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
       await documentModel.addOpenAIMetrics(
             id,
             analyzeDocument.metrics.promptTokens,
@@ -3113,13 +3108,13 @@ router.post('/manual/analyze', [express.json(), authenticateAPI], async (req, re
           )
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'ollama') {
-      const analyzeDocument = await ollamaService.analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || []);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'custom') {
-      const analyzeDocument = await customService.analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || []);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'azure') {
-      const analyzeDocument = await azureService.analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || []);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
       return res.json(analyzeDocument);
     } else {
       return res.status(500).json({ error: 'AI provider not configured' });
@@ -3216,7 +3211,7 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
     }
 
     if (process.env.AI_PROVIDER === 'openai') {
-      const analyzeDocument = await openaiService.analyzePlayground(content, prompt);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
       await documentModel.addOpenAIMetrics(
         documentId,
         analyzeDocument.metrics.promptTokens,
@@ -3225,10 +3220,10 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
       )
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'ollama') {
-      const analyzeDocument = await ollamaService.analyzePlayground(content, prompt);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'custom') {
-      const analyzeDocument = await customService.analyzePlayground(content, prompt);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
       await documentModel.addOpenAIMetrics(
         documentId,
         analyzeDocument.metrics.promptTokens,
@@ -3237,7 +3232,7 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
       )
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'azure') {
-      const analyzeDocument = await azureService.analyzePlayground(content, prompt);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
       await documentModel.addOpenAIMetrics(
         documentId,
         analyzeDocument.metrics.promptTokens,
@@ -3620,6 +3615,14 @@ router.get('/health', async (req, res) => {
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
+ *               activateDocumentDate:
+ *                 type: boolean
+ *                 description: Enable AI-based document date extraction
+ *                 example: true
+ *               activateLanguage:
+ *                 type: boolean
+ *                 description: Enable AI-based language detection
+ *                 example: true
  *               activateContent:
  *                 type: boolean
  *                 description: Enable AI-based document content updates
@@ -3706,6 +3709,8 @@ router.post('/setup', express.json(), async (req, res) => {
       activateCorrespondent,
       activateDocumentType,
       activateTitle,
+      activateDocumentDate,
+      activateLanguage,
       activateContent,
       activateCustomFields,
       customFields,
@@ -3843,6 +3848,8 @@ router.post('/setup', express.json(), async (req, res) => {
       ACTIVATE_CORRESPONDENT: activateCorrespondent ? 'yes' : 'no',
       ACTIVATE_DOCUMENT_TYPE: activateDocumentType ? 'yes' : 'no',
       ACTIVATE_TITLE: activateTitle ? 'yes' : 'no',
+      ACTIVATE_DOCUMENT_DATE: activateDocumentDate ? 'yes' : 'no',
+      ACTIVATE_LANGUAGE: activateLanguage ? 'yes' : 'no',
       ACTIVATE_CONTENT: activateContent ? 'yes' : 'no',
       ACTIVATE_CUSTOM_FIELDS: activateCustomFields ? 'yes' : 'no',
       CUSTOM_FIELDS: processedCustomFields.length > 0
@@ -3857,7 +3864,7 @@ router.post('/setup', express.json(), async (req, res) => {
 
     // Validate AI provider config
     if (aiProvider === 'openai') {
-      const isOpenAIValid = await setupService.validateOpenAIConfig(openaiKey);
+      const isOpenAIValid = await setupService.validateOpenAIConfig(openaiKey, config);
       if (!isOpenAIValid) {
         return res.status(400).json({
           error: 'OpenAI API Key is not valid. Please check the key.'
@@ -3886,7 +3893,7 @@ router.post('/setup', express.json(), async (req, res) => {
       config.CUSTOM_API_KEY = customApiKey;
       config.CUSTOM_MODEL = customModel;
     } else if (aiProvider === 'azure') {
-      const isAzureValid = await setupService.validateAzureConfig(azureApiKey, azureEndpoint, azureDeploymentName, azureApiVersion);
+      const isAzureValid = await setupService.validateAzureConfig(azureApiKey, azureEndpoint, azureDeploymentName, azureApiVersion, config);
       if (!isAzureValid) {
         return res.status(400).json({
           error: 'Azure connection failed. Please check URL, API Key, Deployment Name and API Version.'
@@ -4057,6 +4064,14 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
+ *               activateDocumentDate:
+ *                 type: boolean
+ *                 description: Enable AI-based document date extraction
+ *                 example: true
+ *               activateLanguage:
+ *                 type: boolean
+ *                 description: Enable AI-based language detection
+ *                 example: true
  *               activateContent:
  *                 type: boolean
  *                 description: Enable AI-based document content updates
@@ -4149,6 +4164,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       activateCorrespondent,
       activateDocumentType,
       activateTitle,
+      activateDocumentDate,
+      activateLanguage,
       activateContent,
       activateCustomFields,
       customFields,  // Added parameter
@@ -4208,6 +4225,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       ACTIVATE_CORRESPONDENT: process.env.ACTIVATE_CORRESPONDENT || 'yes',
       ACTIVATE_DOCUMENT_TYPE: process.env.ACTIVATE_DOCUMENT_TYPE || 'yes',
       ACTIVATE_TITLE: process.env.ACTIVATE_TITLE || 'yes',
+      ACTIVATE_DOCUMENT_DATE: process.env.ACTIVATE_DOCUMENT_DATE || 'yes',
+      ACTIVATE_LANGUAGE: process.env.ACTIVATE_LANGUAGE || 'yes',
       ACTIVATE_CONTENT: process.env.ACTIVATE_CONTENT || 'no',
       ACTIVATE_CUSTOM_FIELDS: process.env.ACTIVATE_CUSTOM_FIELDS || 'yes',
       CUSTOM_FIELDS: process.env.CUSTOM_FIELDS || '{"custom_fields":[]}',  // Added default
@@ -4297,7 +4316,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       updatedConfig.AI_PROVIDER = aiProvider;
 
       if (aiProvider === 'openai' && openaiKey) {
-        const isOpenAIValid = await setupService.validateOpenAIConfig(openaiKey);
+        const isOpenAIValid = await setupService.validateOpenAIConfig(openaiKey, config);
         if (!isOpenAIValid) {
           return res.status(400).json({
             error: 'OpenAI API Key is not valid. Please check the key.'
@@ -4320,7 +4339,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
         if (ollamaUrl) updatedConfig.OLLAMA_API_URL = ollamaUrl;
         if (ollamaModel) updatedConfig.OLLAMA_MODEL = ollamaModel;
       } else if (aiProvider === 'azure') {
-        const isAzureValid = await setupService.validateAzureConfig(azureApiKey, azureEndpoint, azureDeploymentName, azureApiVersion);
+        const isAzureValid = await setupService.validateAzureConfig(azureApiKey, azureEndpoint, azureDeploymentName, azureApiVersion, config);
         if (!isAzureValid) {
           return res.status(400).json({
             error: 'Azure connection failed. Please check URL, API Key, Deployment Name and API Version.'
@@ -4364,6 +4383,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       updatedConfig.ACTIVATE_CORRESPONDENT = activateCorrespondent ? 'yes' : 'no';
       updatedConfig.ACTIVATE_DOCUMENT_TYPE = activateDocumentType ? 'yes' : 'no';
       updatedConfig.ACTIVATE_TITLE = activateTitle ? 'yes' : 'no';
+      updatedConfig.ACTIVATE_DOCUMENT_DATE = activateDocumentDate ? 'yes' : 'no';
+      updatedConfig.ACTIVATE_LANGUAGE = activateLanguage ? 'yes' : 'no';
       updatedConfig.ACTIVATE_CONTENT = activateContent ? 'yes' : 'no';
       updatedConfig.ACTIVATE_CUSTOM_FIELDS = activateCustomFields ? 'yes' : 'no';
 

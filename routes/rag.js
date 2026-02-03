@@ -1,7 +1,9 @@
 // routes/rag.js
 const express = require('express');
 const router = express.Router();
-const ragService = require('../services/ragService');
+const container = require('../services/container');
+const ragService = container.getRagService();
+const config = require('../config/config');
 
 /**
  * Search documents
@@ -38,7 +40,7 @@ router.post('/ask', async (req, res) => {
       return res.status(400).json({ error: 'Question is required' });
     }
 
-    const result = await ragService.askQuestion(question);
+    const result = await ragService.askQuestion(question, config);
     res.json(result);
   } catch (error) {
     console.error('Error in /api/rag/ask:', error);
@@ -92,7 +94,7 @@ router.get('/index/check', async (req, res) => {
 router.get('/status', async (req, res) => {
   try {
     const status = await ragService.checkStatus();
-    const aiStatus = await ragService.getAIStatus();
+    const aiStatus = await ragService.getAIStatus(config);
     // Combine RAG and AI status
     status.ai_status = aiStatus.status;
     status.ai_model = aiStatus.model;

@@ -1,25 +1,32 @@
 // services/paperlessService.js
 const axios = require('axios');
-const config = require('../config/config');
 const fs = require('fs');
 const path = require('path');
 const { parse, isValid, parseISO, format } = require('date-fns');
 
 class PaperlessService {
-  constructor() {
+  constructor(serviceConfig = {}) {
     this.client = null;
     this.tagCache = new Map();
     this.customFieldCache = new Map();
     this.lastTagRefresh = 0;
     this.CACHE_LIFETIME = 3000; // 3 Sekunden
+    this.config = serviceConfig;
+  }
+
+  setConfig(serviceConfig = {}) {
+    this.config = serviceConfig;
   }
 
   initialize() {
-    if (!this.client && config.paperless.apiUrl && config.paperless.apiToken) {
+    const config = this.config || {};
+    const apiUrl = config.paperless?.apiUrl || process.env.PAPERLESS_API_URL;
+    const apiToken = config.paperless?.apiToken || process.env.PAPERLESS_API_TOKEN;
+    if (!this.client && apiUrl && apiToken) {
       this.client = axios.create({
-        baseURL: config.paperless.apiUrl,
+        baseURL: apiUrl,
         headers: {
-          'Authorization': `Token ${config.paperless.apiToken}`,
+          'Authorization': `Token ${apiToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -318,7 +325,7 @@ class PaperlessService {
       // Explicitly check options first, then env var
       const restrictToExistingTags = options.restrictToExistingTags === true ||
                                    (options.restrictToExistingTags === undefined &&
-                                    process.env.RESTRICT_TO_EXISTING_TAGS === 'yes');
+                                    this.config?.restrictToExisting?.tags === 'yes');
 
       // Input validation
       if (!tagNames) {
@@ -384,9 +391,9 @@ class PaperlessService {
       }
 
       // Add AI-Processed tag if enabled
-      if (process.env.ADD_AI_PROCESSED_TAG === 'yes' && process.env.AI_PROCESSED_TAG_NAME) {
+      if (this.config?.addAIProcessedTag === 'yes' && this.config?.addAIProcessedTags) {
         try {
-          const aiTagName = process.env.AI_PROCESSED_TAG_NAME;
+          const aiTagName = this.config.addAIProcessedTags;
           let aiTag = await this.findExistingTag(aiTagName);
 
           if (!aiTag) {
@@ -397,8 +404,8 @@ class PaperlessService {
             tagIds.push(aiTag.id);
           }
         } catch (error) {
-          console.error(`processing AI tag "${process.env.AI_PROCESSED_TAG_NAME}":`, error.message);
-          errors.push({ tagName: process.env.AI_PROCESSED_TAG_NAME, error: error.message });
+          console.error(`processing AI tag "${this.config.addAIProcessedTags}":`, error.message);
+          errors.push({ tagName: this.config.addAIProcessedTags, error: error.message });
         }
       }
 
@@ -635,18 +642,19 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = process.env.PROCESS_PREDEFINED_DOCUMENTS === 'yes';
+    const shouldFilterByTags = this.config?.predefinedMode === 'yes';
     let tagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      if (!process.env.TAGS) {
+      const tagsValue = this.config?.tags || process.env.TAGS;
+      if (!tagsValue) {
         console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
         return [];
       }
 
       // Hole die Tag-IDs für die definierten Tags
-      const tagNames = process.env.TAGS.split(',').map(tag => tag.trim());
+      const tagNames = tagsValue.split(',').map(tag => tag.trim());
       await this.ensureTagCache();
 
       for (const tagName of tagNames) {
@@ -754,18 +762,19 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = process.env.PROCESS_PREDEFINED_DOCUMENTS === 'yes';
+    const shouldFilterByTags = this.config?.predefinedMode === 'yes';
     let tagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      if (!process.env.TAGS) {
+      const tagsValue = this.config?.tags || process.env.TAGS;
+      if (!tagsValue) {
         console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
         return [];
       }
 
       // Hole die Tag-IDs für die definierten Tags
-      const tagNames = process.env.TAGS.split(',').map(tag => tag.trim());
+      const tagNames = tagsValue.split(',').map(tag => tag.trim());
       await this.ensureTagCache();
 
       for (const tagName of tagNames) {
@@ -1057,7 +1066,7 @@ async searchForExistingCorrespondent(correspondent) {
     // Explicitly check options first, then env var
     const restrictToExistingCorrespondents = options.restrictToExistingCorrespondents === true ||
                                            (options.restrictToExistingCorrespondents === undefined &&
-                                            process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS === 'yes');
+                                            this.config?.restrictToExisting?.correspondents === 'yes');
 
     console.debug(`Processing correspondent with restrictToExistingCorrespondents=${restrictToExistingCorrespondents}`);
 
@@ -1252,8 +1261,9 @@ async getOrCreateDocumentType(name) {
 
         if (response.data.results && response.data.results.length > 0) {
             const userInfo = response.data.results;
-            //filter for username by process.env.PAPERLESS_USERNAME
-            const user = userInfo.find(user => user.username === process.env.PAPERLESS_USERNAME);
+            //filter for username by config value
+            const username = this.config?.paperless?.username || process.env.PAPERLESS_USERNAME;
+            const user = userInfo.find(user => user.username === username);
             if (user) {
                 console.debug(`Found own user ID: ${user.id}`);
                 return user.id;
@@ -1381,4 +1391,4 @@ async getOrCreateDocumentType(name) {
 }
 
 
-module.exports = new PaperlessService();
+module.exports = PaperlessService;

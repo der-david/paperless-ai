@@ -6,43 +6,50 @@ const {
 } = require('./serviceUtils');
 const axios = require('axios');
 const OpenAI = require('openai');
-const config = require('../config/config');
 const AzureOpenAI = require('openai').AzureOpenAI;
 const emptyVar = null;
 
 class ManualService {
-    constructor() {
-        if(config.aiProvider === 'custom'){
+    constructor(serviceConfig = {}) {
+        this._initializeClients(serviceConfig.aiProvider || process.env.AI_PROVIDER, serviceConfig);
+    }
+
+    _initializeClients(provider, serviceConfig = {}) {
+        const openaiConfig = serviceConfig.openai || {};
+        const customConfig = serviceConfig.custom || {};
+        const azureConfig = serviceConfig.azure || {};
+
+        if (provider === 'custom') {
             this.openai = new OpenAI({
-                apiKey: config.custom.apiKey,
-                baseUrl: config.custom.apiUrl
+                apiKey: customConfig.apiKey || process.env.CUSTOM_API_KEY,
+                baseUrl: customConfig.apiUrl || process.env.CUSTOM_BASE_URL
             });
-        }else if (config.aiProvider === 'azure'){
+        } else if (provider === 'azure') {
             this.openai = new AzureOpenAI({
-                    apiKey: config.azure.apiKey,
-                    endpoint: config.azure.endpoint,
-                    deploymentName: config.azure.deploymentName,
-                    apiVersion: config.azure.apiVersion
-                  });
+                apiKey: azureConfig.apiKey || process.env.AZURE_API_KEY,
+                endpoint: azureConfig.endpoint || process.env.AZURE_ENDPOINT,
+                deploymentName: azureConfig.deploymentName || process.env.AZURE_DEPLOYMENT_NAME,
+                apiVersion: azureConfig.apiVersion || process.env.AZURE_API_VERSION
+            });
         } else {
-            this.openai = new OpenAI({ apiKey: config.openai.apiKey });
+            this.openai = new OpenAI({ apiKey: openaiConfig.apiKey || process.env.OPENAI_API_KEY });
             this.ollama = axios.create({
-            timeout: 300000
+                timeout: 300000
             });
         }
     }
 
-
-    async analyzeDocument(content, existingTags, provider) {
+    async analyzeDocument(content, existingTags, provider, serviceConfig = {}) {
         try {
+        this._initializeClients(provider, serviceConfig);
         if (provider === 'openai') {
-            return this._analyzeOpenAI(content, existingTags);
+            return this._analyzeOpenAI(content, existingTags, serviceConfig);
         } else if (provider === 'ollama') {
-            return this._analyzeOllama(content, existingTags);
+            return this._analyzeOllama(content, existingTags, serviceConfig);
         } else if (provider === 'custom') {
-            return this._analyzeCustom(content, existingTags);
+            return this._analyzeCustom(content, existingTags, serviceConfig);
         } else if (provider === 'azure') {
-            return this._analyzeAzure(content, existingTags);
+            return this._analyzeAzure(content, existingTags, serviceConfig);
         } else {
             throw new Error('Invalid provider');
         }
@@ -52,13 +59,13 @@ class ManualService {
         }
     }
 
-    async _analyzeOpenAI(content, existingTags) {
+    async _analyzeOpenAI(content, existingTags, serviceConfig = {}) {
         try {
         const existingTagsList = existingTags
             .map(tag => tag.name)
             .join(', ');
-        const model = process.env.OPENAI_MODEL;
-        const systemPrompt = process.env.SYSTEM_PROMPT;
+        const model = serviceConfig.openai?.model || process.env.OPENAI_MODEL;
+        const systemPrompt = serviceConfig.systemPrompt || process.env.SYSTEM_PROMPT;
         await writePromptToFile(systemPrompt, content);
         const response = await this.openai.chat.completions.create({
             model: model,
@@ -100,16 +107,16 @@ class ManualService {
         }
     }
 
-    async _analyzeAzure(content, existingTags) {
+    async _analyzeAzure(content, existingTags, serviceConfig = {}) {
         try {
         const existingTagsList = existingTags
             .map(tag => tag.name)
             .join(', ');
 
-        const systemPrompt = process.env.SYSTEM_PROMPT;
+        const systemPrompt = serviceConfig.systemPrompt || process.env.SYSTEM_PROMPT;
         await writePromptToFile(systemPrompt, content);
         const response = await this.openai.chat.completions.create({
-            model: process.env.AZURE_DEPLOYMENT_NAME,
+            model: serviceConfig.azure?.deploymentName || process.env.AZURE_DEPLOYMENT_NAME,
             messages: [
             {
                 role: "system",
@@ -148,14 +155,14 @@ class ManualService {
         }
     }
 
-    async _analyzeCustom(content, existingTags) {
+    async _analyzeCustom(content, existingTags, serviceConfig = {}) {
         try {
             const existingTagsList = existingTags
                 .map(tag => tag.name)
                 .join(', ');
 
-            const systemPrompt = process.env.SYSTEM_PROMPT;
-            const model = config.custom.model;
+            const systemPrompt = serviceConfig.systemPrompt || process.env.SYSTEM_PROMPT;
+            const model = serviceConfig.custom?.model || process.env.CUSTOM_MODEL;
             const response = await this.openai.chat.completions.create({
                 model: model,
                 messages: [
@@ -187,9 +194,9 @@ class ManualService {
             }
     }
 
-    async _analyzeOllama(content, existingTags) {
+    async _analyzeOllama(content, existingTags, serviceConfig = {}) {
         try {
-        const prompt = process.env.SYSTEM_PROMPT;
+        const prompt = serviceConfig.systemPrompt || process.env.SYSTEM_PROMPT;
 
         const getAvailableMemory = async () => {
             const totalMemory = os.totalmem();
@@ -201,7 +208,7 @@ class ManualService {
 
         const calculateNumCtx = (promptTokenCount, expectedResponseTokens) => {
             const totalTokenUsage = promptTokenCount + expectedResponseTokens;
-            const maxCtxLimit = Number(config.tokenLimit);
+            const maxCtxLimit = Number(serviceConfig.tokenLimit) || 8192;
 
             const numCtx = Math.min(totalTokenUsage, maxCtxLimit);
 
@@ -222,8 +229,8 @@ class ManualService {
 
         const numCtx = calculateNumCtx(promptTokenCount, expectedResponseTokens);
 
-        const response = await this.ollama.post(`${config.ollama.apiUrl}/api/generate`, {
-            model: config.ollama.model,
+        const response = await this.ollama.post(`${serviceConfig.ollama?.apiUrl || process.env.OLLAMA_API_URL}/api/generate`, {
+            model: serviceConfig.ollama?.model || process.env.OLLAMA_MODEL,
             prompt: prompt,
             stream: false,
             options: {
