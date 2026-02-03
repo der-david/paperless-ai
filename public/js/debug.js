@@ -1,0 +1,50 @@
+function fetchData(endpoint) {
+    if (!endpoint) {
+        return;
+    }
+
+    const resultElement = document.getElementById('json-result');
+    if (resultElement) {
+        resultElement.innerHTML = 'Loading data...';
+    }
+
+    fetch(endpoint)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then((data) => {
+            if (window.$ && window.$.fn.JSONView) {
+                window.$('#json-result').JSONView(data, {
+                    collapsed: false,
+                    nl2br: false,
+                    recursive_collapser: true
+                });
+            }
+        })
+        .catch((error) => {
+            if (resultElement) {
+                resultElement.innerHTML = `
+                    <div class="text-red-500 p-4 bg-red-50 rounded-md">
+                        Error loading data: ${error.message}
+                    </div>
+                `;
+            }
+        });
+}
+
+fetch('/debug')
+    .then((response) => {
+        if (response.status === 503) {
+            document.body.innerHTML = `
+                <div class="min-h-screen flex items-center justify-center bg-gray-100">
+                    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+                        <h1 class="text-2xl font-bold text-red-500 mb-4">Not Configured</h1>
+                        <p class="text-gray-700">The application setup has not been completed yet.</p>
+                    </div>
+                </div>
+            `;
+        }
+    });

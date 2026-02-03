@@ -1,33 +1,4 @@
 //settings.js
-// Theme Management
-class ThemeManager {
-    constructor() {
-        this.themeToggle = document.getElementById('themeToggle');
-        this.initialize();
-    }
-
-    initialize() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        this.setTheme(savedTheme);
-
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-    }
-
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-
-        const icon = this.themeToggle.querySelector('i');
-        icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        this.setTheme(newTheme);
-    }
-}
-
 class FormManager {
     constructor() {
         this.form = document.getElementById('setupForm');
@@ -444,7 +415,6 @@ For the language:
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const themeManager = new ThemeManager();
     const formManager = new FormManager();
     const tagsManager = new TagsManager('tagInput','tagsContainer','tags');
     const promptTagsManager = new TagsManager('promptTagInput','promptTagsContainer','promptTags');

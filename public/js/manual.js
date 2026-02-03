@@ -1,280 +1,437 @@
-// Theme Management
-class ThemeManager {
-    constructor() {
-        this.themeToggle = document.getElementById('themeToggle');
-        this.initialize();
-    }
+// Global Variables
+let availableTags = [];
+let currentDocument = null;
+let currentCorrespondent = null;
+let isUpdating = false;
 
-    initialize() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        this.setTheme(savedTheme);
+// Show message (error or success)
+function showMessage(message, type = 'error') {
+    const messageArea = document.getElementById('messageArea');
+    const bgColor = type === 'error' ? 'bg-red-50' : 'bg-green-50';
+    const textColor = type === 'error' ? 'text-red-700' : 'text-green-700';
+    const borderColor = type === 'error' ? 'border-red-200' : 'border-green-200';
+    const iconClass = type === 'error' ? 'fa-exclamation-circle text-red-400' : 'fa-check-circle text-green-400';
 
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-    }
+    messageArea.className = `mb-4 p-4 rounded-md ${bgColor} border ${borderColor}`;
+    messageArea.innerHTML = `
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm ${textColor}">${message}</p>
+            </div>
+        </div>
+    `;
+    messageArea.classList.remove('hidden');
 
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-
-        const icon = this.themeToggle.querySelector('i');
-        icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        this.setTheme(newTheme);
-    }
-}
-
-// Chart Initialization
-class ChartManager {
-    constructor() {
-        this.initializeDocumentChart();
-    }
-
-    initializeDocumentChart() {
-        const { documentCount, processedCount } = window.dashboardData;
-        const unprocessedCount = documentCount - processedCount;
-
-        const ctx = document.getElementById('documentChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['AI Processed', 'Unprocessed'],
-                datasets: [{
-                    data: [processedCount, unprocessedCount],
-                    backgroundColor: [
-                        '#3b82f6',  // blue-500
-                        '#e2e8f0'   // gray-200
-                    ],
-                    borderWidth: 0,
-                    spacing: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const value = context.raw;
-                                const total = processedCount + unprocessedCount;
-                                const percentage = ((value / total) * 100).toFixed(1);
-                                return `${value} (${percentage}%)`;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-}
-
-// Modal Management
-class ModalManager {
-    constructor() {
-        this.modal = document.getElementById('detailsModal');
-        this.modalTitle = this.modal.querySelector('.modal-title');
-        this.modalContent = this.modal.querySelector('.modal-data');
-        this.modalLoader = this.modal.querySelector('.modal-loader');
-        this.initializeEventListeners();
-    }
-
-    initializeEventListeners() {
-        // Close button click
-        this.modal.querySelector('.modal-close').addEventListener('click', () => this.hideModal());
-
-        // Overlay click
-        this.modal.querySelector('.modal-overlay').addEventListener('click', () => this.hideModal());
-
-        // Escape key press
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.modal.classList.contains('show')) {
-                this.hideModal();
-            }
-        });
-    }
-
-    showModal(title) {
-        this.modalTitle.textContent = title;
-        this.modalContent.innerHTML = '';
-        this.modal.classList.remove('hidden'); // Fix: Remove 'hidden' class
-        this.modal.classList.add('show');
-        document.body.style.overflow = 'hidden';
-    }
-
-    hideModal() {
-        this.modal.classList.remove('show');
-        this.modal.classList.add('hidden'); // Fix: Add 'hidden' class back
-        document.body.style.overflow = '';
-    }
-
-    showLoader() {
-        this.modalLoader.classList.remove('hidden');
-        this.modalContent.classList.add('hidden');
-    }
-
-    hideLoader() {
-        this.modalLoader.classList.add('hidden');
-        this.modalContent.classList.remove('hidden');
-    }
-
-    setContent(content) {
-        this.modalContent.innerHTML = content;
-    }
-}
-
-// Make showTagDetails and showCorrespondentDetails globally available
-window.showTagDetails = async function() {
-    window.modalManager.showModal('Tag Overview');
-    window.modalManager.showLoader();
-
-    try {
-        const response = await fetch('/api/tagsCount');
-        const tags = await response.json();
-
-        let content = '<div class="detail-list">';
-        tags.forEach(tag => {
-            content += `
-                <div class="detail-item">
-                    <span class="detail-item-name">${tag.name}</span>
-                    <span class="detail-item-info">${tag.document_count || 0} documents</span>
-                </div>
-            `;
-        });
-        content += '</div>';
-
-        window.modalManager.setContent(content);
-    } catch (error) {
-        console.error('Error loading tags:', error);
-        window.modalManager.setContent('<div class="text-red-500 p-4">Error loading tags. Please try again later.</div>');
-    } finally {
-        window.modalManager.hideLoader();
-    }
-}
-
-window.showCorrespondentDetails = async function() {
-    window.modalManager.showModal('Correspondent Overview');
-    window.modalManager.showLoader();
-
-    try {
-        const response = await fetch('/api/correspondentsCount');
-        const correspondents = await response.json();
-
-        let content = '<div class="detail-list">';
-        correspondents.forEach(correspondent => {
-            content += `
-                <div class="detail-item">
-                    <span class="detail-item-name">${correspondent.name}</span>
-                    <span class="detail-item-info">${correspondent.document_count || 0} documents</span>
-                </div>
-            `;
-        });
-        content += '</div>';
-
-        window.modalManager.setContent(content);
-    } catch (error) {
-        console.error('Error loading correspondents:', error);
-        window.modalManager.setContent('<div class="text-red-500 p-4">Error loading correspondents. Please try again later.</div>');
-    } finally {
-        window.modalManager.hideLoader();
-    }
-}
-
-// Navigation Management
-class NavigationManager {
-    constructor() {
-        this.sidebarLinks = document.querySelectorAll('.sidebar-link');
-        this.initialize();
-    }
-
-    initialize() {
-        this.sidebarLinks.forEach(link => {
-            link.addEventListener('click', (e) => {
-                // Nur für Links ohne echtes Ziel preventDefault aufrufen
-                if (link.getAttribute('href') === '#') {
-                    e.preventDefault();
-                }
-                this.setActiveLink(link);
-            });
-        });
-    }
-
-    setActiveLink(activeLink) {
-        this.sidebarLinks.forEach(link => {
-            link.classList.remove('active');
-        });
-        activeLink.classList.add('active');
-    }
+    setTimeout(() => {
+        messageArea.classList.add('hidden');
+    }, 5000);
 }
 
 // API Functions
-async function showTagDetails() {
-    modalManager.showModal('Tag Overview');
-    modalManager.showLoader();
-
+async function fetchTags() {
     try {
-        const response = await fetch('/api/tags');
+        const response = await fetch('/manual/tags');
+        if (!response.ok) throw new Error('Failed to fetch tags');
         const tags = await response.json();
-
-        let content = '<div class="detail-list">';
-        tags.forEach(tag => {
-            content += `
-                <div class="detail-item">
-                    <span class="detail-item-name">${tag.name}</span>
-                    <span class="detail-item-info">${tag.document_count || 0} documents</span>
-                </div>
-            `;
-        });
-        content += '</div>';
-
-        modalManager.setContent(content);
+        availableTags = tags;
+        updateTagSelect(tags);
     } catch (error) {
-        console.error('Error loading tags:', error);
-        modalManager.setContent('<div class="text-red-500 p-4">Error loading tags. Please try again later.</div>');
-    } finally {
-        modalManager.hideLoader();
+        showMessage('Error loading tags: ' + error.message);
     }
 }
 
-async function showCorrespondentDetails() {
-    modalManager.showModal('Correspondent Overview');
-    modalManager.showLoader();
+async function fetchDocuments() {
+    try {
+        const response = await fetch('/manual/documents');
+        if (!response.ok) throw new Error('Failed to fetch documents');
+        const documents = await response.json();
+        updateDocumentSelect(documents);
+    } catch (error) {
+        showMessage('Error loading documents: ' + error.message);
+    }
+}
+
+// UI Update Functions
+function updateDocumentSelect(documents) {
+    if (!Array.isArray(documents)) return;
+    const select = document.getElementById('documentSelect');
+    select.innerHTML = '<option value="">Choose a document...</option>';
+    documents.forEach(doc => {
+        const option = document.createElement('option');
+        option.value = doc.id;
+        option.textContent = doc.title || doc.original_filename || `Document ${doc.id}`;
+        select.appendChild(option);
+    });
+}
+
+function updateTagSelect(tags) {
+    if (!Array.isArray(tags)) return;
+    const select = document.getElementById('newTagSelect');
+    select.innerHTML = '<option value="">Select a tag...</option>';
+    tags.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag.id;
+        option.textContent = tag.name;
+        select.appendChild(option);
+    });
+}
+
+function updateCorrespondentDisplay(correspondent) {
+    const correspondentInfo = document.getElementById('correspondentInfo');
+    const correspondentName = document.getElementById('correspondentName');
+
+    if (correspondent) {
+        correspondentName.textContent = correspondent.name || correspondent;
+        correspondentInfo.classList.remove('hidden');
+        currentCorrespondent = correspondent;
+    } else {
+        correspondentInfo.classList.add('hidden');
+        currentCorrespondent = null;
+    }
+}
+
+function updateTitleDisplay(title) {
+    const titleInfo = document.getElementById('titleInfo');
+    const titleName = document.getElementById('titleName');
+
+    if (title) {
+        titleName.textContent = title.name || title;
+        titleInfo.classList.remove('hidden');
+    } else {
+        titleInfo.classList.add('hidden');
+    }
+}
+
+function updateSuggestedTags(tags) {
+    if (!Array.isArray(tags)) return;
+
+    const suggestedTags = document.getElementById('suggestedTags');
+    suggestedTags.innerHTML = '';
+
+    tags.forEach(tag => {
+        const tagElement = createTagElement(tag, 'blue', true);
+        if (tagElement) {
+            suggestedTags.appendChild(tagElement);
+        }
+    });
+}
+
+// Tag Management Functions
+function createTagElement(tag, color = 'gray', isSuggested = false) {
+    if (!tag) return null;
+
+    // If tag is just an ID string/number, look up the full tag object in availableTags
+    let fullTag = tag;
+    if (typeof tag === 'string' || typeof tag === 'number') {
+        fullTag = availableTags.find(t => t.id === parseInt(tag)) || { id: tag, name: tag };
+    }
+
+    const tagId = fullTag.id;
+    const tagName = fullTag.name;
+
+    const tagElement = document.createElement('span');
+    tagElement.className = `inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-${color}-100 text-${color}-800`;
+    tagElement.dataset.tagId = tagId;
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = tagName;
+    tagElement.appendChild(nameSpan);
+
+    const removeButton = document.createElement('button');
+    removeButton.className = `ml-1 text-${color}-600 hover:text-${color}-800`;
+    removeButton.innerHTML = '<i class="fas fa-times"></i>';
+    removeButton.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        tagElement.remove();
+        updateHiddenTagsInput(); // Update hidden input when tag is removed
+    };
+    tagElement.appendChild(removeButton);
+
+    if (isSuggested) {
+        const addButton = document.createElement('button');
+        addButton.className = `ml-1 text-${color}-600 hover:text-${color}-800`;
+        addButton.innerHTML = '<i class="fas fa-plus"></i>';
+        addButton.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const newTag = createTagElement(tag);
+            if (newTag) {
+                document.getElementById('currentTags').appendChild(newTag);
+                updateHiddenTagsInput(); // Update hidden input when tag is added
+                tagElement.remove();
+            }
+        };
+        tagElement.appendChild(addButton);
+    }
+
+    return tagElement;
+}
+
+// Function to update the hidden input field with current tags
+function updateHiddenTagsInput() {
+    const currentTagElements = document.getElementById('currentTags').children;
+    const tagIds = Array.from(currentTagElements)
+        .map(el => el.dataset.tagId)
+        .filter(id => id); // Filter out any undefined/null values
+
+    // Update the hidden input field
+    const hiddenInput = document.getElementById('tags');
+    if (hiddenInput) {
+        hiddenInput.value = tagIds.join(',');
+    }
+}
+
+// Document Handling Functions
+async function handleDocumentSelection(documentId) {
+    if (!documentId) {
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('chatBtn').disabled = true;
+        document.getElementById('contentPreview').textContent = '';
+        document.getElementById('currentTags').innerHTML = '';
+        document.getElementById('suggestedTags').innerHTML = '';
+        updateHiddenTagsInput(); // Clear hidden input when no document is selected
+        return;
+    }
+
+    currentDocument = documentId;
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('chatBtn').disabled = false;
 
     try {
-        const response = await fetch('/api/correspondents');
-        const correspondents = await response.json();
+        const response = await fetch(`/manual/preview/${documentId}`);
+        if (!response.ok) throw new Error('Failed to fetch document content');
+        const data = await response.json();
 
-        let content = '<div class="detail-list">';
-        correspondents.forEach(correspondent => {
-            content += `
-                <div class="detail-item">
-                    <span class="detail-item-name">${correspondent.name}</span>
-                    <span class="detail-item-info">${correspondent.document_count || 0} documents</span>
-                </div>
-            `;
-        });
-        content += '</div>';
+        if (!data.content) {
+            throw new Error('Document content is missing');
+        }
 
-        modalManager.setContent(content);
+        document.getElementById('contentPreview').textContent = data.content || 'No content available';
+        document.getElementById('hiddenId').value = data.id;
+
+        document.getElementById('currentTags').innerHTML = '';
+        document.getElementById('suggestedTags').innerHTML = '';
+
+        if (data.tags && Array.isArray(data.tags)) {
+            const currentTagsContainer = document.getElementById('currentTags');
+            data.tags.forEach(tag => {
+                const tagElement = createTagElement(tag, 'gray', false);
+                if (tagElement) {
+                    currentTagsContainer.appendChild(tagElement);
+                }
+            });
+            updateHiddenTagsInput(); // Update hidden input with initial tags
+        }
+
+        updateCorrespondentDisplay(data.correspondent);
+        updateTitleDisplay(data.title);
     } catch (error) {
-        console.error('Error loading correspondents:', error);
-        modalManager.setContent('<div class="text-red-500 p-4">Error loading correspondents. Please try again later.</div>');
-    } finally {
-        modalManager.hideLoader();
+        showMessage('Error loading document content: ' + error.message);
     }
 }
 
-// Initialize everything when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.themeManager = new ThemeManager();
-    window.navigationManager = new NavigationManager();
-    window.chartManager = new ChartManager();
-    window.modalManager = new ModalManager();
+// Analysis Functions
+async function handleAnalysis() {
+    if (!currentDocument) return;
+
+    const aiStatus = document.getElementById('aiStatus');
+    aiStatus.classList.remove('hidden');
+
+    try {
+        let content = document.getElementById('contentPreview').textContent;
+
+        if (!content || content === 'No content available') {
+            throw new Error('No document content available for analysis');
+        }
+
+        if(content.length > 50000) {
+            content = content.substring(0, 50000);
+        }
+
+        const currentTagElements = document.getElementById('currentTags').children;
+        const documentId = document.getElementById('hiddenId').value;
+        const existingTags = Array.from(currentTagElements)
+            .map(el => el.dataset.tagId)
+            .filter(id => !isNaN(parseInt(id)))
+            .map(id => parseInt(id));
+
+        const response = await fetch('/manual/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: content,
+                existingTags: existingTags,
+                correspondent: currentCorrespondent,
+                id: documentId
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Analysis failed');
+        }
+
+        const result = await response.json();
+
+        let suggestedTags = [];
+        if (result.document && result.document.tags) {
+            suggestedTags = result.document.tags.map(tag => ({
+                id: tag,
+                name: tag
+            }));
+        }
+
+        updateSuggestedTags(suggestedTags);
+
+        if (result.document && result.document.correspondent) {
+            updateCorrespondentDisplay(result.document.correspondent);
+            updateTitleDisplay(result.document.title);
+        }
+        showMessage('Analysis completed successfully', 'success');
+    } catch (error) {
+        showMessage('Error during analysis: ' + error.message);
+        console.error('Analysis error:', error);
+    } finally {
+        aiStatus.classList.add('hidden');
+    }
+}
+
+async function handleChat() {
+    const documentId = document.getElementById('hiddenId').value;
+
+    window.location.href= `/chat?open=${documentId}`
+}
+
+async function updateDocumentTags() {
+    if (!currentDocument || isUpdating) return;
+
+    isUpdating = true;
+    try {
+        const titleElement = document.getElementById('titleName');
+        const tagsElement = document.getElementById('tags');
+
+        // Add null checks
+        const titleValue = titleElement ? titleElement.textContent : '';
+        const tagIds = tagsElement && tagsElement.value ? tagsElement.value.split(',').filter(id => id) : [];
+
+        const response = await fetch('/manual/updateDocument', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                documentId: currentDocument,
+                tags: tagIds,
+                correspondent: currentCorrespondent,
+                title: titleValue
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update document');
+        }
+
+        const result = await response.json();
+        showMessage('Tags updated successfully', 'success');
+    } catch (error) {
+        showMessage('Error updating tags: ' + error.message);
+        console.error('Update error:', error);
+    } finally {
+        isUpdating = false;
+    }
+}
+
+
+// Initialize everything when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Document selection
+    document.getElementById('documentSelect').addEventListener('change', (e) => {
+        handleDocumentSelection(e.target.value);
+    });
+
+    // Analyze button
+    document.getElementById('analyzeBtn').addEventListener('click', handleAnalysis);
+
+    // Chat button
+    document.getElementById('chatBtn').addEventListener('click', handleChat);
+
+    // Save tags button
+    document.getElementById('saveTagsBtn').addEventListener('click', updateDocumentTags);
+
+    // Add tag button
+    document.getElementById('addTagBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const select = document.getElementById('newTagSelect');
+        const tagId = select.value;
+        if (!tagId) return;
+
+        const tag = availableTags.find(t => t.id === parseInt(tagId));
+        if (tag) {
+            const tagElement = createTagElement(tag);
+            if (tagElement) {
+                document.getElementById('currentTags').appendChild(tagElement);
+                updateHiddenTagsInput(); // Update hidden input when new tag is added
+                select.value = '';
+            }
+        }
+    });
+
+    // Initial data fetch
+    fetchTags();
+    fetchDocuments();
+
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Serialize form data excluding tags if none are present
+            const formData = serializeFormWithoutEmptyTags(this);
+
+            // Send form data using fetch
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                showMessage('Settings saved successfully', 'success');
+            })
+            .catch(error => {
+                showMessage('Error saving settings: ' + error.message);
+            });
+        });
+    }
 });
+
+function serializeFormWithoutEmptyTags(formElement) {
+    const formData = new FormData(formElement);
+    const currentTags = document.getElementById('currentTags');
+
+    // If there are no visible tags, remove the tags field from form data
+    if (!currentTags || currentTags.children.length === 0) {
+        formData.delete('tags');
+    }
+
+    // Convert FormData to an object
+    const object = {};
+    formData.forEach((value, key) => {
+        // Only include the tags field if we have visible tags
+        if (key !== 'tags' || currentTags.children.length > 0) {
+            object[key] = value;
+        }
+    });
+
+return object;
+}
+    

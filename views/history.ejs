@@ -90,23 +90,7 @@
             </div>
         </div>
     </div>
-    <script>
-        // get github stars count from repo
-        async function getStarsCount() {
-            try {
-                const response = await fetch('https://api.github.com/repos/clusterzx/paperless-ai');
-                if (!response.ok) throw new Error('Failed to fetch repo info');
-
-                const data = await response.json();
-                document.getElementById('starCount').textContent = data.stargazers_count.toLocaleString();
-            } catch (error) {
-                console.error('Failed to fetch stars count:', error);
-            }
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            getStarsCount();
-        });
-    </script>
+    
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="js/history.js"></script>

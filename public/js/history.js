@@ -1,32 +1,3 @@
-// Theme Management
-class ThemeManager {
-    constructor() {
-        this.themeToggle = document.getElementById('themeToggle');
-        this.initialize();
-    }
-
-    initialize() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        this.setTheme(savedTheme);
-        this.themeToggle?.addEventListener('click', () => this.toggleTheme());
-    }
-
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-        const icon = this.themeToggle.querySelector('i');
-        if (icon) {
-            icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-        }
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        this.setTheme(newTheme);
-    }
-}
-
 class HistoryManager {
     constructor() {
         this.confirmModal = document.getElementById('confirmModal');
@@ -303,6 +274,5 @@ class HistoryManager {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.themeManager = new ThemeManager();
     window.historyManager = new HistoryManager();
 });

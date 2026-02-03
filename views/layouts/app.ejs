@@ -22,8 +22,10 @@
         <%- body %>
     </div>
 
+    <script src="js/theme-manager.js"></script>
     <% if (showSidebar !== false) { %>
-        <%- include('../partials/sidebar-script') %>
+        <script src="js/sidebar.js"></script>
+        <script src="js/github-stars.js"></script>
     <% } %>
     <%- script %>
 </body>

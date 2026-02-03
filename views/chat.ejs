@@ -52,22 +52,6 @@
                 </div>
             </div>
         </main>
-    <script>
-        // get github stars count from repo
-        async function getStarsCount() {
-            try {
-                const response = await fetch('https://api.github.com/repos/clusterzx/paperless-ai');
-                if (!response.ok) throw new Error('Failed to fetch repo info');
-
-                const data = await response.json();
-                document.getElementById('starCount').textContent = data.stargazers_count.toLocaleString();
-            } catch (error) {
-                console.error('Failed to fetch stars count:', error);
-            }
-        }
-        document.addEventListener('DOMContentLoaded', function() {
-            getStarsCount();
-        });
-    </script>
+    
     <script src="js/dashboard.js"></script>
     <script src="js/chat.js"></script>

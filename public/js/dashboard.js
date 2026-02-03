@@ -1,33 +1,3 @@
-// Theme Management
-class ThemeManager {
-    constructor() {
-        this.themeToggle = document.getElementById('themeToggle');
-        this.initialize();
-    }
-
-    initialize() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        this.setTheme(savedTheme);
-        console.log('Theme initialized');
-        this.themeToggle.addEventListener('click', () => this.toggleTheme());
-    }
-
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-
-        const icon = this.themeToggle.querySelector('i');
-        icon.className = theme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-    }
-
-    toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-        this.setTheme(newTheme);
-        console.log('Theme toggled to: ' + newTheme);
-    }
-}
-
 // Chart Initialization
 class ChartManager {
     constructor() {
@@ -35,10 +5,19 @@ class ChartManager {
     }
 
     initializeDocumentChart() {
+        if (!window.dashboardData || !window.Chart) {
+            return;
+        }
+
+        const chartElement = document.getElementById('documentChart');
+        if (!chartElement) {
+            return;
+        }
+
         const { documentCount, processedCount } = window.dashboardData;
         const unprocessedCount = documentCount - processedCount;
 
-        const ctx = document.getElementById('documentChart').getContext('2d');
+        const ctx = chartElement.getContext('2d');
         new Chart(ctx, {
             type: 'doughnut',
             data: {
@@ -274,7 +253,6 @@ async function showCorrespondentDetails() {
 
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    window.themeManager = new ThemeManager();
     window.navigationManager = new NavigationManager();
     window.chartManager = new ChartManager();
     window.modalManager = new ModalManager();
