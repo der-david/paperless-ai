@@ -227,7 +227,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   let externalApiData = null;
 
   // Get external API data if enabled
-  if (config.externalApiConfig.enabled === 'yes') {
+  if (config.externalApiConfig.enabled === true) {
     try {
       const externalApiService = require('../services/externalApiService');
       const externalData = await externalApiService.fetchData(config.externalApiConfig);
@@ -261,20 +261,20 @@ async function buildUpdateData(analysis, doc) {
 
   // Create options object with restriction settings
   const options = {
-    restrictToExistingTags: config.restrictToExisting.tags === 'yes' ? true : false,
-    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes' ? true : false
+    restrictToExistingTags: config.restrictToExisting.tags === true,
+    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === true
   };
 
   console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
-  if (config.limitFunctions?.activateTagging !== 'no') {
+  if (config.limitFunctions?.activateTagging !== false) {
     const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.limitFunctions?.activateTagging === 'no' && config.addAIProcessedTag === 'yes') {
+  } else if (config.limitFunctions?.activateTagging === false && config.addAIProcessedTag === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     // get tags from .env file and split them by comma and make an array
     console.debug('Tagging is deactivated but AI processed tag will be added');
@@ -288,12 +288,12 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process title if title generation is activated
-  if (config.limitFunctions?.activateTitle !== 'no') {
+  if (config.limitFunctions?.activateTitle !== false) {
     updateData.title = analysis.document.title || doc.title;
   }
 
   // Only update content if content update is activated and AI provided content
-  if (config.limitFunctions?.activateContent !== 'no' && typeof analysis.document.content === 'string') {
+  if (config.limitFunctions?.activateContent !== false && typeof analysis.document.content === 'string') {
     const trimmedContent = analysis.document.content.trim();
     if (trimmedContent.length > 0) {
       updateData.content = trimmedContent;
@@ -301,19 +301,19 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  if (config.limitFunctions?.activateDocumentDate !== 'no' && analysis.document.document_date) {
+  if (config.limitFunctions?.activateDocumentDate !== false && analysis.document.document_date) {
     updateData.created = analysis.document.document_date;
   } else {
     updateData.created = doc.created;
   }
 
   // Only process document type if document type classification is activated
-  if (config.limitFunctions?.activateDocumentType !== 'no' && analysis.document.document_type) {
+  if (config.limitFunctions?.activateDocumentType !== false && analysis.document.document_type) {
     try {
       let documentType;
 
       // If restricting to existing document types, search for exact match only
-      if (config.restrictToExisting.documentTypes === 'yes') {
+      if (config.restrictToExisting.documentTypes === true) {
         documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
         if (documentType) {
           console.debug(`Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
@@ -334,7 +334,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process custom fields if custom fields detection is activated
-  if (config.limitFunctions?.activateCustomFields !== 'no' && analysis.document.custom_fields) {
+  if (config.limitFunctions?.activateCustomFields !== false && analysis.document.custom_fields) {
     const customFields = analysis.document.custom_fields;
     const processedFields = [];
 
@@ -397,7 +397,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process correspondent if correspondent detection is activated
-  if (config.limitFunctions?.activateCorrespondent !== 'no' && analysis.document.correspondent) {
+  if (config.limitFunctions?.activateCorrespondent !== false && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
@@ -408,7 +408,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  if (config.limitFunctions?.activateLanguage !== 'no' && analysis.document.language) {
+  if (config.limitFunctions?.activateLanguage !== false && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 
@@ -658,7 +658,7 @@ async function startScanning() {
 
     console.log('Configured scan interval:', config.scanInterval);
     console.log(`Starting initial scan at ${new Date().toISOString()}`);
-    if(config.disableAutomaticProcessing != 'yes') {
+    if (config.disableAutomaticProcessing !== true) {
       await scanInitial();
 
       cron.schedule(config.scanInterval, async () => {

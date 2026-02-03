@@ -5,28 +5,30 @@ console.log('Loading .env from:', envPath); // Debug log
 require('dotenv').config({ path: envPath });
 
 // Helper function to parse boolean-like env vars
-const parseEnvBoolean = (value, defaultValue = 'yes') => {
-  if (!value) return defaultValue;
-  return value.toLowerCase() === 'true' || value === '1' || value.toLowerCase() === 'yes' ? 'yes' : 'no';
+const parseEnvBoolean = (value, defaultValue = true) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value).toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 };
 
 // Initialize limit functions with defaults
 const limitFunctions = {
-  activateTagging: parseEnvBoolean(process.env.ACTIVATE_TAGGING, 'yes'),
-  activateCorrespondent: parseEnvBoolean(process.env.ACTIVATE_CORRESPONDENT, 'yes'),
-  activateDocumentType: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, 'yes'),
-  activateTitle: parseEnvBoolean(process.env.ACTIVATE_TITLE, 'yes'),
-  activateDocumentDate: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_DATE, 'yes'),
-  activateLanguage: parseEnvBoolean(process.env.ACTIVATE_LANGUAGE, 'yes'),
-  activateContent: parseEnvBoolean(process.env.ACTIVATE_CONTENT, 'no'),
-  activateCustomFields: parseEnvBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, 'yes')
+  activateTagging: parseEnvBoolean(process.env.ACTIVATE_TAGGING, true),
+  activateCorrespondent: parseEnvBoolean(process.env.ACTIVATE_CORRESPONDENT, true),
+  activateDocumentType: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, true),
+  activateTitle: parseEnvBoolean(process.env.ACTIVATE_TITLE, true),
+  activateDocumentDate: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_DATE, true),
+  activateLanguage: parseEnvBoolean(process.env.ACTIVATE_LANGUAGE, true),
+  activateContent: parseEnvBoolean(process.env.ACTIVATE_CONTENT, false),
+  activateCustomFields: parseEnvBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, true)
 };
 
 // Initialize AI restrictions with defaults
 const restrictToExisting = {
-  tags: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, 'no'),
-  correspondents: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, 'no'),
-  documentTypes: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, 'no')
+  tags: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, false),
+  correspondents: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, false),
+  documentTypes: parseEnvBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, false)
 };
 
 console.log('Loaded restriction settings:', {
@@ -37,7 +39,7 @@ console.log('Loaded restriction settings:', {
 
 // Initialize external API configuration
 const externalApiConfig = {
-  enabled: parseEnvBoolean(process.env.EXTERNAL_API_ENABLED, 'no'),
+  enabled: parseEnvBoolean(process.env.EXTERNAL_API_ENABLED, false),
   url: process.env.EXTERNAL_API_URL || '',
   method: process.env.EXTERNAL_API_METHOD || 'GET',
   headers: process.env.EXTERNAL_API_HEADERS || '{}',
@@ -51,20 +53,20 @@ console.log('Loaded environment variables:', {
   PAPERLESS_API_TOKEN: '******',
   LIMIT_FUNCTIONS: limitFunctions,
   AI_RESTRICTIONS: restrictToExisting,
-  EXTERNAL_API: externalApiConfig.enabled === 'yes' ? 'enabled' : 'disabled'
+  EXTERNAL_API: externalApiConfig.enabled ? 'enabled' : 'disabled'
 });
 
 module.exports = {
   PAPERLESS_AI_VERSION: '3.0.9',
   CONFIGURED: false,
-  disableAutomaticProcessing: process.env.DISABLE_AUTOMATIC_PROCESSING || 'no',
-  predefinedMode: process.env.PROCESS_PREDEFINED_DOCUMENTS,
+  disableAutomaticProcessing: parseEnvBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false),
+  predefinedMode: parseEnvBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
   tokenLimit: process.env.TOKEN_LIMIT || 128000,
   responseTokens: process.env.RESPONSE_TOKENS || 1000,
   contentMaxLength: process.env.CONTENT_MAX_LENGTH ? parseInt(process.env.CONTENT_MAX_LENGTH, 10) : null,
   contentSourceMode: process.env.CONTENT_SOURCE_MODE || 'content',
   rawDocumentMode: process.env.RAW_DOCUMENT_MODE || 'text',
-  addAIProcessedTag: process.env.ADD_AI_PROCESSED_TAG || 'no',
+  addAIProcessedTag: parseEnvBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
   addAIProcessedTags: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
   // External API config
   externalApiConfig: externalApiConfig,
@@ -97,9 +99,9 @@ module.exports = {
   customFields: process.env.CUSTOM_FIELDS || '',
   aiProvider: process.env.AI_PROVIDER || 'openai',
   scanInterval: process.env.SCAN_INTERVAL || '*/30 * * * *',
-  useExistingData: process.env.USE_EXISTING_DATA || 'no',
+  useExistingData: parseEnvBoolean(process.env.USE_EXISTING_DATA, false),
   systemPrompt: process.env.SYSTEM_PROMPT || '',
-  usePromptTags: process.env.USE_PROMPT_TAGS || 'no',
+  usePromptTags: parseEnvBoolean(process.env.USE_PROMPT_TAGS, false),
   promptTags: process.env.PROMPT_TAGS || '',
   tags: process.env.TAGS || '',
   // AI restrictions config

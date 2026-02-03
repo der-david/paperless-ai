@@ -91,7 +91,7 @@ class AzureOpenAIService extends BaseAIService {
       const promptCustomFieldsStr = customFieldsStr || '"custom_fields": {}';
 
       // Get system prompt and model
-      if (config.useExistingData === 'yes' && config.restrictToExisting.tags === 'no' && config.restrictToExisting.correspondents === 'no') {
+      if (config.useExistingData && !config.restrictToExisting.tags && !config.restrictToExisting.correspondents) {
         systemPrompt += `
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
@@ -118,7 +118,7 @@ class AzureOpenAIService extends BaseAIService {
         systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
       }
 
-      if (config.usePromptTags === 'yes') {
+      if (config.usePromptTags) {
         promptTags = config.promptTags;
         systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
@@ -133,7 +133,7 @@ class AzureOpenAIService extends BaseAIService {
       // Calculate tokens AFTER all prompt modifications are complete
       const totalPromptTokens = await calculateTotalPromptTokens(
         systemPrompt,
-        config.usePromptTags === 'yes' ? [promptTags] : [],
+        config.usePromptTags ? [promptTags] : [],
         model
       );
 
@@ -205,9 +205,9 @@ class AzureOpenAIService extends BaseAIService {
         existingTags,
         existingDocumentTypesList,
         existingCorrespondents: existingCorrespondentList,
-        restrictToExistingTags: config.restrictToExisting.tags === 'yes',
-        restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes === 'yes',
-        restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes',
+        restrictToExistingTags: config.restrictToExisting.tags,
+        restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes,
+        restrictToExistingCorrespondents: config.restrictToExisting.correspondents,
         limitFunctions: config.limitFunctions,
         includeCustomFieldProperties: true,
         customFields,

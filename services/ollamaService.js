@@ -131,9 +131,9 @@ class OllamaService extends BaseAIService {
                 existingTags,
                 existingDocumentTypesList,
                 existingCorrespondents: existingCorrespondentList,
-                restrictToExistingTags: config.restrictToExisting.tags === 'yes',
-                restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes === 'yes',
-                restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes',
+                restrictToExistingTags: config.restrictToExisting.tags,
+                restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes,
+                restrictToExistingCorrespondents: config.restrictToExisting.correspondents,
                 limitFunctions: config.limitFunctions,
                 includeCustomFieldProperties: true,
                 customFields,
@@ -280,7 +280,7 @@ class OllamaService extends BaseAIService {
         const customFieldsStr = this._generateCustomFieldsTemplate(config);
 
         // Get system prompt based on configuration
-        if (config.useExistingData === 'yes' && config.restrictToExisting.tags === 'no' && config.restrictToExisting.correspondents === 'no') {
+        if (config.useExistingData && !config.restrictToExisting.tags && !config.restrictToExisting.correspondents) {
             // Format existing tags
             const existingTagsList = existingTags.join(', ');
 
@@ -306,10 +306,10 @@ class OllamaService extends BaseAIService {
 
             // Build system prompt with restrictions at the beginning if enabled
             systemPrompt = '';
-            if (config.restrictToExisting.tags === 'yes') {
+            if (config.restrictToExisting.tags) {
                 systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n`;
             }
-            if (config.restrictToExisting.documentTypes === 'yes') {
+            if (config.restrictToExisting.documentTypes) {
                 systemPrompt += `You can ONLY use these document types: ${existingDocumentTypesList}\n\n`;
             }
 
@@ -322,10 +322,10 @@ class OllamaService extends BaseAIService {
         } else {
             config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
             let systemPrompt = config.systemPrompt + '\n\n' + config.mustHavePrompt;
-            if (config.restrictToExisting.tags === 'yes') {
+            if (config.restrictToExisting.tags) {
                 systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n` + systemPrompt;
             }
-            if (config.restrictToExisting.documentTypes === 'yes') {
+            if (config.restrictToExisting.documentTypes) {
                 const existingDocumentTypesList = existingDocumentTypes
                     .filter(Boolean)
                     .map(docType => {
@@ -365,7 +365,7 @@ class OllamaService extends BaseAIService {
             systemPrompt += `\n\nAdditional context from external API:\n${validatedExternalApiData}`;
         }
 
-        if (config.usePromptTags === 'yes') {
+        if (config.usePromptTags) {
             promptTags = config.promptTags;
             systemPrompt += `
             Take these tags and try to match one or more to the document content.\n\n

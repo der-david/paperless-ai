@@ -29,7 +29,7 @@ class FormManager {
 
         this.initializePasswordToggles();
 
-        if (this.usePromptTags.value === 'yes') {
+        if (this.usePromptTags.value === 'true') {
             this.disablePromptElements();
         }
 
@@ -67,7 +67,7 @@ class FormManager {
         }
 
         // Update the hidden input value based on checkbox state
-        hiddenInput.value = this.disableAutomaticProcessing.checked ? 'yes' : 'no';
+        hiddenInput.value = this.disableAutomaticProcessing.checked ? 'true' : 'false';
     }
 
     toggleProviderSettings() {
@@ -154,7 +154,7 @@ class FormManager {
         const showTags = this.showTags.value;
         const tagsInputSection = document.getElementById('tagsInputSection');
 
-        if (showTags === 'yes') {
+        if (showTags === 'true') {
             tagsInputSection.classList.remove('hidden');
         } else {
             document.getElementById('tags').value = '';
@@ -166,7 +166,7 @@ class FormManager {
         const showAiTag = this.aiProcessedTag.value;
         const aiTagNameSection = document.getElementById('aiTagNameSection');
 
-        if (showAiTag === 'yes') {
+        if (showAiTag === 'true') {
             aiTagNameSection.classList.remove('hidden');
         } else {
             aiTagNameSection.classList.add('hidden');
@@ -177,7 +177,7 @@ class FormManager {
         const usePromptTags = this.usePromptTags.value;
         const promptTagsSection = document.getElementById('promptTagsSection');
 
-        if (usePromptTags === 'yes') {
+        if (usePromptTags === 'true') {
             promptTagsSection.classList.remove('hidden');
             this.disablePromptElements();
         } else {

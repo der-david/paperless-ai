@@ -11,7 +11,7 @@ class ExternalApiService {
     try {
       const resolvedConfig = externalApiConfig || {};
       // Check if external API integration is enabled
-      if (!resolvedConfig || resolvedConfig.enabled !== 'yes') {
+      if (!resolvedConfig || resolvedConfig.enabled !== true) {
         console.debug('External API integration is disabled');
         return null;
       }

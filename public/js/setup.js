@@ -37,7 +37,7 @@ class FormManager {
         this.initializePasswordToggles();
 
         // Initial state for prompt elements based on usePromptTags
-        if (this.usePromptTags.value === 'yes') {
+        if (this.usePromptTags.value === 'true') {
             this.disablePromptElements();
         }
 
@@ -114,7 +114,7 @@ class FormManager {
         const showTags = this.showTags.value;
         const tagsInputSection = document.getElementById('tagsInputSection');
 
-        if (showTags === 'yes') {
+        if (showTags === 'true') {
             tagsInputSection.classList.remove('hidden');
         } else {
             tagsInputSection.classList.add('hidden');
@@ -125,7 +125,7 @@ class FormManager {
         const showAiTag = this.aiProcessedTag.value;
         const aiTagNameSection = document.getElementById('aiTagNameSection');
 
-        if (showAiTag === 'yes') {
+        if (showAiTag === 'true') {
             aiTagNameSection.classList.remove('hidden');
         } else {
             aiTagNameSection.classList.add('hidden');
@@ -136,7 +136,7 @@ class FormManager {
         const usePromptTags = this.usePromptTags.value;
         const promptTagsSection = document.getElementById('promptTagsSection');
 
-        if (usePromptTags === 'yes') {
+        if (usePromptTags === 'true') {
             promptTagsSection.classList.remove('hidden');
             this.disablePromptElements();
         } else {
@@ -826,7 +826,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Check if processing all documents without specific tags
             const showTags = document.getElementById('showTags').value;
-            if (showTags === 'no') {
+            if (showTags === 'false') {
                 const result = await Swal.fire({
                     icon: 'warning',
                     title: 'Attention!',
@@ -843,8 +843,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 if (!result.isConfirmed) {
-                    // User cancelled - set showTags to 'yes' and scroll to it
-                    document.getElementById('showTags').value = 'yes';
+                    // User cancelled - set showTags to 'true' and scroll to it
+                    document.getElementById('showTags').value = 'true';
                     // Trigger the change event to show the tags input section
                     document.getElementById('showTags').dispatchEvent(new Event('change'));
                     // Scroll to the element

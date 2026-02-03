@@ -325,7 +325,7 @@ class PaperlessService {
       // Explicitly check options first, then env var
       const restrictToExistingTags = options.restrictToExistingTags === true ||
                                    (options.restrictToExistingTags === undefined &&
-                                    this.config?.restrictToExisting?.tags === 'yes');
+                                    this.config?.restrictToExisting?.tags === true);
 
       // Input validation
       if (!tagNames) {
@@ -391,7 +391,7 @@ class PaperlessService {
       }
 
       // Add AI-Processed tag if enabled
-      if (this.config?.addAIProcessedTag === 'yes' && this.config?.addAIProcessedTags) {
+      if (this.config?.addAIProcessedTag === true && this.config?.addAIProcessedTags) {
         try {
           const aiTagName = this.config.addAIProcessedTags;
           let aiTag = await this.findExistingTag(aiTagName);
@@ -642,14 +642,14 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.config?.predefinedMode === 'yes';
+    const shouldFilterByTags = this.config?.predefinedMode === true;
     let tagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
       const tagsValue = this.config?.tags || process.env.TAGS;
       if (!tagsValue) {
-        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
+        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to true but no TAGS are defined');
         return [];
       }
 
@@ -762,14 +762,14 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.config?.predefinedMode === 'yes';
+    const shouldFilterByTags = this.config?.predefinedMode === true;
     let tagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
       const tagsValue = this.config?.tags || process.env.TAGS;
       if (!tagsValue) {
-        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to yes but no TAGS are defined');
+        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to true but no TAGS are defined');
         return [];
       }
 
@@ -1066,7 +1066,7 @@ async searchForExistingCorrespondent(correspondent) {
     // Explicitly check options first, then env var
     const restrictToExistingCorrespondents = options.restrictToExistingCorrespondents === true ||
                                            (options.restrictToExistingCorrespondents === undefined &&
-                                            this.config?.restrictToExisting?.correspondents === 'yes');
+                                            this.config?.restrictToExisting?.correspondents === true);
 
     console.debug(`Processing correspondent with restrictToExistingCorrespondents=${restrictToExistingCorrespondents}`);
 

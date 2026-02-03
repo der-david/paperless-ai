@@ -19,6 +19,47 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const config = require('../config/config.js');
 require('dotenv').config({ path: '../data/.env' });
 
+const parseBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null || value === '') return defaultValue;
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value).toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+};
+
+const toEnvBoolean = (value) => (value ? 'true' : 'false');
+
+const coerceConfigBooleans = (config) => {
+  const defaults = {
+    PROCESS_PREDEFINED_DOCUMENTS: false,
+    ADD_AI_PROCESSED_TAG: false,
+    USE_PROMPT_TAGS: false,
+    PROCESS_ONLY_NEW_DOCUMENTS: true,
+    USE_EXISTING_DATA: false,
+    DISABLE_AUTOMATIC_PROCESSING: false,
+    ACTIVATE_TAGGING: true,
+    ACTIVATE_CORRESPONDENT: true,
+    ACTIVATE_DOCUMENT_TYPE: true,
+    ACTIVATE_TITLE: true,
+    ACTIVATE_DOCUMENT_DATE: true,
+    ACTIVATE_LANGUAGE: true,
+    ACTIVATE_CONTENT: false,
+    ACTIVATE_CUSTOM_FIELDS: true,
+    RESTRICT_TO_EXISTING_TAGS: false,
+    RESTRICT_TO_EXISTING_CORRESPONDENTS: false,
+    RESTRICT_TO_EXISTING_DOCUMENT_TYPES: false,
+    EXTERNAL_API_ENABLED: false,
+    PAPERLESS_AI_INITIAL_SETUP: false
+  };
+
+  Object.entries(defaults).forEach(([key, defaultValue]) => {
+    if (Object.prototype.hasOwnProperty.call(config, key) || key in config) {
+      config[key] = parseBoolean(config[key], defaultValue);
+    }
+  });
+
+  return config;
+};
+
 /**
  * @swagger
  * tags:
@@ -173,9 +214,10 @@ router.use(async (req, res, next) => {
   try {
     const isConfigured = await setupService.isConfigured();
 
-    if (!isConfigured && (!process.env.PAPERLESS_AI_INITIAL_SETUP || process.env.PAPERLESS_AI_INITIAL_SETUP === 'no') && !req.path.startsWith('/setup')) {
+    const initialSetupEnabled = parseBoolean(process.env.PAPERLESS_AI_INITIAL_SETUP, false);
+    if (!isConfigured && !initialSetupEnabled && !req.path.startsWith('/setup')) {
       return res.redirect('/setup');
-    } else if (!isConfigured && process.env.PAPERLESS_AI_INITIAL_SETUP === 'yes' && !req.path.startsWith('/settings')) {
+    } else if (!isConfigured && initialSetupEnabled && !req.path.startsWith('/settings')) {
       return res.redirect('/settings');
     }
   } catch (error) {
@@ -1581,7 +1623,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   let externalApiData = null;
 
   // Get external API data if enabled
-  if (config.externalApiConfig.enabled === 'yes') {
+  if (config.externalApiConfig.enabled === true) {
     try {
       const externalApiService = require('../services/externalApiService');
       const externalData = await externalApiService.fetchData(config.externalApiConfig);
@@ -1615,20 +1657,20 @@ async function buildUpdateData(analysis, doc) {
 
   // Create options object with restriction settings
   const options = {
-    restrictToExistingTags: config.restrictToExisting.tags === 'yes' ? true : false,
-    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === 'yes' ? true : false
+    restrictToExistingTags: config.restrictToExisting.tags === true,
+    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === true
   };
 
   console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
-  if (config.limitFunctions?.activateTagging !== 'no') {
+  if (config.limitFunctions?.activateTagging !== false) {
     const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.limitFunctions?.activateTagging === 'no' && config.addAIProcessedTag === 'yes') {
+  } else if (config.limitFunctions?.activateTagging === false && config.addAIProcessedTag === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     // get tags from .env file and split them by comma and make an array
     console.debug('Tagging is deactivated but AI processed tag will be added');
@@ -1642,12 +1684,12 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process title if title generation is activated
-  if (config.limitFunctions?.activateTitle !== 'no') {
+  if (config.limitFunctions?.activateTitle !== false) {
     updateData.title = analysis.document.title || doc.title;
   }
 
   // Only update content if content update is activated and AI provided content
-  if (config.limitFunctions?.activateContent !== 'no' && typeof analysis.document.content === 'string') {
+  if (config.limitFunctions?.activateContent !== false && typeof analysis.document.content === 'string') {
     const trimmedContent = analysis.document.content.trim();
     if (trimmedContent.length > 0) {
       updateData.content = trimmedContent;
@@ -1655,19 +1697,19 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  if (config.limitFunctions?.activateDocumentDate !== 'no' && analysis.document.document_date) {
+  if (config.limitFunctions?.activateDocumentDate !== false && analysis.document.document_date) {
     updateData.created = analysis.document.document_date;
   } else {
     updateData.created = doc.created;
   }
 
   // Only process document type if document type classification is activated
-  if (config.limitFunctions?.activateDocumentType !== 'no' && analysis.document.document_type) {
+  if (config.limitFunctions?.activateDocumentType !== false && analysis.document.document_type) {
     try {
       let documentType;
 
       // If restricting to existing document types, search for exact match only
-      if (config.restrictToExisting.documentTypes === 'yes') {
+      if (config.restrictToExisting.documentTypes === true) {
         documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
         if (documentType) {
           console.debug(`Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
@@ -1688,7 +1730,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process custom fields if custom fields detection is activated
-  if (config.limitFunctions?.activateCustomFields !== 'no' && analysis.document.custom_fields) {
+  if (config.limitFunctions?.activateCustomFields !== false && analysis.document.custom_fields) {
     const customFields = analysis.document.custom_fields;
     const processedFields = [];
 
@@ -1751,7 +1793,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process correspondent if correspondent detection is activated
-  if (config.limitFunctions?.activateCorrespondent !== 'no' && analysis.document.correspondent) {
+  if (config.limitFunctions?.activateCorrespondent !== false && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
@@ -1762,7 +1804,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  if (config.limitFunctions?.activateLanguage !== 'no' && analysis.document.language) {
+  if (config.limitFunctions?.activateLanguage !== false && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 
@@ -1934,20 +1976,20 @@ router.get('/setup', async (req, res) => {
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
       SYSTEM_PROMPT: process.env.SYSTEM_PROMPT || '',
-      PROCESS_PREDEFINED_DOCUMENTS: process.env.PROCESS_PREDEFINED_DOCUMENTS || 'no',
+      PROCESS_PREDEFINED_DOCUMENTS: parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
       TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
       RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
       CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
       RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
       TAGS: normalizeArray(process.env.TAGS),
-      ADD_AI_PROCESSED_TAG: process.env.ADD_AI_PROCESSED_TAG || 'no',
+      ADD_AI_PROCESSED_TAG: parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
       AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-      USE_PROMPT_TAGS: process.env.USE_PROMPT_TAGS || 'no',
+      USE_PROMPT_TAGS: parseBoolean(process.env.USE_PROMPT_TAGS, false),
       PROMPT_TAGS: normalizeArray(process.env.PROMPT_TAGS),
       PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
-      PROCESS_ONLY_NEW_DOCUMENTS: process.env.PROCESS_ONLY_NEW_DOCUMENTS || 'yes',
-      USE_EXISTING_DATA: process.env.USE_EXISTING_DATA || 'no',
-      DISABLE_AUTOMATIC_PROCESSING: process.env.DISABLE_AUTOMATIC_PROCESSING || 'no',
+      PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
+      USE_EXISTING_DATA: parseBoolean(process.env.USE_EXISTING_DATA, false),
+      DISABLE_AUTOMATIC_PROCESSING: parseBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false),
       AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
       AZURE_API_KEY: process.env.AZURE_API_KEY || '',
       AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME || '',
@@ -1972,6 +2014,8 @@ router.get('/setup', async (req, res) => {
 
       config = { ...config, ...savedConfig };
     }
+
+    config = coerceConfigBooleans(config);
 
     // Debug output
     console.log('Current config TAGS:', config.TAGS);
@@ -2726,7 +2770,7 @@ router.get('/settings', authenticateUI, async (req, res) => {
 
   let showErrorCheckSettings = false;
   const isConfigured = await setupService.isConfigured();
-  if(!isConfigured && process.env.PAPERLESS_AI_INITIAL_SETUP === 'yes') {
+  if (!isConfigured && parseBoolean(process.env.PAPERLESS_AI_INITIAL_SETUP, false)) {
     showErrorCheckSettings = true;
   }
   let config = {
@@ -2741,20 +2785,20 @@ router.get('/settings', authenticateUI, async (req, res) => {
     OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
     SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
     SYSTEM_PROMPT: process.env.SYSTEM_PROMPT || '',
-    PROCESS_PREDEFINED_DOCUMENTS: process.env.PROCESS_PREDEFINED_DOCUMENTS || 'no',
+    PROCESS_PREDEFINED_DOCUMENTS: parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
 
     TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
     RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
     CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
     RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
     TAGS: normalizeArray(process.env.TAGS),
-    ADD_AI_PROCESSED_TAG: process.env.ADD_AI_PROCESSED_TAG || 'no',
+    ADD_AI_PROCESSED_TAG: parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
     AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-    USE_PROMPT_TAGS: process.env.USE_PROMPT_TAGS || 'no',
+    USE_PROMPT_TAGS: parseBoolean(process.env.USE_PROMPT_TAGS, false),
     PROMPT_TAGS: normalizeArray(process.env.PROMPT_TAGS),
     PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
-    PROCESS_ONLY_NEW_DOCUMENTS: process.env.PROCESS_ONLY_NEW_DOCUMENTS || ' ',
-    USE_EXISTING_DATA: process.env.USE_EXISTING_DATA || 'no',
+    PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
+    USE_EXISTING_DATA: parseBoolean(process.env.USE_EXISTING_DATA, false),
     CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
     CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
     CUSTOM_MODEL: process.env.CUSTOM_MODEL || '',
@@ -2762,10 +2806,10 @@ router.get('/settings', authenticateUI, async (req, res) => {
     AZURE_API_KEY: process.env.AZURE_API_KEY || '',
     AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME || '',
     AZURE_API_VERSION: process.env.AZURE_API_VERSION || '',
-    RESTRICT_TO_EXISTING_TAGS: process.env.RESTRICT_TO_EXISTING_TAGS || 'no',
-    RESTRICT_TO_EXISTING_CORRESPONDENTS: process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS || 'no',
-    RESTRICT_TO_EXISTING_DOCUMENT_TYPES: process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES || 'no',
-    EXTERNAL_API_ENABLED: process.env.EXTERNAL_API_ENABLED || 'no',
+    RESTRICT_TO_EXISTING_TAGS: parseBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, false),
+    RESTRICT_TO_EXISTING_CORRESPONDENTS: parseBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, false),
+    RESTRICT_TO_EXISTING_DOCUMENT_TYPES: parseBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, false),
+    EXTERNAL_API_ENABLED: parseBoolean(process.env.EXTERNAL_API_ENABLED, false),
     EXTERNAL_API_URL: process.env.EXTERNAL_API_URL || '',
     EXTERNAL_API_METHOD: process.env.EXTERNAL_API_METHOD || 'GET',
     EXTERNAL_API_HEADERS: process.env.EXTERNAL_API_HEADERS || '{}',
@@ -2785,6 +2829,7 @@ router.get('/settings', authenticateUI, async (req, res) => {
 
     config = { ...config, ...savedConfig };
   }
+  config = coerceConfigBooleans(config);
 
   // Debug-output
   console.log('Current config TAGS:', config.TAGS);
@@ -3734,6 +3779,20 @@ router.post('/setup', express.json(), async (req, res) => {
       });
     }
 
+    const showTagsBool = parseBoolean(showTags, false);
+    const aiProcessedTagBool = parseBoolean(aiProcessedTag, false);
+    const usePromptTagsBool = parseBoolean(usePromptTags, false);
+    const useExistingDataBool = parseBoolean(useExistingData, false);
+    const activateTaggingBool = parseBoolean(activateTagging, true);
+    const activateCorrespondentBool = parseBoolean(activateCorrespondent, true);
+    const activateDocumentTypeBool = parseBoolean(activateDocumentType, true);
+    const activateTitleBool = parseBoolean(activateTitle, true);
+    const activateDocumentDateBool = parseBoolean(activateDocumentDate, true);
+    const activateLanguageBool = parseBoolean(activateLanguage, true);
+    const activateContentBool = parseBoolean(activateContent, false);
+    const activateCustomFieldsBool = parseBoolean(activateCustomFields, true);
+    const disableAutomaticProcessingBool = parseBoolean(disableAutomaticProcessing, false);
+
     // Log setup request with sensitive data redacted
     const sensitiveKeys = ['paperlessToken', 'openaiKey', 'customApiKey', 'password', 'confirmPassword'];
     const redactedBody = Object.fromEntries(
@@ -3779,7 +3838,7 @@ router.post('/setup', express.json(), async (req, res) => {
 
     // Process custom fields if enabled
     let processedCustomFields = [];
-    if (customFields && activateCustomFields) {
+    if (customFields && activateCustomFieldsBool) {
       try {
         const parsedFields = typeof customFields === 'string'
           ? JSON.parse(customFields)
@@ -3826,36 +3885,36 @@ router.post('/setup', express.json(), async (req, res) => {
       AI_PROVIDER: aiProvider,
       SCAN_INTERVAL: scanInterval || '*/30 * * * *',
       SYSTEM_PROMPT: processedPrompt,
-      PROCESS_PREDEFINED_DOCUMENTS: showTags || 'no',
+      PROCESS_PREDEFINED_DOCUMENTS: toEnvBoolean(showTagsBool),
       TOKEN_LIMIT: tokenLimit || 128000,
       RESPONSE_TOKENS: responseTokens || 1000,
       CONTENT_SOURCE_MODE: contentSourceMode || 'content',
       RAW_DOCUMENT_MODE: rawDocumentMode || 'text',
       TAGS: normalizeArray(tags),
-      ADD_AI_PROCESSED_TAG: aiProcessedTag || 'no',
+      ADD_AI_PROCESSED_TAG: toEnvBoolean(aiProcessedTagBool),
       AI_PROCESSED_TAG_NAME: aiTagName || 'ai-processed',
-      USE_PROMPT_TAGS: usePromptTags || 'no',
+      USE_PROMPT_TAGS: toEnvBoolean(usePromptTagsBool),
       PROMPT_TAGS: normalizeArray(promptTags),
-      USE_EXISTING_DATA: useExistingData || 'no',
+      USE_EXISTING_DATA: toEnvBoolean(useExistingDataBool),
       API_KEY: apiToken,
       JWT_SECRET: jwtToken,
       CUSTOM_API_KEY: customApiKey || '',
       CUSTOM_BASE_URL: customBaseUrl || '',
       CUSTOM_MODEL: customModel || '',
       OPENAI_GIZMO_ID: openaiGizmoId || '',
-      PAPERLESS_AI_INITIAL_SETUP: 'yes',
-      ACTIVATE_TAGGING: activateTagging ? 'yes' : 'no',
-      ACTIVATE_CORRESPONDENT: activateCorrespondent ? 'yes' : 'no',
-      ACTIVATE_DOCUMENT_TYPE: activateDocumentType ? 'yes' : 'no',
-      ACTIVATE_TITLE: activateTitle ? 'yes' : 'no',
-      ACTIVATE_DOCUMENT_DATE: activateDocumentDate ? 'yes' : 'no',
-      ACTIVATE_LANGUAGE: activateLanguage ? 'yes' : 'no',
-      ACTIVATE_CONTENT: activateContent ? 'yes' : 'no',
-      ACTIVATE_CUSTOM_FIELDS: activateCustomFields ? 'yes' : 'no',
+      PAPERLESS_AI_INITIAL_SETUP: toEnvBoolean(true),
+      ACTIVATE_TAGGING: toEnvBoolean(activateTaggingBool),
+      ACTIVATE_CORRESPONDENT: toEnvBoolean(activateCorrespondentBool),
+      ACTIVATE_DOCUMENT_TYPE: toEnvBoolean(activateDocumentTypeBool),
+      ACTIVATE_TITLE: toEnvBoolean(activateTitleBool),
+      ACTIVATE_DOCUMENT_DATE: toEnvBoolean(activateDocumentDateBool),
+      ACTIVATE_LANGUAGE: toEnvBoolean(activateLanguageBool),
+      ACTIVATE_CONTENT: toEnvBoolean(activateContentBool),
+      ACTIVATE_CUSTOM_FIELDS: toEnvBoolean(activateCustomFieldsBool),
       CUSTOM_FIELDS: processedCustomFields.length > 0
         ? JSON.stringify({ custom_fields: processedCustomFields })
         : '{"custom_fields":[]}',
-      DISABLE_AUTOMATIC_PROCESSING: disableAutomaticProcessing ? 'yes' : 'no',
+      DISABLE_AUTOMATIC_PROCESSING: toEnvBoolean(disableAutomaticProcessingBool),
       AZURE_ENDPOINT: azureEndpoint || '',
       AZURE_API_KEY: azureApiKey || '',
       AZURE_DEPLOYMENT_NAME: azureDeploymentName || '',
@@ -4208,37 +4267,37 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || '',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
       SYSTEM_PROMPT: process.env.SYSTEM_PROMPT || '',
-      PROCESS_PREDEFINED_DOCUMENTS: process.env.PROCESS_PREDEFINED_DOCUMENTS || 'no',
+      PROCESS_PREDEFINED_DOCUMENTS: toEnvBoolean(parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false)),
       TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
       RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
       TAGS: process.env.TAGS || '',
-      ADD_AI_PROCESSED_TAG: process.env.ADD_AI_PROCESSED_TAG || 'no',
+      ADD_AI_PROCESSED_TAG: toEnvBoolean(parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false)),
       AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-      USE_PROMPT_TAGS: process.env.USE_PROMPT_TAGS || 'no',
+      USE_PROMPT_TAGS: toEnvBoolean(parseBoolean(process.env.USE_PROMPT_TAGS, false)),
       PROMPT_TAGS: process.env.PROMPT_TAGS || '',
-      USE_EXISTING_DATA: process.env.USE_EXISTING_DATA || 'no',
+      USE_EXISTING_DATA: toEnvBoolean(parseBoolean(process.env.USE_EXISTING_DATA, false)),
       API_KEY: process.env.API_KEY || '',
       CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
       CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
       CUSTOM_MODEL: process.env.CUSTOM_MODEL || '',
-      ACTIVATE_TAGGING: process.env.ACTIVATE_TAGGING || 'yes',
-      ACTIVATE_CORRESPONDENT: process.env.ACTIVATE_CORRESPONDENT || 'yes',
-      ACTIVATE_DOCUMENT_TYPE: process.env.ACTIVATE_DOCUMENT_TYPE || 'yes',
-      ACTIVATE_TITLE: process.env.ACTIVATE_TITLE || 'yes',
-      ACTIVATE_DOCUMENT_DATE: process.env.ACTIVATE_DOCUMENT_DATE || 'yes',
-      ACTIVATE_LANGUAGE: process.env.ACTIVATE_LANGUAGE || 'yes',
-      ACTIVATE_CONTENT: process.env.ACTIVATE_CONTENT || 'no',
-      ACTIVATE_CUSTOM_FIELDS: process.env.ACTIVATE_CUSTOM_FIELDS || 'yes',
+      ACTIVATE_TAGGING: toEnvBoolean(parseBoolean(process.env.ACTIVATE_TAGGING, true)),
+      ACTIVATE_CORRESPONDENT: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CORRESPONDENT, true)),
+      ACTIVATE_DOCUMENT_TYPE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, true)),
+      ACTIVATE_TITLE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_TITLE, true)),
+      ACTIVATE_DOCUMENT_DATE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_DOCUMENT_DATE, true)),
+      ACTIVATE_LANGUAGE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_LANGUAGE, true)),
+      ACTIVATE_CONTENT: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CONTENT, false)),
+      ACTIVATE_CUSTOM_FIELDS: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, true)),
       CUSTOM_FIELDS: process.env.CUSTOM_FIELDS || '{"custom_fields":[]}',  // Added default
-      DISABLE_AUTOMATIC_PROCESSING: process.env.DISABLE_AUTOMATIC_PROCESSING || 'no',
+      DISABLE_AUTOMATIC_PROCESSING: toEnvBoolean(parseBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false)),
       AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
       AZURE_API_KEY: process.env.AZURE_API_KEY || '',
       AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME || '',
       AZURE_API_VERSION: process.env.AZURE_API_VERSION || '',
-      RESTRICT_TO_EXISTING_TAGS: process.env.RESTRICT_TO_EXISTING_TAGS || 'no',
-      RESTRICT_TO_EXISTING_CORRESPONDENTS: process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS || 'no',
-      RESTRICT_TO_EXISTING_DOCUMENT_TYPES: process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES || 'no',
-      EXTERNAL_API_ENABLED: process.env.EXTERNAL_API_ENABLED || 'no',
+      RESTRICT_TO_EXISTING_TAGS: toEnvBoolean(parseBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, false)),
+      RESTRICT_TO_EXISTING_CORRESPONDENTS: toEnvBoolean(parseBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, false)),
+      RESTRICT_TO_EXISTING_DOCUMENT_TYPES: toEnvBoolean(parseBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, false)),
+      EXTERNAL_API_ENABLED: toEnvBoolean(parseBoolean(process.env.EXTERNAL_API_ENABLED, false)),
       EXTERNAL_API_URL: process.env.EXTERNAL_API_URL || '',
       EXTERNAL_API_METHOD: process.env.EXTERNAL_API_METHOD || 'GET',
       EXTERNAL_API_HEADERS: process.env.EXTERNAL_API_HEADERS || '{}',
@@ -4282,12 +4341,12 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     };
 
     // Extract tag and correspondent restriction settings with defaults
-    const restrictToExistingTags = req.body.restrictToExistingTags === 'on' || req.body.restrictToExistingTags === 'yes';
-    const restrictToExistingCorrespondents = req.body.restrictToExistingCorrespondents === 'on' || req.body.restrictToExistingCorrespondents === 'yes';
-    const restrictToExistingDocumentTypes = req.body.restrictToExistingDocumentTypes === 'on' || req.body.restrictToExistingDocumentTypes === 'yes';
+    const restrictToExistingTags = parseBoolean(req.body.restrictToExistingTags, false);
+    const restrictToExistingCorrespondents = parseBoolean(req.body.restrictToExistingCorrespondents, false);
+    const restrictToExistingDocumentTypes = parseBoolean(req.body.restrictToExistingDocumentTypes, false);
 
     // Extract external API settings with defaults
-    const externalApiEnabled = req.body.externalApiEnabled === 'on' || req.body.externalApiEnabled === 'yes';
+    const externalApiEnabled = parseBoolean(req.body.externalApiEnabled, false);
     const externalApiUrl = req.body.externalApiUrl || '';
     const externalApiMethod = req.body.externalApiMethod || 'GET';
     const externalApiHeaders = req.body.externalApiHeaders || '{}';
@@ -4355,21 +4414,21 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     // Update general settings
     if (scanInterval) updatedConfig.SCAN_INTERVAL = scanInterval;
     if (systemPrompt) updatedConfig.SYSTEM_PROMPT = processedPrompt.replace(/\r\n/g, '\n').replace(/\n/g, '\\n');
-    if (showTags) updatedConfig.PROCESS_PREDEFINED_DOCUMENTS = showTags;
+    if (showTags !== undefined) updatedConfig.PROCESS_PREDEFINED_DOCUMENTS = toEnvBoolean(showTagsBool);
     if (tokenLimit) updatedConfig.TOKEN_LIMIT = tokenLimit;
     if (responseTokens) updatedConfig.RESPONSE_TOKENS = responseTokens;
     if (contentSourceMode) updatedConfig.CONTENT_SOURCE_MODE = contentSourceMode;
     if (rawDocumentMode) updatedConfig.RAW_DOCUMENT_MODE = rawDocumentMode;
     if (tags !== undefined) updatedConfig.TAGS = normalizeArray(tags);
-    if (aiProcessedTag) updatedConfig.ADD_AI_PROCESSED_TAG = aiProcessedTag;
+    if (aiProcessedTag !== undefined) updatedConfig.ADD_AI_PROCESSED_TAG = toEnvBoolean(aiProcessedTagBool);
     if (aiTagName) updatedConfig.AI_PROCESSED_TAG_NAME = aiTagName;
-    if (usePromptTags) updatedConfig.USE_PROMPT_TAGS = usePromptTags;
+    if (usePromptTags !== undefined) updatedConfig.USE_PROMPT_TAGS = toEnvBoolean(usePromptTagsBool);
     if (promptTags) updatedConfig.PROMPT_TAGS = normalizeArray(promptTags);
-    if (useExistingData) updatedConfig.USE_EXISTING_DATA = useExistingData;
+    if (useExistingData !== undefined) updatedConfig.USE_EXISTING_DATA = toEnvBoolean(useExistingDataBool);
     if (customApiKey) updatedConfig.CUSTOM_API_KEY = customApiKey;
     if (customBaseUrl) updatedConfig.CUSTOM_BASE_URL = customBaseUrl;
     if (customModel) updatedConfig.CUSTOM_MODEL = customModel;
-    if (disableAutomaticProcessing) updatedConfig.DISABLE_AUTOMATIC_PROCESSING = disableAutomaticProcessing;
+    if (disableAutomaticProcessing !== undefined) updatedConfig.DISABLE_AUTOMATIC_PROCESSING = toEnvBoolean(disableAutomaticProcessingBool);
 
     // Update custom fields
     if (processedCustomFields.length > 0 || customFields) {
@@ -4379,22 +4438,22 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     }
 
       // Handle limit functions
-      updatedConfig.ACTIVATE_TAGGING = activateTagging ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_CORRESPONDENT = activateCorrespondent ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_DOCUMENT_TYPE = activateDocumentType ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_TITLE = activateTitle ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_DOCUMENT_DATE = activateDocumentDate ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_LANGUAGE = activateLanguage ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_CONTENT = activateContent ? 'yes' : 'no';
-      updatedConfig.ACTIVATE_CUSTOM_FIELDS = activateCustomFields ? 'yes' : 'no';
+      updatedConfig.ACTIVATE_TAGGING = toEnvBoolean(activateTaggingBool);
+      updatedConfig.ACTIVATE_CORRESPONDENT = toEnvBoolean(activateCorrespondentBool);
+      updatedConfig.ACTIVATE_DOCUMENT_TYPE = toEnvBoolean(activateDocumentTypeBool);
+      updatedConfig.ACTIVATE_TITLE = toEnvBoolean(activateTitleBool);
+      updatedConfig.ACTIVATE_DOCUMENT_DATE = toEnvBoolean(activateDocumentDateBool);
+      updatedConfig.ACTIVATE_LANGUAGE = toEnvBoolean(activateLanguageBool);
+      updatedConfig.ACTIVATE_CONTENT = toEnvBoolean(activateContentBool);
+      updatedConfig.ACTIVATE_CUSTOM_FIELDS = toEnvBoolean(activateCustomFieldsBool);
 
       // Handle tag and correspondent restrictions
-      updatedConfig.RESTRICT_TO_EXISTING_TAGS = restrictToExistingTags ? 'yes' : 'no';
-      updatedConfig.RESTRICT_TO_EXISTING_CORRESPONDENTS = restrictToExistingCorrespondents ? 'yes' : 'no';
-      updatedConfig.RESTRICT_TO_EXISTING_DOCUMENT_TYPES = restrictToExistingDocumentTypes ? 'yes' : 'no';
+      updatedConfig.RESTRICT_TO_EXISTING_TAGS = toEnvBoolean(restrictToExistingTags);
+      updatedConfig.RESTRICT_TO_EXISTING_CORRESPONDENTS = toEnvBoolean(restrictToExistingCorrespondents);
+      updatedConfig.RESTRICT_TO_EXISTING_DOCUMENT_TYPES = toEnvBoolean(restrictToExistingDocumentTypes);
 
       // Handle external API integration
-      updatedConfig.EXTERNAL_API_ENABLED = externalApiEnabled ? 'yes' : 'no';
+      updatedConfig.EXTERNAL_API_ENABLED = toEnvBoolean(externalApiEnabled);
       updatedConfig.EXTERNAL_API_URL = externalApiUrl || '';
       updatedConfig.EXTERNAL_API_METHOD = externalApiMethod || 'GET';
       updatedConfig.EXTERNAL_API_HEADERS = externalApiHeaders || '{}';

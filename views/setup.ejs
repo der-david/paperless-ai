@@ -425,8 +425,8 @@
                                         <select id="useExistingData"
                                                 name="useExistingData"
                                                 class="modern-input">
-                                                <option value="no" <%= config.USE_EXISTING_DATA === 'no' ? 'selected' : '' %>>No</option>
-                                                <option value="yes" <%= config.USE_EXISTING_DATA === 'yes' ? 'selected' : '' %>>Yes</option>
+                                                <option value="false" <%= !config.USE_EXISTING_DATA ? 'selected' : '' %>>No</option>
+                                                <option value="true" <%= config.USE_EXISTING_DATA ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
 
@@ -446,13 +446,13 @@
                                             <select id="showTags"
                                                     name="showTags"
                                                     class="modern-input">
-                                                <option value="no" <%= config.PROCESS_PREDEFINED_DOCUMENTS === 'no' ? 'selected' : '' %>>No</option>
-                                                <option value="yes" <%= config.PROCESS_PREDEFINED_DOCUMENTS === 'yes' ? 'selected' : '' %>>Yes</option>
+                                                <option value="false" <%= !config.PROCESS_PREDEFINED_DOCUMENTS ? 'selected' : '' %>>No</option>
+                                                <option value="true" <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
 
                                         <!-- Tags Input -->
-                                        <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS === 'yes' ? '' : 'hidden' %>">
+                                        <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="tagInput">Tags</label>
                                                 <div class="tag-input-container">
@@ -487,12 +487,12 @@
                                             <select id="aiProcessedTag"
                                                     name="aiProcessedTag"
                                                     class="modern-input">
-                                                <option value="no" <%= config.ADD_AI_PROCESSED_TAG === 'no' ? 'selected' : '' %>>No</option>
-                                                <option value="yes" <%= config.ADD_AI_PROCESSED_TAG === 'yes' ? 'selected' : '' %>>Yes</option>
+                                                <option value="false" <%= !config.ADD_AI_PROCESSED_TAG ? 'selected' : '' %>>No</option>
+                                                <option value="true" <%= config.ADD_AI_PROCESSED_TAG ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
 
-                                        <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG === 'yes' ? '' : 'hidden' %>">
+                                        <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="aiTagName">AI-processed Tag Name</label>
                                                 <input type="text"
@@ -511,12 +511,12 @@
                                             <select id="usePromptTags"
                                                     name="usePromptTags"
                                                     class="modern-input">
-                                                <option value="no" <%= config.USE_PROMPT_TAGS === 'no' ? 'selected' : '' %>>No</option>
-                                                <option value="yes" <%= config.USE_PROMPT_TAGS === 'yes' ? 'selected' : '' %>>Yes</option>
+                                                <option value="false" <%= !config.USE_PROMPT_TAGS ? 'selected' : '' %>>No</option>
+                                                <option value="true" <%= config.USE_PROMPT_TAGS ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
 
-                                        <div id="promptTagsSection" class="<%= config.USE_PROMPT_TAGS === 'yes' ? '' : 'hidden' %>">
+                                        <div id="promptTagsSection" class="<%= config.USE_PROMPT_TAGS ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="promptTagInput">Prompt Tags</label>
                                                 <div class="tag-input-container">
@@ -553,7 +553,7 @@
                                                         id="disableAutomaticProcessing"
                                                         name="disableAutomaticProcessing"
                                                         class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                        <%= config.DISABLE_AUTOMATIC_PROCESSING === 'yes' ? 'checked' : '' %>>
+                                                        <%= config.DISABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
                                                     <div class="ml-3">
                                                         <div class="flex items-center font-medium">
                                                             <i class="fas fa-tags text-blue-500 mr-2"></i>
@@ -580,7 +580,7 @@
                                                             id="activateTagging"
                                                             name="activateTagging"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_TAGGING === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_TAGGING ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-tags text-blue-500 mr-2"></i>
@@ -597,7 +597,7 @@
                                                             id="activateCorrespondent"
                                                             name="activateCorrespondent"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_CORRESPONDENT === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_CORRESPONDENT ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-user text-blue-500 mr-2"></i>
@@ -614,7 +614,7 @@
                                                             id="activateDocumentType"
                                                             name="activateDocumentType"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_DOCUMENT_TYPE === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_DOCUMENT_TYPE ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-file-alt text-blue-500 mr-2"></i>
@@ -631,7 +631,7 @@
                                                             id="activateTitle"
                                                             name="activateTitle"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_TITLE === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_TITLE ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-heading text-blue-500 mr-2"></i>
@@ -648,7 +648,7 @@
                                                             id="activateDocumentDate"
                                                             name="activateDocumentDate"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_DOCUMENT_DATE === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_DOCUMENT_DATE ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
@@ -665,7 +665,7 @@
                                                             id="activateLanguage"
                                                             name="activateLanguage"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_LANGUAGE === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_LANGUAGE ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-language text-blue-500 mr-2"></i>
@@ -682,7 +682,7 @@
                                                             id="activateContent"
                                                             name="activateContent"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_CONTENT === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_CONTENT ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-align-left text-blue-500 mr-2"></i>
@@ -699,7 +699,7 @@
                                                             id="activateCustomFields"
                                                             name="activateCustomFields"
                                                             class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                            <%= config.ACTIVATE_CUSTOM_FIELDS === 'yes' ? 'checked' : '' %>>
+                                                            <%= config.ACTIVATE_CUSTOM_FIELDS ? 'checked' : '' %>>
                                                         <div class="ml-3">
                                                             <div class="flex items-center font-medium">
                                                                 <i class="fas fa-filter text-blue-500 mr-2"></i>
