@@ -333,17 +333,25 @@
                             </h2>
                             <div class="space-y-2">
                                 <div class="form-group">
-                                    <label class="flex items-center gap-3 cursor-pointer">
-                                        <input type="checkbox"
-                                               id="useExistingData"
-                                               class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                               <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
-                                        <span>Use existing Correspondents and Tags?</span>
-                                    </label>
-                                    <input type="hidden"
-                                           id="useExistingDataValue"
-                                           name="useExistingData"
-                                           value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
+                                    <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+                                        <label class="flex items-center p-4 cursor-pointer w-full">
+                                            <input type="checkbox"
+                                                   id="useExistingData"
+                                                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                   <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
+                                            <div class="ml-3">
+                                                <div class="flex items-center text-gray-900 font-medium">
+                                                    <i class="fas fa-database mr-2 text-blue-500"></i>
+                                                    Use existing Correspondents and Tags
+                                                </div>
+                                                <p class="text-sm text-gray-500 mt-1">Prefer existing metadata before creating new entries</p>
+                                            </div>
+                                        </label>
+                                        <input type="hidden"
+                                               id="useExistingDataValue"
+                                               name="useExistingData"
+                                               value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
+                                    </div>
                                 </div>
                                 <div class="space-y-2">
                                     <label for="scanInterval" class="text-sm font-medium">Scan Interval (Cron Format)</label>
@@ -359,17 +367,25 @@
                                 <!-- Tags Section -->
                                 <div class="space-y-4">
                                     <div class="space-y-2">
-                                        <label class="flex items-center gap-3 cursor-pointer text-sm font-medium">
-                                            <input type="checkbox"
-                                                   id="showTags"
-                                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                   <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
-                                            <span>Process only specific pre tagged documents?</span>
-                                        </label>
-                                        <input type="hidden"
-                                               id="showTagsValue"
-                                               name="showTags"
-                                               value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
+                                        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+                                            <label class="flex items-center p-4 cursor-pointer w-full">
+                                                <input type="checkbox"
+                                                       id="showTags"
+                                                       class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                       <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+                                                <div class="ml-3">
+                                                    <div class="flex items-center text-gray-900 font-medium">
+                                                        <i class="fas fa-filter mr-2 text-blue-500"></i>
+                                                        Process only specific pre tagged documents
+                                                    </div>
+                                                    <p class="text-sm text-gray-500 mt-1">Limit processing to documents with selected tags</p>
+                                                </div>
+                                            </label>
+                                            <input type="hidden"
+                                                   id="showTagsValue"
+                                                   name="showTags"
+                                                   value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
+                                        </div>
                                     </div>
 
                                     <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %> space-y-4">
@@ -560,17 +576,25 @@ function transform(data) {
                                 <!-- AI Tag Section -->
                                 <div class="border-t pt-4 space-y-4">
                                     <div class="space-y-2">
-                                        <label class="flex items-center gap-3 cursor-pointer text-sm font-medium">
-                                            <input type="checkbox"
-                                                   id="aiProcessedTag"
-                                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
-                                            <span>Add AI-processed tag to documents?</span>
-                                        </label>
-                                        <input type="hidden"
-                                               id="aiProcessedTagValue"
-                                               name="aiProcessedTag"
-                                               value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+                                        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+                                            <label class="flex items-center p-4 cursor-pointer w-full">
+                                                <input type="checkbox"
+                                                       id="aiProcessedTag"
+                                                       class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                       <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+                                                <div class="ml-3">
+                                                    <div class="flex items-center text-gray-900 font-medium">
+                                                        <i class="fas fa-tag mr-2 text-blue-500"></i>
+                                                        Add AI-processed tag to documents
+                                                    </div>
+                                                    <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
+                                                </div>
+                                            </label>
+                                            <input type="hidden"
+                                                   id="aiProcessedTagValue"
+                                                   name="aiProcessedTag"
+                                                   value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+                                        </div>
                                     </div>
 
                                     <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
@@ -588,17 +612,25 @@ function transform(data) {
                                 <!-- Prompt Tags Section -->
                                 <div class="border-t pt-4 space-y-4">
                                     <div class="space-y-2">
-                                        <label class="flex items-center gap-3 cursor-pointer text-sm font-medium">
-                                            <input type="checkbox"
-                                                   id="usePromptTags"
-                                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                                                   <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
-                                            <span>Use specific tags in prompt?</span>
-                                        </label>
-                                        <input type="hidden"
-                                               id="usePromptTagsValue"
-                                               name="usePromptTags"
-                                               value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
+                                        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+                                            <label class="flex items-center p-4 cursor-pointer w-full">
+                                                <input type="checkbox"
+                                                       id="usePromptTags"
+                                                       class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                       <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
+                                                <div class="ml-3">
+                                                    <div class="flex items-center text-gray-900 font-medium">
+                                                        <i class="fas fa-hashtag mr-2 text-blue-500"></i>
+                                                        Use specific tags in prompt
+                                                    </div>
+                                                    <p class="text-sm text-gray-500 mt-1">Force the AI to use your prompt tag list</p>
+                                                </div>
+                                            </label>
+                                            <input type="hidden"
+                                                   id="usePromptTagsValue"
+                                                   name="usePromptTags"
+                                                   value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
+                                        </div>
                                     </div>
 
                                     <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %> space-y-4">
