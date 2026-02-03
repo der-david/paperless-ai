@@ -18,6 +18,10 @@ class FormManager {
         this.toggleProviderSettings();
         this.toggleTagsInput();
         this.handleDisableAutomaticProcessing();
+        this.syncCheckboxHidden('useExistingData', 'useExistingDataValue');
+        this.syncCheckboxHidden('showTags', 'showTagsValue');
+        this.syncCheckboxHidden('aiProcessedTag', 'aiProcessedTagValue');
+        this.syncCheckboxHidden('usePromptTags', 'usePromptTagsValue');
 
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
         this.tokenLimit.addEventListener('input', () => this.validateTokenLimit());
@@ -29,7 +33,7 @@ class FormManager {
 
         this.initializePasswordToggles();
 
-        if (this.usePromptTags.value === 'true') {
+        if (this.usePromptTags.checked) {
             this.disablePromptElements();
         }
 
@@ -151,10 +155,10 @@ class FormManager {
 
     // Rest of the class methods remain the same
     toggleTagsInput() {
-        const showTags = this.showTags.value;
+        const showTags = this.showTags.checked;
         const tagsInputSection = document.getElementById('tagsInputSection');
 
-        if (showTags === 'true') {
+        if (showTags) {
             tagsInputSection.classList.remove('hidden');
         } else {
             document.getElementById('tags').value = '';
@@ -163,10 +167,10 @@ class FormManager {
     }
 
     toggleAiTagInput() {
-        const showAiTag = this.aiProcessedTag.value;
+        const showAiTag = this.aiProcessedTag.checked;
         const aiTagNameSection = document.getElementById('aiTagNameSection');
 
-        if (showAiTag === 'true') {
+        if (showAiTag) {
             aiTagNameSection.classList.remove('hidden');
         } else {
             aiTagNameSection.classList.add('hidden');
@@ -174,16 +178,27 @@ class FormManager {
     }
 
     togglePromptTagsInput() {
-        const usePromptTags = this.usePromptTags.value;
+        const usePromptTags = this.usePromptTags.checked;
         const promptTagsSection = document.getElementById('promptTagsSection');
 
-        if (usePromptTags === 'true') {
+        if (usePromptTags) {
             promptTagsSection.classList.remove('hidden');
             this.disablePromptElements();
         } else {
             promptTagsSection.classList.add('hidden');
             this.enablePromptElements();
         }
+    }
+
+    syncCheckboxHidden(checkboxId, hiddenId) {
+        const checkbox = document.getElementById(checkboxId);
+        const hiddenInput = document.getElementById(hiddenId);
+        if (!checkbox || !hiddenInput) return;
+        const sync = () => {
+            hiddenInput.value = checkbox.checked ? 'true' : 'false';
+        };
+        sync();
+        checkbox.addEventListener('change', sync);
     }
 
     disablePromptElements() {

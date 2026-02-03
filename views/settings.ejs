@@ -333,13 +333,17 @@
                             </h2>
                             <div class="space-y-2">
                                 <div class="form-group">
-                                    <label for="useExistingData">Use existing Correspondents and Tags?</label>
-                                    <select id="useExistingData"
-                                            name="useExistingData"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="false" <%= !config.AI_USE_EXISTING_DATA ? 'selected' : '' %>>No</option>
-                                        <option value="true" <%= config.AI_USE_EXISTING_DATA ? 'selected' : '' %>>Yes</option>
-                                    </select>
+                                    <label class="flex items-center gap-3 cursor-pointer">
+                                        <input type="checkbox"
+                                               id="useExistingData"
+                                               class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                               <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
+                                        <span>Use existing Correspondents and Tags?</span>
+                                    </label>
+                                    <input type="hidden"
+                                           id="useExistingDataValue"
+                                           name="useExistingData"
+                                           value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
                                 </div>
                                 <div class="space-y-2">
                                     <label for="scanInterval" class="text-sm font-medium">Scan Interval (Cron Format)</label>
@@ -355,13 +359,17 @@
                                 <!-- Tags Section -->
                                 <div class="space-y-4">
                                     <div class="space-y-2">
-                                        <label for="showTags" class="text-sm font-medium">Process only specific pre tagged documents?</label>
-                                        <select id="showTags"
-                                                name="showTags"
-                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option value="false" <%= !config.PROCESS_PREDEFINED_DOCUMENTS ? 'selected' : '' %>>No</option>
-                                            <option value="true" <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'selected' : '' %>>Yes</option>
-                                        </select>
+                                        <label class="flex items-center gap-3 cursor-pointer text-sm font-medium">
+                                            <input type="checkbox"
+                                                   id="showTags"
+                                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                   <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+                                            <span>Process only specific pre tagged documents?</span>
+                                        </label>
+                                        <input type="hidden"
+                                               id="showTagsValue"
+                                               name="showTags"
+                                               value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
                                     </div>
 
                                     <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %> space-y-4">
@@ -552,13 +560,17 @@ function transform(data) {
                                 <!-- AI Tag Section -->
                                 <div class="border-t pt-4 space-y-4">
                                     <div class="space-y-2">
-                                        <label for="aiProcessedTag" class="text-sm font-medium">Add AI-processed tag to documents?</label>
-                                        <select id="aiProcessedTag"
-                                                name="aiProcessedTag"
-                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option value="false" <%= !config.ADD_AI_PROCESSED_TAG ? 'selected' : '' %>>No</option>
-                                            <option value="true" <%= config.ADD_AI_PROCESSED_TAG ? 'selected' : '' %>>Yes</option>
-                                        </select>
+                                        <label class="flex items-center gap-3 cursor-pointer text-sm font-medium">
+                                            <input type="checkbox"
+                                                   id="aiProcessedTag"
+                                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+                                            <span>Add AI-processed tag to documents?</span>
+                                        </label>
+                                        <input type="hidden"
+                                               id="aiProcessedTagValue"
+                                               name="aiProcessedTag"
+                                               value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
                                     </div>
 
                                     <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
@@ -576,13 +588,17 @@ function transform(data) {
                                 <!-- Prompt Tags Section -->
                                 <div class="border-t pt-4 space-y-4">
                                     <div class="space-y-2">
-                                        <label for="usePromptTags" class="text-sm font-medium">Use specific tags in prompt?</label>
-                                        <select id="usePromptTags"
-                                                name="usePromptTags"
-                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                            <option value="false" <%= !config.AI_USE_PROMPT_TAGS ? 'selected' : '' %>>No</option>
-                                            <option value="true" <%= config.AI_USE_PROMPT_TAGS ? 'selected' : '' %>>Yes</option>
-                                        </select>
+                                        <label class="flex items-center gap-3 cursor-pointer text-sm font-medium">
+                                            <input type="checkbox"
+                                                   id="usePromptTags"
+                                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                   <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
+                                            <span>Use specific tags in prompt?</span>
+                                        </label>
+                                        <input type="hidden"
+                                               id="usePromptTagsValue"
+                                               name="usePromptTags"
+                                               value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
                                     </div>
 
                                     <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %> space-y-4">

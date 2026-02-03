@@ -421,14 +421,18 @@
                                 <div class="space-y-6">
                                     <!-- Basic Settings -->
                                     <div class="form-group">
-                                        <label for="useExistingData">Use existing Correspondents and Tags?</label>
-                                        <select id="useExistingData"
-                                                name="useExistingData"
-                                                class="modern-input">
-                                                <option value="false" <%= !config.AI_USE_EXISTING_DATA ? 'selected' : '' %>>No</option>
-                                                <option value="true" <%= config.AI_USE_EXISTING_DATA ? 'selected' : '' %>>Yes</option>
-                                            </select>
-                                        </div>
+                                        <label class="flex items-center gap-3 cursor-pointer">
+                                            <input type="checkbox"
+                                                   id="useExistingData"
+                                                   class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                   <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
+                                            <span>Use existing Correspondents and Tags?</span>
+                                        </label>
+                                        <input type="hidden"
+                                               id="useExistingDataValue"
+                                               name="useExistingData"
+                                               value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
+                                    </div>
 
                                         <div class="form-group">
                                             <label for="scanInterval">Scan Interval (Cron Format)</label>
@@ -442,13 +446,17 @@
                                         </div>
 
                                         <div class="form-group">
-                                            <label for="showTags">Process only specific pre tagged documents?</label>
-                                            <select id="showTags"
-                                                    name="showTags"
-                                                    class="modern-input">
-                                                <option value="false" <%= !config.PROCESS_PREDEFINED_DOCUMENTS ? 'selected' : '' %>>No</option>
-                                                <option value="true" <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'selected' : '' %>>Yes</option>
-                                            </select>
+                                            <label class="flex items-center gap-3 cursor-pointer">
+                                                <input type="checkbox"
+                                                       id="showTags"
+                                                       class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                       <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+                                                <span>Process only specific pre tagged documents?</span>
+                                            </label>
+                                            <input type="hidden"
+                                                   id="showTagsValue"
+                                                   name="showTags"
+                                                   value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
                                         </div>
 
                                         <!-- Tags Input -->
@@ -483,13 +491,17 @@
                                         <!-- AI Tag identification -->
                                         <hr/>
                                         <div class="form-group">
-                                            <label for="aiProcessedTag">Add AI-processed tag to documents?</label>
-                                            <select id="aiProcessedTag"
-                                                    name="aiProcessedTag"
-                                                    class="modern-input">
-                                                <option value="false" <%= !config.ADD_AI_PROCESSED_TAG ? 'selected' : '' %>>No</option>
-                                                <option value="true" <%= config.ADD_AI_PROCESSED_TAG ? 'selected' : '' %>>Yes</option>
-                                            </select>
+                                            <label class="flex items-center gap-3 cursor-pointer">
+                                                <input type="checkbox"
+                                                       id="aiProcessedTag"
+                                                       class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                       <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+                                                <span>Add AI-processed tag to documents?</span>
+                                            </label>
+                                            <input type="hidden"
+                                                   id="aiProcessedTagValue"
+                                                   name="aiProcessedTag"
+                                                   value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
                                         </div>
 
                                         <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
@@ -507,13 +519,17 @@
 
                                         <hr/>
                                         <div class="form-group">
-                                            <label for="usePromptTags">Use specific tags in prompt?</label>
-                                            <select id="usePromptTags"
-                                                    name="usePromptTags"
-                                                    class="modern-input">
-                                                <option value="false" <%= !config.AI_USE_PROMPT_TAGS ? 'selected' : '' %>>No</option>
-                                                <option value="true" <%= config.AI_USE_PROMPT_TAGS ? 'selected' : '' %>>Yes</option>
-                                            </select>
+                                            <label class="flex items-center gap-3 cursor-pointer">
+                                                <input type="checkbox"
+                                                       id="usePromptTags"
+                                                       class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                       <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
+                                                <span>Use specific tags in prompt?</span>
+                                            </label>
+                                            <input type="hidden"
+                                                   id="usePromptTagsValue"
+                                                   name="usePromptTags"
+                                                   value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
                                         </div>
 
                                         <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %>">

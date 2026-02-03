@@ -32,12 +32,16 @@ class FormManager {
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
         this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
+        this.syncCheckboxHidden('useExistingData', 'useExistingDataValue');
+        this.syncCheckboxHidden('showTags', 'showTagsValue');
+        this.syncCheckboxHidden('aiProcessedTag', 'aiProcessedTagValue');
+        this.syncCheckboxHidden('usePromptTags', 'usePromptTagsValue');
 
         // Initialize password toggles
         this.initializePasswordToggles();
 
         // Initial state for prompt elements based on usePromptTags
-        if (this.usePromptTags.value === 'true') {
+        if (this.usePromptTags.checked) {
             this.disablePromptElements();
         }
 
@@ -111,10 +115,10 @@ class FormManager {
     }
 
     toggleTagsInput() {
-        const showTags = this.showTags.value;
+        const showTags = this.showTags.checked;
         const tagsInputSection = document.getElementById('tagsInputSection');
 
-        if (showTags === 'true') {
+        if (showTags) {
             tagsInputSection.classList.remove('hidden');
         } else {
             tagsInputSection.classList.add('hidden');
@@ -122,10 +126,10 @@ class FormManager {
     }
 
     toggleAiTagInput() {
-        const showAiTag = this.aiProcessedTag.value;
+        const showAiTag = this.aiProcessedTag.checked;
         const aiTagNameSection = document.getElementById('aiTagNameSection');
 
-        if (showAiTag === 'true') {
+        if (showAiTag) {
             aiTagNameSection.classList.remove('hidden');
         } else {
             aiTagNameSection.classList.add('hidden');
@@ -133,16 +137,27 @@ class FormManager {
     }
 
     togglePromptTagsInput() {
-        const usePromptTags = this.usePromptTags.value;
+        const usePromptTags = this.usePromptTags.checked;
         const promptTagsSection = document.getElementById('promptTagsSection');
 
-        if (usePromptTags === 'true') {
+        if (usePromptTags) {
             promptTagsSection.classList.remove('hidden');
             this.disablePromptElements();
         } else {
             promptTagsSection.classList.add('hidden');
             this.enablePromptElements();
         }
+    }
+
+    syncCheckboxHidden(checkboxId, hiddenId) {
+        const checkbox = document.getElementById(checkboxId);
+        const hiddenInput = document.getElementById(hiddenId);
+        if (!checkbox || !hiddenInput) return;
+        const sync = () => {
+            hiddenInput.value = checkbox.checked ? 'true' : 'false';
+        };
+        sync();
+        checkbox.addEventListener('change', sync);
     }
 
     disablePromptElements() {
@@ -825,8 +840,8 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             // Check if processing all documents without specific tags
-            const showTags = document.getElementById('showTags').value;
-            if (showTags === 'false') {
+            const showTags = document.getElementById('showTags').checked;
+            if (!showTags) {
                 const result = await Swal.fire({
                     icon: 'warning',
                     title: 'Attention!',
@@ -844,7 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (!result.isConfirmed) {
                     // User cancelled - set showTags to 'true' and scroll to it
-                    document.getElementById('showTags').value = 'true';
+                    document.getElementById('showTags').checked = true;
                     // Trigger the change event to show the tags input section
                     document.getElementById('showTags').dispatchEvent(new Event('change'));
                     // Scroll to the element
