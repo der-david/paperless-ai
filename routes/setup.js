@@ -4242,6 +4242,11 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       ? systemPrompt.replace(/\r\n/g, '\n').replace(/=/g, '')
       : '';
 
+    const showTagsBool = parseBoolean(showTags, false);
+    const aiProcessedTagBool = parseBoolean(aiProcessedTag, false);
+    const usePromptTagsBool = parseBoolean(usePromptTags, false);
+    const useExistingDataBool = parseBoolean(useExistingData, false);
+
     const allowedContentSourceModes = new Set(['content', 'raw_document', 'both']);
     if (contentSourceMode && !allowedContentSourceModes.has(contentSourceMode)) {
       return res.status(400).json({
