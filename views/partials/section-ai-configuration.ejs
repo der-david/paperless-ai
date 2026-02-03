@@ -1,0 +1,218 @@
+<%
+const variant = locals.variant || 'setup';
+const config = locals.config || {};
+const isSetup = variant === 'setup';
+const sectionClass = isSetup ? '' : 'space-y-6';
+const headingClass = isSetup ? 'section-title' : 'text-xl font-bold flex items-center gap-2 text-primary mb-4';
+const headingText = 'AI configuration';
+const headingIconClass = 'fas fa-robot';
+const fieldsWrapperClass = isSetup ? 'space-y-6' : 'space-y-4';
+const groupClass = isSetup ? 'form-group' : 'space-y-2';
+const labelClass = isSetup ? '' : 'text-sm font-medium';
+const inputClass = isSetup ? 'modern-input' : 'w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+const passwordWrapperClass = isSetup ? 'password-input' : 'relative';
+const toggleClass = isSetup ? 'password-toggle' : 'absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600';
+const providerSettingsClass = isSetup ? 'provider-settings' : 'space-y-4';
+%>
+<section class="<%= sectionClass %>">
+  <h2 class="<%= headingClass %>">
+    <i class="<%= headingIconClass %>"></i>
+    <%= headingText %>
+  </h2>
+  <div class="<%= fieldsWrapperClass %>">
+    <div class="<%= groupClass %>">
+      <label for="aiProvider" class="<%= labelClass %>">AI provider</label>
+      <select id="aiProvider" name="aiProvider" class="<%= inputClass %>">
+        <option value="openai" <%= config.AI_PROVIDER === 'openai' ? 'selected' : '' %>>OpenAI (ChatGPT)</option>
+        <option value="ollama" <%= config.AI_PROVIDER === 'ollama' ? 'selected' : '' %>>Ollama (Local LLM)</option>
+        <option value="custom" <%= config.AI_PROVIDER === 'custom' ? 'selected' : '' %>>Custom</option>
+        <option value="azure" <%= config.AI_PROVIDER === 'azure' ? 'selected' : '' %>>Azure</option>
+      </select>
+    </div>
+
+    <div id="openaiSettings" class="<%= providerSettingsClass %>">
+      <div class="<%= groupClass %>">
+        <label for="openaiKey" class="<%= labelClass %>">OpenAI API key</label>
+        <div class="<%= passwordWrapperClass %>">
+          <input type="password"
+                 id="openaiKey"
+                 name="openaiKey"
+                 value="<%= config.OPENAI_API_KEY %>"
+                 class="<%= inputClass %>">
+          <button type="button" class="<%= toggleClass %>" data-input="openaiKey">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="openaiModel" class="<%= labelClass %>">OpenAI model</label>
+        <select id="openaiModel" name="openaiModel" class="<%= inputClass %>">
+          <option value="gpt-5.2" <%= config.OPENAI_MODEL === 'gpt-5.2' ? 'selected' : '' %>>GPT-5.2</option>
+          <option value="gpt-5.1" <%= config.OPENAI_MODEL === 'gpt-5.1' ? 'selected' : '' %>>GPT-5.1</option>
+          <option value="gpt-5" <%= config.OPENAI_MODEL === 'gpt-5' ? 'selected' : '' %>>GPT-5</option>
+          <option value="gpt-5-mini" <%= config.OPENAI_MODEL === 'gpt-5-mini' ? 'selected' : '' %>>GPT-5 mini</option>
+          <option value="gpt-5-nano" <%= config.OPENAI_MODEL === 'gpt-5-nano' ? 'selected' : '' %>>GPT-5 nano</option>
+          <option value="gpt-4.1" <%= config.OPENAI_MODEL === 'gpt-4.1' ? 'selected' : '' %>>GPT-4.1</option>
+          <option value="gpt-4.1-mini" <%= config.OPENAI_MODEL === 'gpt-4.1-mini' ? 'selected' : '' %>>GPT-4.1 mini</option>
+          <option value="gpt-4.1-nano" <%= config.OPENAI_MODEL === 'gpt-4.1-nano' ? 'selected' : '' %>>GPT-4.1 nano</option>
+          <option value="gpt-4o" <%= config.OPENAI_MODEL === 'gpt-4o' ? 'selected' : '' %>>GPT-4o</option>
+          <option value="gpt-4o-mini" <%= config.OPENAI_MODEL === 'gpt-4o-mini' ? 'selected' : '' %>>GPT-4o mini</option>
+          <option value="o3" <%= config.OPENAI_MODEL === 'o3' ? 'selected' : '' %>>o3</option>
+          <option value="o3-mini" <%= config.OPENAI_MODEL === 'o3-mini' ? 'selected' : '' %>>o3-mini</option>
+          <option value="o4-mini" <%= config.OPENAI_MODEL === 'o4-mini' ? 'selected' : '' %>>o4-mini</option>
+        </select>
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="openaiGizmoId" class="<%= labelClass %>">Gizmo ID (custom GPT)</label>
+        <input type="text"
+               id="openaiGizmoId"
+               name="openaiGizmoId"
+               value="<%= config.OPENAI_GIZMO_ID %>"
+               class="<%= inputClass %>"
+               placeholder="g-697d35206a2121a4bda4c4c01ddfbcd3">
+      </div>
+    </div>
+
+    <div id="ollamaSettings" class="<%= providerSettingsClass %>">
+      <div class="<%= groupClass %>">
+        <label for="ollamaUrl" class="<%= labelClass %>">Ollama API URL</label>
+        <input type="text"
+               id="ollamaUrl"
+               name="ollamaUrl"
+               value="<%= config.OLLAMA_API_URL %>"
+               class="<%= inputClass %>">
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="ollamaModel" class="<%= labelClass %>">Ollama model</label>
+        <input type="text"
+               id="ollamaModel"
+               name="ollamaModel"
+               value="<%= config.OLLAMA_MODEL %>"
+               class="<%= inputClass %>">
+      </div>
+    </div>
+
+    <div id="customSettings" class="<%= providerSettingsClass %>">
+      <div class="<%= groupClass %>">
+        <label for="customBaseUrl" class="<%= labelClass %>">Base URL</label>
+        <input type="text"
+               id="customBaseUrl"
+               name="customBaseUrl"
+               value="<%= config.CUSTOM_BASE_URL %>"
+               class="<%= inputClass %>"
+               placeholder="https://api.example.com">
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="customApiKey" class="<%= labelClass %>">API key</label>
+        <div class="<%= passwordWrapperClass %>">
+          <input type="password"
+                 id="customApiKey"
+                 name="customApiKey"
+                 value="<%= config.CUSTOM_API_KEY %>"
+                 class="<%= inputClass %>">
+          <button type="button" class="<%= toggleClass %>" data-input="customApiKey">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="customModel" class="<%= labelClass %>">Model</label>
+        <input type="text"
+               id="customModel"
+               name="customModel"
+               value="<%= config.CUSTOM_MODEL %>"
+               class="<%= inputClass %>"
+               placeholder="Enter model name">
+      </div>
+    </div>
+
+    <div id="azureSettings" class="<%= providerSettingsClass %>">
+      <div class="<%= groupClass %>">
+        <label for="azureEndpoint" class="<%= labelClass %>">Endpoint</label>
+        <input type="text"
+               id="azureEndpoint"
+               name="azureEndpoint"
+               value="<%= config.AZURE_ENDPOINT %>"
+               class="<%= inputClass %>"
+               placeholder="https://api.example.com">
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="azureApiKey" class="<%= labelClass %>">API key</label>
+        <div class="<%= passwordWrapperClass %>">
+          <input type="password"
+                 id="azureApiKey"
+                 name="azureApiKey"
+                 value="<%= config.AZURE_API_KEY %>"
+                 class="<%= inputClass %>">
+          <button type="button" class="<%= toggleClass %>" data-input="azureApiKey">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="azureDeploymentName" class="<%= labelClass %>">Deployment</label>
+        <input type="text"
+               id="azureDeploymentName"
+               name="azureDeploymentName"
+               value="<%= config.AZURE_DEPLOYMENT_NAME %>"
+               class="<%= inputClass %>"
+               placeholder="Enter deployment name">
+      </div>
+
+      <div class="<%= groupClass %>">
+        <label for="azureApiVersion" class="<%= labelClass %>">API version</label>
+        <input type="text"
+               id="azureApiVersion"
+               name="azureApiVersion"
+               value="<%= config.AZURE_API_VERSION %>"
+               class="<%= inputClass %>"
+               placeholder="Enter API version">
+      </div>
+    </div>
+
+    <div class="<%= groupClass %>">
+      <label for="tokenLimit" class="<%= labelClass %>">Token limit</label>
+      <input type="number"
+             id="tokenLimit"
+             name="tokenLimit"
+             value="<%= config.AI_TOKEN_LIMIT %>"
+             class="<%= inputClass %>"
+             placeholder="Enter token limit of model">
+    </div>
+
+    <div class="<%= groupClass %>">
+      <label for="responseTokens" class="<%= labelClass %>">Response tokens</label>
+      <input type="number"
+             id="responseTokens"
+             name="responseTokens"
+             value="<%= config.AI_RESPONSE_TOKENS %>"
+             class="<%= inputClass %>"
+             placeholder="Enter approximate token amount for the response">
+    </div>
+
+    <div class="<%= groupClass %>">
+      <label for="contentSourceMode" class="<%= labelClass %>">Content source mode</label>
+      <select id="contentSourceMode" name="contentSourceMode" class="<%= inputClass %>">
+        <option value="content" <%= config.AI_CONTENT_SOURCE_MODE === 'content' ? 'selected' : '' %>>Content only (default)</option>
+        <option value="raw_document" <%= config.AI_CONTENT_SOURCE_MODE === 'raw_document' ? 'selected' : '' %>>Raw document only</option>
+        <option value="both" <%= config.AI_CONTENT_SOURCE_MODE === 'both' ? 'selected' : '' %>>Both</option>
+      </select>
+    </div>
+
+    <div class="<%= groupClass %>">
+      <label for="rawDocumentMode" class="<%= labelClass %>">Raw document mode</label>
+      <select id="rawDocumentMode" name="rawDocumentMode" class="<%= inputClass %>">
+        <option value="text" <%= config.AI_RAW_DOCUMENT_MODE === 'text' ? 'selected' : '' %>>Text (base64)</option>
+        <option value="file" <%= config.AI_RAW_DOCUMENT_MODE === 'file' ? 'selected' : '' %>>File</option>
+        <option value="image" <%= config.AI_RAW_DOCUMENT_MODE === 'image' ? 'selected' : '' %>>Image</option>
+      </select>
+    </div>
+  </div>
+</section>

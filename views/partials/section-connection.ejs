@@ -1,0 +1,65 @@
+<%
+const variant = locals.variant || 'setup';
+const config = locals.config || {};
+const isSetup = variant === 'setup';
+const sectionClass = isSetup ? '' : 'space-y-6';
+const headingClass = isSetup ? 'section-title' : 'text-xl font-bold flex items-center gap-2 text-primary mb-4';
+const headingText = 'Connection settings';
+const headingIconClass = 'fas fa-link';
+const fieldsWrapperClass = isSetup ? 'space-y-6' : 'space-y-4';
+const groupClass = isSetup ? 'form-group' : 'space-y-2';
+const labelClass = isSetup ? '' : 'text-sm font-medium';
+const inputClass = isSetup ? 'modern-input' : 'w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+const passwordWrapperClass = isSetup ? 'password-input' : 'relative';
+const toggleClass = isSetup ? 'password-toggle' : 'absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600';
+const helpBtnClass = isSetup ? 'help-btn text-gray-400 hover:text-gray-600 focus:outline-none' : 'text-gray-400 hover:text-gray-600 focus:outline-none';
+%>
+<section class="<%= sectionClass %>">
+  <h2 class="<%= headingClass %>">
+    <i class="<%= headingIconClass %>"></i>
+    <%= headingText %>
+  </h2>
+  <div class="<%= fieldsWrapperClass %>">
+    <div class="<%= groupClass %>">
+      <label for="paperlessUrl" class="<%= labelClass %>">
+        Paperless-ngx API URL
+        <button type="button" class="<%= helpBtnClass %>" id="urlHelp">
+          <i class="fas fa-circle-question"></i>
+        </button>
+      </label>
+      <input type="text"
+             id="paperlessUrl"
+             name="paperlessUrl"
+             value="<%= config.PAPERLESS_API_URL %>"
+             class="<%= inputClass %>"
+             placeholder="http://your-paperless-instance:8000"
+             required>
+    </div>
+
+    <div class="<%= groupClass %>">
+      <label for="paperlessToken" class="<%= labelClass %>">API token</label>
+      <div class="<%= passwordWrapperClass %>">
+        <input type="password"
+               id="paperlessToken"
+               name="paperlessToken"
+               value="<%= config.PAPERLESS_API_TOKEN %>"
+               class="<%= inputClass %>"
+               required>
+        <button type="button" class="<%= toggleClass %>" data-input="paperlessToken">
+          <i class="fas fa-eye"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="<%= groupClass %>">
+      <label for="paperlessUsername" class="<%= labelClass %>">Paperless-ngx username</label>
+      <input type="text"
+             id="paperlessUsername"
+             name="paperlessUsername"
+             value="<%= config.PAPERLESS_USERNAME %>"
+             class="<%= inputClass %>"
+             placeholder="Your Paperless-ngx username"
+             required>
+    </div>
+  </div>
+</section>

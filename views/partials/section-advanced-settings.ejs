@@ -1,0 +1,1254 @@
+<%
+const variant = locals.variant || 'setup';
+const config = locals.config || {};
+const includeRestrictions = locals.includeRestrictions === true;
+const includeExternalApi = locals.includeExternalApi === true;
+const isSetup = variant === 'setup';
+%>
+<% if (isSetup) { %>
+<section>
+  <h2 class="section-title">
+    <i class="fas fa-cog"></i>
+    Advanced settings
+  </h2>
+  <div class="space-y-6">
+    <div class="form-group">
+      <label for="scanInterval">Scan interval (cron format)</label>
+      <input type="text"
+             id="scanInterval"
+             name="scanInterval"
+             value="<%= config.SCAN_INTERVAL %>"
+             class="modern-input"
+             required>
+      <p class="help-text">Default: every 30 minutes</p>
+    </div>
+
+    <div class="form-group">
+      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+        <label class="flex items-start cursor-pointer w-full">
+          <input type="checkbox"
+                 id="showTags"
+                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+          <div class="ml-3">
+            <div class="flex items-center font-medium">
+              <i class="fas fa-filter text-blue-500 mr-2"></i>
+              Process only specific pre tagged documents
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Limit processing to documents with selected tags</p>
+          </div>
+        </label>
+        <input type="hidden"
+               id="showTagsValue"
+               name="showTags"
+               value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
+      </div>
+    </div>
+
+    <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %>">
+      <div class="form-group">
+        <label for="tagInput">Tags</label>
+        <div class="tag-input-container">
+          <input type="text"
+              id="tagInput"
+              class="modern-input"
+              placeholder="Enter a tag and press Enter">
+          <button type="button"
+                  class="material-button add-tag-btn">
+            <i class="fas fa-plus"></i>
+            Add
+          </button>
+        </div>
+        <div id="tagsContainer" class="tags-container">
+          <% if (config.TAGS && Array.isArray(config.TAGS) && config.TAGS.length > 0) { %>
+              <% config.TAGS.forEach(tag => { %>
+                  <div class="modern-tag fade-in">
+                      <span><%= tag %></span>
+                      <button type="button"><i class="fas fa-times"></i></button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+        <input type="hidden" id="tags" name="tags" value="<%= Array.isArray(config.TAGS) ? config.TAGS.join(',') : '' %>">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+        <label class="flex items-start cursor-pointer w-full">
+          <input type="checkbox"
+                 id="useExistingData"
+                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
+          <div class="ml-3">
+            <div class="flex items-center font-medium">
+              <i class="fas fa-database text-blue-500 mr-2"></i>
+              Use existing Correspondents and Tags
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Prefer existing metadata before creating new entries</p>
+          </div>
+        </label>
+        <input type="hidden"
+               id="useExistingDataValue"
+               name="useExistingData"
+               value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
+      </div>
+    </div>
+
+    <% if (includeRestrictions) { %>
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
+          <i class="fas fa-filter"></i>
+          AI Restrictions
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingTags" class="flex items-start cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingTags"
+                  name="restrictToExistingTags"
+                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_TAGS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center font-medium">
+                  <i class="fas fa-tags text-blue-500 mr-2"></i>
+                  Restrict to existing tags
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use tags that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingCorrespondents" class="flex items-start cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingCorrespondents"
+                  name="restrictToExistingCorrespondents"
+                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_CORRESPONDENTS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center font-medium">
+                  <i class="fas fa-user text-blue-500 mr-2"></i>
+                  Restrict to existing correspondents
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use correspondents that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingDocumentTypes" class="flex items-start cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingDocumentTypes"
+                  name="restrictToExistingDocumentTypes"
+                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center font-medium">
+                  <i class="fas fa-file-alt text-blue-500 mr-2"></i>
+                  Restrict to existing document types
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use document types that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <% if (includeExternalApi) { %>
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
+          <i class="fas fa-plug"></i>
+          External API integration
+        </h3>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200 mb-4">
+          <label for="externalApiEnabled" class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="externalApiEnabled"
+                name="externalApiEnabled"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.EXTERNAL_API_ENABLED ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-globe text-blue-500 mr-2"></i>
+                Enable external API integration
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Enrich AI prompts with data from external API</p>
+            </div>
+          </label>
+        </div>
+
+        <div id="externalApiSettings" class="space-y-4 <%= config.EXTERNAL_API_ENABLED ? '' : 'hidden' %>">
+          <div class="form-group">
+            <label for="externalApiUrl">API URL</label>
+            <input type="text"
+                id="externalApiUrl"
+                name="externalApiUrl"
+                value="<%= config.EXTERNAL_API_URL || '' %>"
+                class="modern-input"
+                placeholder="https://api.example.com/data">
+          </div>
+
+          <div class="form-group">
+            <label for="externalApiMethod">HTTP method</label>
+            <select id="externalApiMethod"
+                    name="externalApiMethod"
+                    class="modern-input">
+              <option value="GET" <%= config.EXTERNAL_API_METHOD === 'GET' ? 'selected' : '' %>>GET</option>
+              <option value="POST" <%= config.EXTERNAL_API_METHOD === 'POST' ? 'selected' : '' %>>POST</option>
+              <option value="PUT" <%= config.EXTERNAL_API_METHOD === 'PUT' ? 'selected' : '' %>>PUT</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="externalApiHeaders">Headers (JSON)</label>
+            <textarea id="externalApiHeaders"
+                      name="externalApiHeaders"
+                      rows="3"
+                      class="modern-input"
+                      placeholder='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_TOKEN"}'><%= config.EXTERNAL_API_HEADERS || '' %></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="externalApiBody">Request body (JSON) - for POST/PUT</label>
+            <textarea id="externalApiBody"
+                      name="externalApiBody"
+                      rows="3"
+                      class="modern-input"
+                      placeholder='{"query": "your_query", "filters": {"key": "value"}}'><%= config.EXTERNAL_API_BODY || '' %></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="externalApiTimeout">Timeout (milliseconds)</label>
+            <input type="number"
+                   id="externalApiTimeout"
+                   name="externalApiTimeout"
+                   value="<%= config.EXTERNAL_API_TIMEOUT || '5000' %>"
+                   class="modern-input"
+                   placeholder="5000">
+          </div>
+
+          <div class="form-group">
+            <label for="externalApiTransform">Transform function (JavaScript)</label>
+            <textarea id="externalApiTransform"
+                      name="externalApiTransform"
+                      rows="5"
+                      class="modern-input"
+                      placeholder="// Function to transform API response\n// Return the data you want to include in the prompt\nfunction transform(data) {\n  return data;\n}"><%= config.EXTERNAL_API_TRANSFORM || '// Function to transform API response\n// Return the data you want to include in the prompt\nfunction transform(data) {\n  return data;\n}' %></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <hr/>
+    <div class="form-group">
+      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+        <label class="flex items-start cursor-pointer w-full">
+          <input type="checkbox"
+                 id="aiProcessedTag"
+                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+          <div class="ml-3">
+            <div class="flex items-center font-medium">
+              <i class="fas fa-tag text-blue-500 mr-2"></i>
+              Add AI-processed tag to documents
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
+          </div>
+        </label>
+        <input type="hidden"
+               id="aiProcessedTagValue"
+               name="aiProcessedTag"
+               value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+      </div>
+    </div>
+
+    <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
+      <div class="form-group">
+        <label for="aiTagName">AI-processed tag name</label>
+        <input type="text"
+            id="aiTagName"
+            name="aiTagName"
+            value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
+            class="modern-input"
+            placeholder="ai-processed">
+        <p class="help-text">This tag will be added to documents after AI processing</p>
+      </div>
+    </div>
+
+    <hr/>
+    <div class="form-group">
+      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+        <label class="flex items-start cursor-pointer w-full">
+          <input type="checkbox"
+                 id="usePromptTags"
+                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
+          <div class="ml-3">
+            <div class="flex items-center font-medium">
+              <i class="fas fa-hashtag text-blue-500 mr-2"></i>
+              Use specific tags in prompt
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Force the AI to use your prompt tag list</p>
+          </div>
+        </label>
+        <input type="hidden"
+               id="usePromptTagsValue"
+               name="usePromptTags"
+               value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
+      </div>
+    </div>
+
+    <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %>">
+      <div class="form-group">
+        <label for="promptTagInput">Prompt tags</label>
+        <div class="tag-input-container">
+          <input type="text"
+              id="promptTagInput"
+              class="modern-input"
+              placeholder="Enter a tag and press Enter">
+          <button type="button"
+                  class="material-button add-prompt-tag-btn">
+            <i class="fas fa-plus"></i>
+            Add
+          </button>
+        </div>
+        <div id="promptTagsContainer" class="tags-container">
+          <% if (config.AI_PROMPT_TAGS && Array.isArray(config.AI_PROMPT_TAGS) && config.AI_PROMPT_TAGS.length > 0) { %>
+              <% config.AI_PROMPT_TAGS.forEach(tag => { %>
+                  <div class="modern-tag fade-in">
+                      <span><%= tag %></span>
+                      <button type="button"><i class="fas fa-times"></i></button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+        <input type="hidden" id="promptTags" name="promptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
+        <p class="help-text">These tags will be exclusively used in the AI prompt</p>
+      </div>
+    </div>
+
+    <hr/>
+    <div class="form-group">
+      <label for="disableAutomaticProcessing">Disable automatic processing?</label>
+      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+        <label class="flex items-start cursor-pointer w-full">
+          <input type="checkbox"
+              id="disableAutomaticProcessing"
+              name="disableAutomaticProcessing"
+              class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              <%= config.DISABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
+          <div class="ml-3">
+            <div class="flex items-center font-medium">
+              <i class="fas fa-robot text-blue-500 mr-2"></i>
+              Disable automatic processing
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Determines if the AI will run on its own or every scan is started manually</p>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <hr/>
+    <div class="form-group space-y-4">
+      <label class="flex items-center gap-2 font-medium">
+        <i class="fas fa-sliders-h text-blue-500"></i>
+        Enable/Disable AI functions
+      </label>
+      <p class="text-sm text-gray-500">Select which functions the AI should perform during document analysis</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateDocumentType"
+                name="activateDocumentType"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_DOCUMENT_TYPE ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-file-alt text-blue-500 mr-2"></i>
+                Document type classification
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Determine the type of document automatically</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateTitle"
+                name="activateTitle"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_TITLE ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-heading text-blue-500 mr-2"></i>
+                Title generation
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Generate meaningful titles for documents</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateDocumentDate"
+                name="activateDocumentDate"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_DOCUMENT_DATE ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
+                Document date extraction
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Extract the document date (YYYY-MM-DD)</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateLanguage"
+                name="activateLanguage"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_LANGUAGE ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-language text-blue-500 mr-2"></i>
+                Language detection
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Detect the document language (e.g., de/en)</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateTagging"
+                name="activateTagging"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_TAGGING ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-tags text-blue-500 mr-2"></i>
+                Tags assignment
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Automatically assign relevant tags to documents</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateCorrespondent"
+                name="activateCorrespondent"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_CORRESPONDENT ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-user text-blue-500 mr-2"></i>
+                Correspondent detection
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Identify document senders automatically</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateContent"
+                name="activateContent"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_CONTENT ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-align-left text-blue-500 mr-2"></i>
+                Content update
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Update document content with the AI-optimized text</p>
+            </div>
+          </label>
+        </div>
+
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                id="activateCustomFields"
+                name="activateCustomFields"
+                class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.ACTIVATE_CUSTOM_FIELDS ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-filter text-blue-500 mr-2"></i>
+                Custom fields
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Add custom fields to the documents</p>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+    <section>
+      <div class="form-group space-y-4" id="customFieldsSection">
+        <label class="flex items-center gap-2 font-medium">
+          <i class="fas fa-table text-blue-500"></i>
+          Custom fields
+        </label>
+        <p class="text-sm text-gray-500">Configure custom fields that will be populated by AI during document analysis.</p>
+
+        <div id="customFieldsList" class="space-y-2">
+          <% if (config.AI_CUSTOM_FIELDS && Array.isArray(JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields)) { %>
+              <% JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields.forEach((field, index) => { %>
+                  <div class="custom-field-item flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-200 transition-colors">
+                      <div class="cursor-move text-gray-400">
+                          <i class="fas fa-grip-vertical"></i>
+                      </div>
+                      <div class="flex-1 flex items-center gap-4">
+                          <div class="flex-1">
+                              <p class="font-medium"><%= field.value %></p>
+                              <p class="text-sm text-gray-500">
+                                  Type: <%= field.data_type %>
+                                  <% if (field.data_type === 'monetary' && field.currency) { %>
+                                      (<%= field.currency %>)
+                                  <% } %>
+                              </p>
+                          </div>
+                      </div>
+                      <button type="button"
+                              onclick="removeCustomField(this)"
+                              class="text-gray-400 hover:text-red-500 transition-colors">
+                          <i class="fas fa-trash"></i>
+                      </button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+
+        <div class="grid grid-cols-12 gap-3 mt-4">
+          <div class="col-span-6">
+            <input type="text"
+                id="newFieldName"
+                class="modern-input w-full"
+                placeholder="Enter field name...">
+          </div>
+
+          <div class="col-span-2">
+            <select id="newFieldType" class="modern-input w-full" onchange="toggleCurrencySelect()">
+              <option value="string">Text</option>
+              <option value="float">Number</option>
+              <option value="integer">Integer</option>
+              <option value="boolean">Boolean</option>
+              <option value="date">Date</option>
+              <option value="monetary">Currency</option>
+              <option value="url">URL</option>
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <select id="currencyCode" class="modern-input w-full hidden">
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CHF">CHF</option>
+              <option value="AUD">AUD</option>
+              <option value="CAD">CAD</option>
+              <option value="CNY">CNY</option>
+              <option value="INR">INR</option>
+              <option value="NZD">NZD</option>
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <button type="button"
+                    onclick="addCustomField()"
+                    class="material-button w-full flex items-center justify-center gap-2"
+                    id="addFieldBtn">
+              <i class="fas fa-plus"></i>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <input type="hidden"
+            id="customFieldsJson"
+            name="customFields"
+            value="<%= config.AI_CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
+      </div>
+    </section>
+
+    <hr/>
+    <div class="form-group">
+      <label for="systemPrompt">Prompt description</label>
+      <div class="prompt-container">
+        <textarea id="systemPrompt"
+                 name="systemPrompt"
+                 rows="8"
+                 class="modern-input"
+                 placeholder="Describe how the AI should analyze your documents..."><%= config.AI_SYSTEM_PROMPT %></textarea>
+        <button id="systemPromptBtn" type="button"
+                class="material-button example-btn">
+          <i class="fas fa-lightbulb"></i>
+          Example
+        </button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="mustHavePrompt">Must-have prompt (<em>(only appended, if placeholder <code>%JSON_SCHEMA%</code> is not present in Prompt above)</em>)</label>
+      <textarea id="mustHavePrompt"
+                name="mustHavePrompt"
+                rows="6"
+                class="modern-input"
+                placeholder="mandatory appendix defined in application configuration"
+                disabled><%= config.ai?.mustHavePrompt || '' %></textarea>
+    </div>
+  </div>
+</section>
+<% } else { %>
+<section class="space-y-6">
+  <h2 class="text-xl font-bold flex items-center gap-2 text-primary mb-4">
+    <i class="fas fa-cog"></i>
+    Advanced settings
+  </h2>
+  <div class="space-y-2">
+    <div class="space-y-2">
+      <label for="scanInterval" class="text-sm font-medium">Scan interval (cron format)</label>
+      <input type="text"
+             id="scanInterval"
+             name="scanInterval"
+             value="<%= config.SCAN_INTERVAL %>"
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             required>
+      <p class="text-sm text-gray-500">Default: every 30 minutes</p>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="showTags"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-filter mr-2 text-blue-500"></i>
+                Process only specific pre tagged documents
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Limit processing to documents with selected tags</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="showTagsValue"
+                 name="showTags"
+                 value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %> space-y-4">
+        <div class="space-y-2">
+          <label for="tagInput" class="text-sm font-medium">Tags</label>
+          <div class="flex gap-2">
+            <input type="text"
+                id="tagInput"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter a tag and press Enter">
+            <button type="button"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              <i class="fas fa-plus mr-2"></i>
+              Add
+            </button>
+          </div>
+          <div id="tagsContainer" class="flex flex-wrap gap-2 mt-2">
+            <% if (config.TAGS && Array.isArray(config.TAGS) && config.TAGS.length > 0) { %>
+                <% config.TAGS.forEach(tag => { %>
+                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span><%= tag %></span>
+                        <button type="button" class="hover:text-blue-600"><i class="fas fa-times"></i></button>
+                    </div>
+                <% }); %>
+            <% } %>
+          </div>
+          <input type="hidden" id="tags" name="tags" value="<%= Array.isArray(config.TAGS) ? config.TAGS.join(',') : '' %>">
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                id="useExistingData"
+                class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-database mr-2 text-blue-500"></i>
+                Use existing Correspondents and Tags
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Prefer existing metadata before creating new entries</p>
+            </div>
+          </label>
+          <input type="hidden"
+              id="useExistingDataValue"
+              name="useExistingData"
+              value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
+        </div>
+      </div>
+    </div>
+
+    <% if (includeRestrictions) { %>
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
+          <i class="fas fa-filter"></i>
+          AI Restrictions
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingTags" class="flex items-center p-4 cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingTags"
+                  name="restrictToExistingTags"
+                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_TAGS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center text-gray-900 font-medium">
+                  <i class="fas fa-tags mr-2 text-blue-500"></i>
+                  Restrict to existing tags
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use tags that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingCorrespondents" class="flex items-center p-4 cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingCorrespondents"
+                  name="restrictToExistingCorrespondents"
+                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_CORRESPONDENTS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center text-gray-900 font-medium">
+                  <i class="fas fa-user mr-2 text-blue-500"></i>
+                  Restrict to existing correspondents
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use correspondents that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingDocumentTypes" class="flex items-center p-4 cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingDocumentTypes"
+                  name="restrictToExistingDocumentTypes"
+                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center text-gray-900 font-medium">
+                  <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                  Restrict to existing document types
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use document types that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <% if (includeExternalApi) { %>
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
+          <i class="fas fa-plug"></i>
+          External API integration
+        </h3>
+
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200 mb-4">
+          <label for="externalApiEnabled" class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                id="externalApiEnabled"
+                name="externalApiEnabled"
+                class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                <%= config.EXTERNAL_API_ENABLED ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-globe mr-2 text-blue-500"></i>
+                Enable external API integration
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Enrich AI prompts with data from external API</p>
+            </div>
+          </label>
+        </div>
+
+      <div id="externalApiSettings" class="space-y-4 <%= config.EXTERNAL_API_ENABLED ? '' : 'hidden' %>">
+          <div class="space-y-2">
+            <label for="externalApiUrl" class="text-sm font-medium">API URL</label>
+            <input type="text"
+                id="externalApiUrl"
+                name="externalApiUrl"
+                value="<%= config.EXTERNAL_API_URL || '' %>"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://api.example.com/data">
+          </div>
+
+          <div class="space-y-2">
+            <label for="externalApiMethod" class="text-sm font-medium">HTTP method</label>
+            <select id="externalApiMethod"
+                    name="externalApiMethod"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="GET" <%= config.EXTERNAL_API_METHOD === 'GET' ? 'selected' : '' %>>GET</option>
+              <option value="POST" <%= config.EXTERNAL_API_METHOD === 'POST' ? 'selected' : '' %>>POST</option>
+              <option value="PUT" <%= config.EXTERNAL_API_METHOD === 'PUT' ? 'selected' : '' %>>PUT</option>
+            </select>
+          </div>
+
+          <div class="space-y-2">
+            <label for="externalApiHeaders" class="text-sm font-medium">Headers (JSON)</label>
+            <textarea id="externalApiHeaders"
+                      name="externalApiHeaders"
+                      rows="3"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder='{"Content-Type": "application/json", "Authorization": "Bearer YOUR_TOKEN"}'><%= config.EXTERNAL_API_HEADERS || '' %></textarea>
+          </div>
+
+          <div class="space-y-2">
+            <label for="externalApiBody" class="text-sm font-medium">Request body (JSON) - for POST/PUT</label>
+            <textarea id="externalApiBody"
+                      name="externalApiBody"
+                      rows="3"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder='{"query": "your_query", "filters": {"key": "value"}}'><%= config.EXTERNAL_API_BODY || '' %></textarea>
+          </div>
+
+          <div class="space-y-2">
+            <label for="externalApiTimeout" class="text-sm font-medium">Timeout (milliseconds)</label>
+            <input type="number"
+                   id="externalApiTimeout"
+                   name="externalApiTimeout"
+                   value="<%= config.EXTERNAL_API_TIMEOUT || '5000' %>"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                   placeholder="5000">
+          </div>
+
+          <div class="space-y-2">
+            <label for="externalApiTransform" class="text-sm font-medium">Transform function (JavaScript)</label>
+            <textarea id="externalApiTransform"
+                      name="externalApiTransform"
+                      rows="5"
+                      class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="// Function to transform API response\n// Return the data you want to include in the prompt\nfunction transform(data) {\n  return data;\n}"><%= config.EXTERNAL_API_TRANSFORM || '// Function to transform API response\n// Return the data you want to include in the prompt\nfunction transform(data) {\n  return data;\n}' %></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% } %>
+
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="aiProcessedTag"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-tag mr-2 text-blue-500"></i>
+                Add AI-processed tag to documents
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="aiProcessedTagValue"
+                 name="aiProcessedTag"
+                 value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
+        <label for="aiTagName" class="text-sm font-medium">AI-processed tag name</label>
+        <input type="text"
+            id="aiTagName"
+            name="aiTagName"
+            value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="ai-processed">
+        <p class="text-sm text-gray-500">This tag will be added to documents after AI processing</p>
+      </div>
+    </div>
+
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="usePromptTags"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-hashtag mr-2 text-blue-500"></i>
+                Use specific tags in prompt
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Force the AI to use your prompt tag list</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="usePromptTagsValue"
+                 name="usePromptTags"
+                 value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %> space-y-4">
+        <div class="space-y-2">
+          <label for="promptTagInput" class="text-sm font-medium">Prompt tags</label>
+          <div class="flex gap-2">
+            <input type="text"
+                id="promptTagInput"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter a tag and press Enter">
+            <button type="button"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              <i class="fas fa-plus mr-2"></i>
+              Add
+            </button>
+          </div>
+          <div id="promptTagsContainer" class="flex flex-wrap gap-2 mt-2">
+            <% if (config.AI_PROMPT_TAGS && Array.isArray(config.AI_PROMPT_TAGS) && config.AI_PROMPT_TAGS.length > 0) { %>
+                <% config.AI_PROMPT_TAGS.forEach(tag => { %>
+                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span><%= tag %></span>
+                        <button type="button" class="hover:text-blue-600"><i class="fas fa-times"></i></button>
+                    </div>
+                <% }); %>
+            <% } %>
+          </div>
+          <input type="hidden" id="promptTags" name="promptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
+          <p class="text-sm text-gray-500">These tags will be exclusively used in the AI prompt</p>
+        </div>
+      </div>
+    </div>
+
+    <hr/>
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <label for="disableAutomaticProcessing" class="text-sm font-medium">Disable automatic processing?</label>
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label for="disableAutomaticProcessing" class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="disableAutomaticProcessing"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.DISABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-robot mr-2 text-blue-500"></i>
+                Disable automatic processing
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Determines if the AI will run on its own or every scan is started manually</p>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-6"/>
+    <section class="space-y-6">
+      <h2 class="text-xl font-bold flex items-center gap-2 text-primary mb-4">
+        <i class="fas fa-tasks"></i>
+        AI function limits
+      </h2>
+      <div class="space-y-4">
+        <div class="space-y-2">
+          <label class="text-sm font-medium">Enable/Disable AI functions</label>
+          <p class="text-sm text-gray-500 mb-4">Select which functions the AI should perform during document analysis</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateDocumentType" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateDocumentType"
+                    name="activateDocumentType"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_DOCUMENT_TYPE ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                    Document type classification
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Determine the type of document automatically</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateTitle" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateTitle"
+                    name="activateTitle"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_TITLE ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-heading mr-2 text-blue-500"></i>
+                    Title generation
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Generate meaningful titles for documents</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateDocumentDate" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateDocumentDate"
+                    name="activateDocumentDate"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_DOCUMENT_DATE ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>
+                    Document date extraction
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Extract the document date (YYYY-MM-DD)</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateLanguage" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateLanguage"
+                    name="activateLanguage"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_LANGUAGE ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-language mr-2 text-blue-500"></i>
+                    Language detection
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Detect the document language (e.g., de/en)</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateTagging" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateTagging"
+                    name="activateTagging"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_TAGGING ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-tags mr-2 text-blue-500"></i>
+                    Tags assignment
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Automatically assign relevant tags to documents</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateCorrespondent" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateCorrespondent"
+                    name="activateCorrespondent"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_CORRESPONDENT ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-user mr-2 text-blue-500"></i>
+                    Correspondent detection
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Identify document senders automatically</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateContent" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateContent"
+                    name="activateContent"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_CONTENT ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-align-left mr-2 text-blue-500"></i>
+                    Content update
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Update document content with the AI-optimized text</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+              <label for="activateCustomFields" class="flex items-center p-4 cursor-pointer w-full">
+                <input type="checkbox"
+                    id="activateCustomFields"
+                    name="activateCustomFields"
+                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.ACTIVATE_CUSTOM_FIELDS ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center text-gray-900 font-medium">
+                    <i class="fas fa-filter mr-2 text-blue-500"></i>
+                    Custom fields
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">Add custom fields to the documents</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="space-y-6">
+      <h2 class="text-xl font-bold flex items-center gap-2 text-primary mb-4">
+        <i class="fas fa-table"></i>
+        Custom fields
+      </h2>
+      <div class="space-y-4">
+        <div id="customFieldsList" class="space-y-2">
+          <% if (config.AI_CUSTOM_FIELDS && Array.isArray(JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields)) { %>
+              <% JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields.forEach((field, index) => { %>
+                  <div class="custom-field-item flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-colors">
+                      <div class="cursor-move text-gray-400">
+                          <i class="fas fa-grip-vertical"></i>
+                      </div>
+                      <div class="flex-1">
+                          <p class="font-medium text-gray-900 dark:text-gray-100"><%= field.value %></p>
+                          <p class="text-sm text-gray-500 dark:text-gray-400">
+                              Type: <%= field.data_type %>
+                              <% if (field.data_type === 'monetary' && field.currency) { %>
+                                  (<%= field.currency %>)
+                              <% } %>
+                          </p>
+                      </div>
+                      <button type="button"
+                              onclick="removeCustomField(this)"
+                              class="text-gray-400 hover:text-red-500 transition-colors">
+                          <i class="fas fa-trash"></i>
+                      </button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+
+        <div class="grid grid-cols-12 gap-3">
+          <div class="col-span-5">
+            <input type="text"
+                id="newFieldName"
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                placeholder="Enter field name...">
+          </div>
+
+          <div class="col-span-3">
+            <select id="newFieldType" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" onchange="toggleCurrencySelect()">
+              <option value="string">Text</option>
+              <option value="float">Number</option>
+              <option value="integer">Integer</option>
+              <option value="boolean">Boolean</option>
+              <option value="date">Date</option>
+              <option value="monetary">Currency</option>
+              <option value="url">URL</option>
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <select id="currencyCode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hidden">
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+              <option value="GBP">GBP</option>
+              <option value="JPY">JPY</option>
+              <option value="CHF">CHF</option>
+              <option value="AUD">AUD</option>
+              <option value="CAD">CAD</option>
+              <option value="CNY">CNY</option>
+              <option value="INR">INR</option>
+              <option value="NZD">NZD</option>
+            </select>
+          </div>
+
+          <div class="col-span-2">
+            <button type="button"
+                    onclick="addCustomField()"
+                    class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
+                    id="addFieldBtn">
+              <i class="fas fa-plus"></i>
+              Add
+            </button>
+          </div>
+        </div>
+
+        <input type="hidden"
+            id="customFieldsJson"
+            name="customFields"
+            value="<%= config.AI_CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
+      </div>
+    </section>
+
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <label for="systemPrompt" class="text-sm font-medium">Prompt description</label>
+        <div class="space-y-2">
+          <textarea id="systemPrompt"
+                    name="systemPrompt"
+                    rows="6"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Describe how the AI should analyze your documents..."><%= config.AI_SYSTEM_PROMPT %></textarea>
+          <button id="systemPromptBtn" type="button"
+                  class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 inline-flex items-center gap-2">
+            <i class="fas fa-lightbulb"></i>
+            Example
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t pt-4 space-y-4">
+      <div class="space-y-2">
+        <label for="mustHavePrompt" class="text-sm font-medium">Must-have prompt (<em>(only appended, if placeholder <code>%JSON_SCHEMA%</code> is not present in Prompt above)</em>)</label>
+        <div class="space-y-2">
+          <textarea id="mustHavePrompt"
+                    name="mustHavePrompt"
+                    rows="6"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="mandatory appendix defined in application configuration"
+                    disabled><%= config.ai?.mustHavePrompt || '' %></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>

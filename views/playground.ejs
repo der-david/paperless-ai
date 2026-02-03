@@ -1,97 +1,94 @@
 <script src="js/playground-analyzer.js"></script>
 <link rel="stylesheet" href="css/playground.css">
 
-
-        <!-- Main Content -->
-
-        <main class="main-content p-6">
-            <div class="mb-6">
-                <h1 class="text-2xl font-bold mb-4">Documents</h1>
-                <!-- Analysis Section -->
-                <div class="material-card mb-8">
-                    <h2 class="card-title">Document Analysis</h2>
-                    <div class="space-y-4">
-                        <textarea
-                            id="analysisPrompt"
-                            class="playground-textarea"
-                            placeholder="Enter your analysis prompt here..."
-                        ></textarea>
-                        <button
-                            id="analyzeButton"
-                            class="playground-analyze-button"
-                        >
-                            Analyze Documents
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Documents Grid -->
-                <div class="grid grid-cols-4 gap-4" id="documentsGrid">
-                    <% documents.forEach(function(doc) { %>
-                        <div class="material-card document-card" data-document-id="<%= doc.id %>">
-                            <!-- Thumbnail -->
-                            <div class="relative aspect-[3/4]">
-                                <img src="/thumb/<%= doc.id %>"
-                                     alt="<%= doc.title %>"
-                                     class="w-full h-full object-cover rounded-lg">
-
-                                <!-- Tags Container -->
-                                <div class="tags-container absolute top-2 left-2 right-2 flex flex-wrap gap-1">
-                                    <% doc.tags.forEach(function(tagId) { %>
-                                    <span class="tag text-xs px-2 py-1 rounded-full bg-blue-600 text-white"
-                                          data-tag-id="<%= tagId %>">
-                                        <%= tagNames[tagId] || 'Unknown' %>
-                                    </span>
-                                    <% }); %>
-                                </div>
-                            </div>
-
-                            <!-- Document Info -->
-                            <div class="document-info">
-                                <div class="info-container">
-                                    <div class="info-item">
-                                        <h3 class="text-sm font-medium truncate"><%= doc.title %></h3>
-                                    </div>
-
-                                    <div class="info-item">
-                                        <p class="text-xs text-gray-600 truncate">
-                                            <%= new Date(doc.created).toLocaleDateString() %>
-                                        </p>
-
-                                        <% if (doc.correspondent) { %>
-                                        <p class="text-xs text-gray-600 truncate"
-                                           data-correspondent="<%= doc.correspondent %>">
-                                            <%= correspondentNames[doc.correspondent] || 'Unknown' %>
-                                        </p>
-                                        <% } %>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    <% }); %>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- Modal -->
-    <div id="detailsModal" class="modal hidden">
-        <div class="modal-overlay"></div>
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3 class="modal-title"></h3>
-                <button class="modal-close">
-                    <i class="fas fa-times"></i>
+<!-- Main Content -->
+<main class="main-content p-6">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold mb-4">Documents</h1>
+        <!-- Analysis Section -->
+        <div class="material-card mb-8">
+            <h2 class="card-title">Document Analysis</h2>
+            <div class="space-y-4">
+                <textarea
+                    id="analysisPrompt"
+                    class="playground-textarea"
+                    placeholder="Enter your analysis prompt here..."
+                ></textarea>
+                <button
+                    id="analyzeButton"
+                    class="playground-analyze-button"
+                >
+                    Analyze Documents
                 </button>
             </div>
-            <div class="modal-content">
-                <div class="modal-loader hidden">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    Loading...
+        </div>
+
+        <!-- Documents Grid -->
+        <div class="grid grid-cols-4 gap-4" id="documentsGrid">
+            <% documents.forEach(function(doc) { %>
+                <div class="material-card document-card" data-document-id="<%= doc.id %>">
+                    <!-- Thumbnail -->
+                    <div class="relative aspect-[3/4]">
+                        <img src="/thumb/<%= doc.id %>"
+                                alt="<%= doc.title %>"
+                                class="w-full h-full object-cover rounded-lg">
+
+                        <!-- Tags Container -->
+                        <div class="tags-container absolute top-2 left-2 right-2 flex flex-wrap gap-1">
+                            <% doc.tags.forEach(function(tagId) { %>
+                            <span class="tag text-xs px-2 py-1 rounded-full bg-blue-600 text-white"
+                                    data-tag-id="<%= tagId %>">
+                                <%= tagNames[tagId] || 'Unknown' %>
+                            </span>
+                            <% }); %>
+                        </div>
+                    </div>
+
+                    <!-- Document Info -->
+                    <div class="document-info">
+                        <div class="info-container">
+                            <div class="info-item">
+                                <h3 class="text-sm font-medium truncate"><%= doc.title %></h3>
+                            </div>
+
+                            <div class="info-item">
+                                <p class="text-xs text-gray-600 truncate">
+                                    <%= new Date(doc.created).toLocaleDateString() %>
+                                </p>
+
+                                <% if (doc.correspondent) { %>
+                                <p class="text-xs text-gray-600 truncate"
+                                    data-correspondent="<%= doc.correspondent %>">
+                                    <%= correspondentNames[doc.correspondent] || 'Unknown' %>
+                                </p>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-data"></div>
-            </div>
+            <% }); %>
         </div>
     </div>
-    
-    <script src="js/playground.js"></script>
+</main>
+
+<!-- Modal -->
+<div id="detailsModal" class="modal hidden">
+    <div class="modal-overlay"></div>
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title"></h3>
+            <button class="modal-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-content">
+            <div class="modal-loader hidden">
+                <i class="fas fa-spinner fa-spin"></i>
+                Loading...
+            </div>
+            <div class="modal-data"></div>
+        </div>
+    </div>
+</div>
+
+<script src="js/playground.js"></script>

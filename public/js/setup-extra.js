@@ -60,425 +60,425 @@ window.addEventListener('resize', () => {
 document.addEventListener("DOMContentLoaded", function() {
     // Helper function to switch tabs
     function switchToTab(tabId) {
-console.log('Attempting to switch to tab:', tabId);
-const tabButton = document.querySelector(`[data-tab="${tabId}"]`);
-if (tabButton) {
-    console.log('Tab button found, clicking');
-    const event = new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: true
-    });
-    tabButton.dispatchEvent(event);
-} else {
-    console.warn('Tab button not found:', tabId);
-}
+        console.log('Attempting to switch to tab:', tabId);
+        const tabButton = document.querySelector(`[data-tab="${tabId}"]`);
+        if (tabButton) {
+            console.log('Tab button found, clicking');
+            const event = new MouseEvent('click', {
+                view: window,
+                bubbles: true,
+                cancelable: true
+            });
+            tabButton.dispatchEvent(event);
+        } else {
+            console.warn('Tab button not found:', tabId);
+        }
     }
 
     const tour = new Shepherd.Tour({
-useModalOverlay: true,
-defaultStepOptions: {
-    classes: 'shadow-md', // Remove hardcoded background and text colors
-    scrollTo: { behavior: 'smooth', block: 'center' },
-    cancelIcon: {
-        enabled: true
-    },
-    buttons: [{
-        classes: 'shepherd-button-secondary', // Add this class for secondary buttons
-        text: 'Exit',
-        type: 'cancel'
-    }, {
-        classes: 'shepherd-button-primary', // Add this class for primary buttons
-        text: 'Next',
-        type: 'next'
-    }],
-    popperOptions: {
-        modifiers: [{
-            name: 'offset',
-            options: {
-                offset: [0, 12]
+        useModalOverlay: true,
+        defaultStepOptions: {
+            classes: 'shadow-md', // Remove hardcoded background and text colors
+            scrollTo: { behavior: 'smooth', block: 'center' },
+            cancelIcon: {
+                enabled: true
+            },
+            buttons: [{
+                classes: 'shepherd-button-secondary', // Add this class for secondary buttons
+                text: 'Exit',
+                type: 'cancel'
+            }, {
+                classes: 'shepherd-button-primary', // Add this class for primary buttons
+                text: 'Next',
+                type: 'next'
+            }],
+            popperOptions: {
+                modifiers: [{
+                    name: 'offset',
+                    options: {
+                        offset: [0, 12]
+                    }
+                }]
             }
-        }]
-    }
-}
+        }
     });
 
     console.log('Tour created');
 
     // Define all tour steps
     const tourSteps = [
-{
-    id: 'welcome',
-    title: 'Welcome to Paperless-AI Setup',
-    text: 'This guided walkthrough will help you configure Paperless-AI, an intelligent automation add-on for Paperless-NGX. Follow the steps carefully to optimize document processing.',
-    buttons: [
         {
-            text: 'Skip',
-            action: () => tour.complete()
+            id: 'welcome',
+            title: 'Welcome to Paperless-AI Setup',
+            text: 'This guided walkthrough will help you configure Paperless-AI, an intelligent automation add-on for Paperless-NGX. Follow the steps carefully to optimize document processing.',
+            buttons: [
+                {
+                    text: 'Skip',
+                    action: () => tour.complete()
+                },
+                {
+                    text: 'Start',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('user-tab')
         },
         {
-            text: 'Start',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('user-tab')
-},
-{
-    id: 'user-setup',
-    title: 'User Setup',
-    text: 'Here, you need to create a user account for Paperless-AI. This user will be used to access and manage the automation processes.',
-    attachTo: {
-        element: '#user-tab',
-        on: 'right'
-    },
-    buttons: [
+            id: 'user-setup',
+            title: 'User Setup',
+            text: 'Here, you need to create a user account for Paperless-AI. This user will be used to access and manage the automation processes.',
+            attachTo: {
+                element: '#user-tab',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('user-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('user-tab')
-},
-{
-    id: 'api-connection',
-    title: 'Paperless-NGX API Connection',
-    text: 'Enter the API URL of your Paperless-NGX instance. This is required for the AI to access and process your documents.',
-    attachTo: {
-        element: '#paperlessUrl',
-        on: 'right'
-    },
-    buttons: [
+            id: 'api-connection',
+            title: 'Paperless-NGX API Connection',
+            text: 'Enter the API URL of your Paperless-NGX instance. This is required for the AI to access and process your documents.',
+            attachTo: {
+                element: '#paperlessUrl',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('connection-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('connection-tab')
-},
-{
-    id: 'api-token',
-    title: 'API Token',
-    text: 'Provide a valid API Token for authentication. This ensures Paperless-AI can interact securely with Paperless-NGX.',
-    attachTo: {
-        element: '#paperlessToken',
-        on: 'right'
-    },
-    buttons: [
+            id: 'api-token',
+            title: 'API Token',
+            text: 'Provide a valid API Token for authentication. This ensures Paperless-AI can interact securely with Paperless-NGX.',
+            attachTo: {
+                element: '#paperlessToken',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('connection-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('connection-tab')
-},
-{
-    id: 'paperless-username',
-    title: 'Paperless-ngx Username',
-    text: 'Specify the username used in Paperless-NGX for API authentication.',
-    attachTo: {
-        element: '#paperlessUsername',
-        on: 'right'
-    },
-    buttons: [
+            id: 'paperless-username',
+            title: 'Paperless-ngx Username',
+            text: 'Specify the username used in Paperless-NGX for API authentication.',
+            attachTo: {
+                element: '#paperlessUsername',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('connection-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('connection-tab')
-},
-{
-    id: 'ai-provider',
-    title: 'AI Provider Selection',
-    text: 'Choose an AI provider for document processing. You can use OpenAI (ChatGPT), Ollama (Local LLM), or a custom AI provider.',
-    attachTo: {
-        element: '#ai-tab',
-        on: 'right'
-    },
-    buttons: [
+            id: 'ai-provider',
+            title: 'AI Provider Selection',
+            text: 'Choose an AI provider for document processing. You can use OpenAI (ChatGPT), Ollama (Local LLM), or a custom AI provider.',
+            attachTo: {
+                element: '#ai-tab',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('ai-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('ai-tab')
-},
-{
-    id: 'existing-data',
-    title: 'Use Existing Data',
-    text: 'Enable this option to reuse existing Paperless-NGX correspondents and tags for document classification. <br> <b>Note:</b> This will improve AI accuracy and reduce manual corrections. BUT if you have a vast amount of data, it may overload the Token limit.',
-    attachTo: {
-        element: '#useExistingData',
-        on: 'right'
-    },
-    buttons: [
+            id: 'existing-data',
+            title: 'Use Existing Data',
+            text: 'Enable this option to reuse existing Paperless-NGX correspondents and tags for document classification. <br> <b>Note:</b> This will improve AI accuracy and reduce manual corrections. BUT if you have a vast amount of data, it may overload the Token limit.',
+            attachTo: {
+                element: '#useExistingData',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'scan-interval',
-    title: 'Scan Interval',
-    text: 'Define the cron schedule for scanning new documents. Adjust this based on your automation needs.',
-    attachTo: {
-        element: '#scanInterval',
-        on: 'right'
-    },
-    buttons: [
+            id: 'scan-interval',
+            title: 'Scan Interval',
+            text: 'Define the cron schedule for scanning new documents. Adjust this based on your automation needs.',
+            attachTo: {
+                element: '#scanInterval',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'process-tags',
-    title: 'Process only specific tagged documents',
-    text: 'Enable this to process only documents with specific tags. This is useful for targeted automation. For example, all documents tagged "invoices" will be processed by AI.',
-    attachTo: {
-        element: '#showTags',
-        on: 'right'
-    },
-    buttons: [
+            id: 'process-tags',
+            title: 'Process only specific tagged documents',
+            text: 'Enable this to process only documents with specific tags. This is useful for targeted automation. For example, all documents tagged "invoices" will be processed by AI.',
+            attachTo: {
+                element: '#showTags',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'ai-processed-tag',
-    title: 'AI-Processed Tag',
-    text: 'Enable this to mark AI-processed documents with a specific tag (e.g., "ai-processed"). This helps differentiate AI-analyzed files.',
-    attachTo: {
-        element: '#aiProcessedTag',
-        on: 'right'
-    },
-    buttons: [
+            id: 'ai-processed-tag',
+            title: 'AI-Processed Tag',
+            text: 'Enable this to mark AI-processed documents with a specific tag (e.g., "ai-processed"). This helps differentiate AI-analyzed files.',
+            attachTo: {
+                element: '#aiProcessedTag',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'disableAutomaticProcessing',
-    title: 'Disable/Enable Automatic Processing',
-    text: 'Choose whether the AI should run automatically or only when triggered manually. This can be useful for testing and control.',
-    attachTo: {
-        element: '#disableAutomaticProcessing',
-        on: 'right'
-    },
-    buttons: [
+            id: 'disableAutomaticProcessing',
+            title: 'Disable/Enable Automatic Processing',
+            text: 'Choose whether the AI should run automatically or only when triggered manually. This can be useful for testing and control.',
+            attachTo: {
+                element: '#disableAutomaticProcessing',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'ai-tagging',
-    title: 'AI Tag Assignment',
-    text: 'Enable this feature to allow AI to automatically assign relevant tags to documents based on content analysis.',
-    attachTo: {
-        element: '#activateTagging',
-        on: 'right'
-    },
-    buttons: [
+            id: 'ai-tagging',
+            title: 'AI Tag Assignment',
+            text: 'Enable this feature to allow AI to automatically assign relevant tags to documents based on content analysis.',
+            attachTo: {
+                element: '#activateTagging',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'correspondent-detection',
-    title: 'AI Correspondent Detection',
-    text: 'When enabled, AI will attempt to extract the senders name and link it to an existing Paperless-NGX correspondent.',
-    attachTo: {
-        element: '#activateCorrespondent',
-        on: 'right'
-    },
-    buttons: [
+            id: 'correspondent-detection',
+            title: 'AI Correspondent Detection',
+            text: 'When enabled, AI will attempt to extract the senders name and link it to an existing Paperless-NGX correspondent.',
+            attachTo: {
+                element: '#activateCorrespondent',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'doc-type-classification',
-    title: 'Document Type Classification',
-    text: 'This feature allows AI to classify documents automatically, e.g., invoices, contracts, receipts.',
-    attachTo: {
-        element: '#activateDocumentType',
-        on: 'right'
-    },
-    buttons: [
+            id: 'doc-type-classification',
+            title: 'Document Type Classification',
+            text: 'This feature allows AI to classify documents automatically, e.g., invoices, contracts, receipts.',
+            attachTo: {
+                element: '#activateDocumentType',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'title-generation',
-    title: 'Title Generation',
-    text: 'AI can generate meaningful titles for documents based on their content.',
-    attachTo: {
-        element: '#activateTitle',
-        on: 'right'
-    },
-    buttons: [
+            id: 'title-generation',
+            title: 'Title Generation',
+            text: 'AI can generate meaningful titles for documents based on their content.',
+            attachTo: {
+                element: '#activateTitle',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'custom-fields',
-    title: 'Custom Fields',
-    text: 'AI will try to extract additional metadata fields from documents based on your configuration. </br><b>NOTE:</b> This requires careful setup and testing. Vague or incorrect fields may lead to inaccurate results.',
-    attachTo: {
-        element: '#activateCustomFields',
-        on: 'right'
-    },
-    buttons: [
+            id: 'custom-fields',
+            title: 'Custom Fields',
+            text: 'AI will try to extract additional metadata fields from documents based on your configuration. </br><b>NOTE:</b> This requires careful setup and testing. Vague or incorrect fields may lead to inaccurate results.',
+            attachTo: {
+                element: '#activateCustomFields',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'custom-fields-config',
-    title: 'Custom Fields Configuration',
-    text: 'Here, you can define additional metadata fields that AI should extract from documents.',
-    attachTo: {
-        element: '#customFieldsSection',
-        on: 'right'
-    },
-    buttons: [
+            id: 'custom-fields-config',
+            title: 'Custom Fields Configuration',
+            text: 'Here, you can define additional metadata fields that AI should extract from documents.',
+            attachTo: {
+                element: '#customFieldsSection',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'system-prompt',
-    title: 'AI System Prompt',
-    text: 'Provide a system prompt that defines how AI should analyze and categorize your documents.',
-    attachTo: {
-        element: '#systemPrompt',
-        on: 'right'
-    },
-    buttons: [
+            id: 'system-prompt',
+            title: 'AI System Prompt',
+            text: 'Provide a system prompt that defines how AI should analyze and categorize your documents.',
+            attachTo: {
+                element: '#systemPrompt',
+                on: 'right'
+            },
+            buttons: [
+                {
+                    text: 'Next',
+                    action: () => tour.next()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
+        },
         {
-            text: 'Next',
-            action: () => tour.next()
+            id: 'save-config',
+            title: 'Save Configuration',
+            text: 'Click "Save Configuration" to apply all your settings and activate Paperless-AI automation.',
+            attachTo: {
+                element: '.submit-btn',
+                on: 'top'
+            },
+            buttons: [
+                {
+                    text: 'Finish',
+                    action: () => tour.complete()
+                }
+            ],
+            beforeShow: () => switchToTab('advanced-tab')
         }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-},
-{
-    id: 'save-config',
-    title: 'Save Configuration',
-    text: 'Click "Save Configuration" to apply all your settings and activate Paperless-AI automation.',
-    attachTo: {
-        element: '.submit-btn',
-        on: 'top'
-    },
-    buttons: [
-        {
-            text: 'Finish',
-            action: () => tour.complete()
-        }
-    ],
-    beforeShow: () => switchToTab('advanced-tab')
-}
     ];
 
     // Add all steps to the tour with error handling
     tourSteps.forEach(step => {
-try {
-    console.log('Adding step:', step.id);
-    tour.addStep(step);
-} catch (error) {
-    console.error(`Failed to add step ${step.id}:`, error);
-}
+        try {
+            console.log('Adding step:', step.id);
+            tour.addStep(step);
+        } catch (error) {
+            console.error(`Failed to add step ${step.id}:`, error);
+        }
     });
 
     // Listen for tour events with proper error handling
     tour.on('show', (evt) => {
-try {
-    const currentStep = evt.step;
-    console.log('Tour step is being shown:', currentStep.id);
+        try {
+            const currentStep = evt.step;
+            console.log('Tour step is being shown:', currentStep.id);
 
-    // Execute beforeShow if it exists
-    if (currentStep.options.beforeShow) {
-        currentStep.options.beforeShow();
-    }
+            // Execute beforeShow if it exists
+            if (currentStep.options.beforeShow) {
+                currentStep.options.beforeShow();
+            }
 
-    // Update progress bar
-    const progress = document.querySelector('.progress-bar-fill');
-    if (progress) {
-        const currentIndex = tour.steps.indexOf(currentStep);
-        const percentage = ((currentIndex + 1) / tour.steps.length) * 100;
-        progress.style.width = `${percentage}%`;
-    }
-} catch (error) {
-    console.error('Error in tour show event:', error);
-}
+            // Update progress bar
+            const progress = document.querySelector('.progress-bar-fill');
+            if (progress) {
+                const currentIndex = tour.steps.indexOf(currentStep);
+                const percentage = ((currentIndex + 1) / tour.steps.length) * 100;
+                progress.style.width = `${percentage}%`;
+            }
+        } catch (error) {
+            console.error('Error in tour show event:', error);
+        }
     });
 
     tour.on('complete', () => {
-try {
-    console.log('Tour completed');
-    localStorage.setItem('tour_completed', 'true');
-} catch (error) {
-    console.error('Error in tour complete event:', error);
-}
+        try {
+            console.log('Tour completed');
+            localStorage.setItem('tour_completed', 'true');
+        } catch (error) {
+            console.error('Error in tour complete event:', error);
+        }
     });
 
     // Start the tour with error handling
     setTimeout(() => {
-try {
-    console.log('Starting tour...');
-    tour.start();
-} catch (error) {
-    console.error('Error starting tour:', error);
-}
+        try {
+            console.log('Starting tour...');
+            tour.start();
+        } catch (error) {
+            console.error('Error starting tour:', error);
+        }
     }, 1000);
 
     // Add restart button with error handling
     try {
-const restartButton = document.createElement('button');
-restartButton.className = 'material-button fixed bottom-4 right-4';
-restartButton.innerHTML = '<i class="fas fa-question-circle"></i> Restart Tour';
-restartButton.onclick = () => {
-    try {
-        tour.start();
+        const restartButton = document.createElement('button');
+        restartButton.className = 'material-button fixed bottom-4 right-4';
+        restartButton.innerHTML = '<i class="fas fa-question-circle"></i> Restart Tour';
+        restartButton.onclick = () => {
+            try {
+                tour.start();
+            } catch (error) {
+                console.error('Failed to restart tour:', error);
+            }
+        };
+        document.body.appendChild(restartButton);
     } catch (error) {
-        console.error('Failed to restart tour:', error);
-    }
-};
-document.body.appendChild(restartButton);
-    } catch (error) {
-console.error('Failed to create restart button:', error);
+        console.error('Failed to create restart button:', error);
     }
 });
