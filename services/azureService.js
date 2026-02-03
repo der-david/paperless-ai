@@ -11,33 +11,42 @@ const OpenAI = require('openai');
 const AzureOpenAI = require('openai').AzureOpenAI;
 const fs = require('fs').promises;
 const path = require('path');
-const RestrictionPromptService = require('./restrictionPromptService');
 const BaseAIService = require('./baseAiService');
 
 class AzureOpenAIService extends BaseAIService {
-  constructor({ paperlessService, defaults = {} } = {}) {
-    super({ paperlessService });
+  constructor({
+    paperlessService,
+    restrictionPromptService,
+    apiKey,
+    endpoint,
+    deploymentName,
+    apiVersion,
+    aiSettings
+  } = {}) {
+    super({ paperlessService, restrictionPromptService, aiSettings });
     this.client = null;
-    this.defaults = defaults;
+    this.apiKey = apiKey;
+    this.endpoint = endpoint;
+    this.deploymentName = deploymentName;
+    this.apiVersion = apiVersion;
+    this.initialize();
   }
 
-  initialize(serviceConfig = {}) {
-    const config = serviceConfig;
-    if (!this.client && config.azure?.apiKey) {
+  initialize() {
+    if (!this.client && this.apiKey) {
       this.client = new AzureOpenAI({
-        apiKey: config.azure.apiKey,
-        endpoint: config.azure.endpoint,
-        deploymentName: config.azure.deploymentName,
-        apiVersion: config.azure.apiVersion
+        apiKey: this.apiKey,
+        endpoint: this.endpoint,
+        deploymentName: this.deploymentName,
+        apiVersion: this.apiVersion
       });
     }
   }
 
-  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
+  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null) {
     const cachePath = path.join('./public/images', `${id}.png`);
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -70,7 +79,7 @@ class AzureOpenAIService extends BaseAIService {
 
       if (externalApiData) {
         try {
-          validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData, 500, config.azure?.deploymentName);
+          validatedExternalApiData = await this._validateAndTruncateExternalApiData(externalApiData, 500, this.deploymentName);
           console.debug('External API data validated and included');
         } catch (error) {
           console.warn('External API data validation failed:', error.message);
@@ -80,7 +89,7 @@ class AzureOpenAIService extends BaseAIService {
 
       let systemPrompt = '';
       let promptTags = '';
-      const model = config.azure?.deploymentName || this.defaults.deploymentName;
+      const model = this.deploymentName;
 
       const promptCustomFields = parseCustomFields(config.customFields);
       const { customFieldsStr } = buildResponseSchema({
@@ -105,7 +114,7 @@ class AzureOpenAIService extends BaseAIService {
       }
 
       // Process placeholder replacements in system prompt
-      systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
+      systemPrompt = this.restrictionPromptService.processRestrictionsInPrompt(
         systemPrompt,
         existingTags,
         existingCorrespondentList,
@@ -395,7 +404,7 @@ class AzureOpenAIService extends BaseAIService {
     return dataString;
   }
 
-  async analyzePlayground(content, prompt, serviceConfig = {}) {
+  async analyzePlayground(content, prompt) {
     const musthavePrompt = `
     Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
         {
@@ -407,8 +416,7 @@ class AzureOpenAIService extends BaseAIService {
         }`;
 
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -427,7 +435,7 @@ class AzureOpenAIService extends BaseAIService {
       const availableTokens = maxTokens - reservedTokens;
 
       // Truncate content if necessary
-      const model = config.azure?.deploymentName || this.defaults.deploymentName;
+      const model = this.deploymentName;
       const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
 
       // Make API request
@@ -507,16 +515,15 @@ class AzureOpenAIService extends BaseAIService {
    * @param {string} prompt - The prompt to generate text from
    * @returns {Promise<string>} - The generated text
    */
-  async generateText(prompt, serviceConfig = {}) {
+  async generateText(prompt) {
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
 
       if (!this.client) {
         throw new Error('AzureOpenAI client not initialized - missing API key');
       }
 
-      const model = config.azure?.deploymentName || this.defaults.deploymentName;
+      const model = this.deploymentName;
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -541,16 +548,15 @@ class AzureOpenAIService extends BaseAIService {
     }
   }
 
-  async checkStatus(serviceConfig = {}) {
+  async checkStatus() {
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
 
       if (!this.client) {
         throw new Error('AzureOpenAI client not initialized - missing API key');
       }
 
-      const model = config.azure?.deploymentName || this.defaults.deploymentName;
+      const model = this.deploymentName;
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -575,39 +581,7 @@ class AzureOpenAIService extends BaseAIService {
     }
   }
 
-  async checkStatus(serviceConfig = {}) {
-    try {
-      const config = serviceConfig;
-      this.initialize(config);
-
-      if (!this.client) {
-        throw new Error('Azure OpenAI client not initialized - missing API key');
-      }
-
-      const model = config.azure?.deploymentName;
-
-      const response = await this.client.chat.completions.create({
-        model: model,
-        messages: [
-          {
-            role: "user",
-            content: 'Ping'
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000
-      });
-
-      if (!response?.choices?.[0]?.message?.content) {
-        return { status: 'error' };
-      }
-
-      return { status: 'ok', model: model };
-    } catch (error) {
-      console.error('Error generating text with Azure OpenAI:', error);
-      return { status: 'error' };
-    }
-  }
+  
 }
 
 module.exports = AzureOpenAIService;

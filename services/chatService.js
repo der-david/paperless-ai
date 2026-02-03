@@ -8,10 +8,36 @@ const pipeline = promisify(stream.pipeline);
 const { OpenAI } = require('openai');
 
 class ChatService {
-  constructor({ paperlessService } = {}) {
+  constructor({
+    paperlessService,
+    aiProvider,
+    openaiApiKey,
+    openaiModel,
+    customApiKey,
+    customApiUrl,
+    customModel,
+    azureApiKey,
+    azureEndpoint,
+    azureDeploymentName,
+    azureApiVersion,
+    ollamaApiUrl,
+    ollamaModel
+  } = {}) {
     this.chats = new Map(); // Stores chat histories: documentId -> messages[]
     this.tempDir = path.join(os.tmpdir(), 'paperless-chat');
     this.paperlessService = paperlessService;
+    this.aiProvider = aiProvider || process.env.AI_PROVIDER;
+    this.openaiApiKey = openaiApiKey || process.env.OPENAI_API_KEY;
+    this.openaiModel = openaiModel || process.env.OPENAI_MODEL;
+    this.customApiKey = customApiKey || process.env.CUSTOM_API_KEY;
+    this.customApiUrl = customApiUrl || process.env.CUSTOM_BASE_URL;
+    this.customModel = customModel || process.env.CUSTOM_MODEL;
+    this.azureApiKey = azureApiKey || process.env.AZURE_API_KEY;
+    this.azureEndpoint = azureEndpoint || process.env.AZURE_ENDPOINT;
+    this.azureDeploymentName = azureDeploymentName || process.env.AZURE_DEPLOYMENT_NAME;
+    this.azureApiVersion = azureApiVersion || process.env.AZURE_API_VERSION;
+    this.ollamaApiUrl = ollamaApiUrl || process.env.OLLAMA_API_URL;
+    this.ollamaModel = ollamaModel || process.env.OLLAMA_MODEL;
 
     // Create temporary directory if it doesn't exist
     if (!fs.existsSync(this.tempDir)) {
@@ -60,7 +86,7 @@ class ChatService {
    * Initializes a new chat for a document
    * @param {string} documentId - The ID of the document
    */
-  async initializeChat(documentId, serviceConfig = {}) {
+  async initializeChat(documentId) {
     try {
       // Get document information
       const document = await this.paperlessService.getDocument(documentId);
@@ -102,10 +128,10 @@ class ChatService {
     }
   }
 
-  async sendMessageStream(documentId, userMessage, res, serviceConfig = {}) {
+  async sendMessageStream(documentId, userMessage, res) {
     try {
       if (!this.chats.has(documentId)) {
-        await this.initializeChat(documentId, serviceConfig);
+        await this.initializeChat(documentId);
       }
 
       const chatData = this.chats.get(documentId);
@@ -120,11 +146,7 @@ class ChatService {
       res.setHeader('Connection', 'keep-alive');
 
       let fullResponse = '';
-      const aiProvider = serviceConfig.aiProvider || process.env.AI_PROVIDER;
-      const openaiConfig = serviceConfig.openai || {};
-      const customConfig = serviceConfig.custom || {};
-      const azureConfig = serviceConfig.azure || {};
-      const ollamaConfig = serviceConfig.ollama || {};
+      const aiProvider = this.aiProvider || process.env.AI_PROVIDER;
 
       if (aiProvider === 'openai') {
         // Make sure OpenAIService is initialized
@@ -132,11 +154,11 @@ class ChatService {
 
         // Always create a new client instance for this request to ensure it works
         const openai = new OpenAI({
-          apiKey: openaiConfig.apiKey || process.env.OPENAI_API_KEY
+          apiKey: this.openaiApiKey
         });
 
         const stream = await openai.chat.completions.create({
-          model: openaiConfig.model || process.env.OPENAI_MODEL || 'gpt-4',
+          model: this.openaiModel || 'gpt-4',
           messages: chatData.messages,
           stream: true,
         });
@@ -151,12 +173,12 @@ class ChatService {
       } else if (aiProvider === 'custom') {
         // Use OpenAI SDK with custom base URL
         const customOpenAI = new OpenAI({
-          baseURL: customConfig.apiUrl || process.env.CUSTOM_BASE_URL,
-          apiKey: customConfig.apiKey || process.env.CUSTOM_API_KEY,
+          baseURL: this.customApiUrl,
+          apiKey: this.customApiKey,
         });
 
         const stream = await customOpenAI.chat.completions.create({
-          model: customConfig.model || process.env.CUSTOM_MODEL,
+          model: this.customModel,
           messages: chatData.messages,
           stream: true,
         });
@@ -171,13 +193,13 @@ class ChatService {
       } else if (aiProvider === 'azure') {
         // Use OpenAI SDK with Azure configuration
         const azureOpenAI = new OpenAI({
-          apiKey: azureConfig.apiKey || process.env.AZURE_API_KEY,
-          baseURL: `${azureConfig.endpoint || process.env.AZURE_ENDPOINT}/openai/deployments/${azureConfig.deploymentName || process.env.AZURE_DEPLOYMENT_NAME}`,
-          defaultQuery: { 'api-version': azureConfig.apiVersion || process.env.AZURE_API_VERSION },
+          apiKey: this.azureApiKey,
+          baseURL: `${this.azureEndpoint}/openai/deployments/${this.azureDeploymentName}`,
+          defaultQuery: { 'api-version': this.azureApiVersion },
         });
 
         const stream = await azureOpenAI.chat.completions.create({
-          model: azureConfig.deploymentName || process.env.AZURE_DEPLOYMENT_NAME,
+          model: this.azureDeploymentName,
           messages: chatData.messages,
           stream: true,
         });
@@ -192,12 +214,12 @@ class ChatService {
       } else if (aiProvider === 'ollama') {
         // Use OpenAI SDK for Ollama with OpenAI API compatibility
         const ollamaOpenAI = new OpenAI({
-          baseURL: `${ollamaConfig.apiUrl || process.env.OLLAMA_API_URL}/v1`,
+          baseURL: `${this.ollamaApiUrl}/v1`,
           apiKey: 'ollama', // Ollama doesn't require a real API key but the SDK requires some value
         });
 
         const stream = await ollamaOpenAI.chat.completions.create({
-          model: ollamaConfig.model || process.env.OLLAMA_MODEL,
+          model: this.ollamaModel,
           messages: chatData.messages,
           stream: true,
         });

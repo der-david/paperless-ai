@@ -5,28 +5,24 @@ const path = require('path');
 const { parse, isValid, parseISO, format } = require('date-fns');
 
 class PaperlessService {
-  constructor(serviceConfig = {}) {
+  constructor({ apiUrl, apiToken, settings } = {}) {
     this.client = null;
     this.tagCache = new Map();
     this.customFieldCache = new Map();
     this.lastTagRefresh = 0;
     this.CACHE_LIFETIME = 3000; // 3 Sekunden
-    this.config = serviceConfig;
-  }
-
-  setConfig(serviceConfig = {}) {
-    this.config = serviceConfig;
+    this.apiUrl = apiUrl || process.env.PAPERLESS_API_URL;
+    this.apiToken = apiToken || process.env.PAPERLESS_API_TOKEN;
+    this.settings = settings || {};
+    this.initialize();
   }
 
   initialize() {
-    const config = this.config || {};
-    const apiUrl = config.paperless?.apiUrl || process.env.PAPERLESS_API_URL;
-    const apiToken = config.paperless?.apiToken || process.env.PAPERLESS_API_TOKEN;
-    if (!this.client && apiUrl && apiToken) {
+    if (!this.client && this.apiUrl && this.apiToken) {
       this.client = axios.create({
-        baseURL: apiUrl,
+        baseURL: this.apiUrl,
         headers: {
-          'Authorization': `Token ${apiToken}`,
+          'Authorization': `Token ${this.apiToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -325,7 +321,7 @@ class PaperlessService {
       // Explicitly check options first, then env var
       const restrictToExistingTags = options.restrictToExistingTags === true ||
                                    (options.restrictToExistingTags === undefined &&
-                                    this.config?.restrictToExisting?.tags === true);
+                                    this.settings?.restrictToExisting?.tags === true);
 
       // Input validation
       if (!tagNames) {
@@ -391,9 +387,9 @@ class PaperlessService {
       }
 
       // Add AI-Processed tag if enabled
-      if (this.config?.addAIProcessedTag === true && this.config?.addAIProcessedTags) {
+      if (this.settings?.addAIProcessedTag === true && this.settings?.addAIProcessedTags) {
         try {
-          const aiTagName = this.config.addAIProcessedTags;
+          const aiTagName = this.settings.addAIProcessedTags;
           let aiTag = await this.findExistingTag(aiTagName);
 
           if (!aiTag) {
@@ -404,8 +400,8 @@ class PaperlessService {
             tagIds.push(aiTag.id);
           }
         } catch (error) {
-          console.error(`processing AI tag "${this.config.addAIProcessedTags}":`, error.message);
-          errors.push({ tagName: this.config.addAIProcessedTags, error: error.message });
+          console.error(`processing AI tag "${this.settings.addAIProcessedTags}":`, error.message);
+          errors.push({ tagName: this.settings.addAIProcessedTags, error: error.message });
         }
       }
 
@@ -642,12 +638,12 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.config?.predefinedMode === true;
+    const shouldFilterByTags = this.settings?.predefinedMode === true;
     let tagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      const tagsValue = this.config?.tags || process.env.TAGS;
+      const tagsValue = this.settings?.tags || process.env.TAGS;
       if (!tagsValue) {
         console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to true but no TAGS are defined');
         return [];
@@ -762,12 +758,12 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.config?.predefinedMode === true;
+    const shouldFilterByTags = this.settings?.predefinedMode === true;
     let tagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      const tagsValue = this.config?.tags || process.env.TAGS;
+      const tagsValue = this.settings?.tags || process.env.TAGS;
       if (!tagsValue) {
         console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to true but no TAGS are defined');
         return [];
@@ -1066,7 +1062,7 @@ async searchForExistingCorrespondent(correspondent) {
     // Explicitly check options first, then env var
     const restrictToExistingCorrespondents = options.restrictToExistingCorrespondents === true ||
                                            (options.restrictToExistingCorrespondents === undefined &&
-                                            this.config?.restrictToExisting?.correspondents === true);
+                                            this.settings?.restrictToExisting?.correspondents === true);
 
     console.debug(`Processing correspondent with restrictToExistingCorrespondents=${restrictToExistingCorrespondents}`);
 
@@ -1262,7 +1258,7 @@ async getOrCreateDocumentType(name) {
         if (response.data.results && response.data.results.length > 0) {
             const userInfo = response.data.results;
             //filter for username by config value
-            const username = this.config?.paperless?.username || process.env.PAPERLESS_USERNAME;
+            const username = this.settings?.paperless?.username || process.env.PAPERLESS_USERNAME;
             const user = userInfo.find(user => user.username === username);
             if (user) {
                 console.debug(`Found own user ID: ${user.id}`);

@@ -2,10 +2,9 @@
 const axios = require('axios');
 
 class RagService {
-  constructor({ aiService, paperlessService, serviceConfig } = {}) {
+  constructor({ aiService, paperlessService } = {}) {
     this.aiService = aiService;
     this.paperlessService = paperlessService;
-    this.serviceConfig = serviceConfig || {};
     this.baseUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
   }
 
@@ -15,10 +14,6 @@ class RagService {
 
   setPaperlessService(paperlessService) {
     this.paperlessService = paperlessService;
-  }
-
-  setServiceConfig(serviceConfig = {}) {
-    this.serviceConfig = serviceConfig;
   }
 
   /**
@@ -65,7 +60,7 @@ class RagService {
    * @param {string} question - The question to ask
    * @returns {Promise<{answer: string, sources: Array}>} - AI response and source documents
    */
-  async askQuestion(question, serviceConfig = this.serviceConfig || {}) {
+  async askQuestion(question) {
     try {
       // 1. Get context from the RAG service
       const response = await axios.post(`${this.baseUrl}/context`, {
@@ -121,7 +116,7 @@ class RagService {
 
       let answer;
       try {
-        answer = await this.aiService.generateText(prompt, serviceConfig);
+        answer = await this.aiService.generateText(prompt);
       } catch (error) {
         console.error('Error generating answer with AI service:', error);
         answer = "An error occurred while generating an answer. Please try again later.";
@@ -202,9 +197,9 @@ class RagService {
    * Get AI status
    * @returns {Promise<{status: string}>}
    */
-  async getAIStatus(serviceConfig = this.serviceConfig || {}) {
+  async getAIStatus() {
     try {
-      const status = await this.aiService.checkStatus(serviceConfig);
+      const status = await this.aiService.checkStatus();
       return status;
     } catch (error) {
       console.error('Error checking AI service status:', error);

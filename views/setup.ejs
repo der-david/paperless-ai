@@ -371,7 +371,7 @@
                                         <input type="number"
                                                id="tokenLimit"
                                                name="tokenLimit"
-                                               value="<%= config.TOKEN_LIMIT %>"
+                                               value="<%= config.AI_TOKEN_LIMIT %>"
                                                class="modern-input"
                                                placeholder="Enter token limit of model">
                                     </div>
@@ -381,7 +381,7 @@
                                         <input type="number"
                                                id="responseTokens"
                                                name="responseTokens"
-                                               value="<%= config.RESPONSE_TOKENS %>"
+                                               value="<%= config.AI_RESPONSE_TOKENS %>"
                                                class="modern-input"
                                                placeholder="Enter approximate token amount for the response">
                                     </div>
@@ -391,9 +391,9 @@
                                         <select id="contentSourceMode"
                                                 name="contentSourceMode"
                                                 class="modern-input">
-                                            <option value="content" <%= config.CONTENT_SOURCE_MODE === 'content' ? 'selected' : '' %>>Content only (default)</option>
-                                            <option value="raw_document" <%= config.CONTENT_SOURCE_MODE === 'raw_document' ? 'selected' : '' %>>Raw document only</option>
-                                            <option value="both" <%= config.CONTENT_SOURCE_MODE === 'both' ? 'selected' : '' %>>Both</option>
+                                            <option value="content" <%= config.AI_CONTENT_SOURCE_MODE === 'content' ? 'selected' : '' %>>Content only (default)</option>
+                                            <option value="raw_document" <%= config.AI_CONTENT_SOURCE_MODE === 'raw_document' ? 'selected' : '' %>>Raw document only</option>
+                                            <option value="both" <%= config.AI_CONTENT_SOURCE_MODE === 'both' ? 'selected' : '' %>>Both</option>
                                         </select>
                                     </div>
 
@@ -402,9 +402,9 @@
                                         <select id="rawDocumentMode"
                                                 name="rawDocumentMode"
                                                 class="modern-input">
-                                            <option value="text" <%= config.RAW_DOCUMENT_MODE === 'text' ? 'selected' : '' %>>Text (base64)</option>
-                                            <option value="file" <%= config.RAW_DOCUMENT_MODE === 'file' ? 'selected' : '' %>>File</option>
-                                            <option value="image" <%= config.RAW_DOCUMENT_MODE === 'image' ? 'selected' : '' %>>Image</option>
+                                            <option value="text" <%= config.AI_RAW_DOCUMENT_MODE === 'text' ? 'selected' : '' %>>Text (base64)</option>
+                                            <option value="file" <%= config.AI_RAW_DOCUMENT_MODE === 'file' ? 'selected' : '' %>>File</option>
+                                            <option value="image" <%= config.AI_RAW_DOCUMENT_MODE === 'image' ? 'selected' : '' %>>Image</option>
                                         </select>
                                     </div>
                                 </div>
@@ -425,8 +425,8 @@
                                         <select id="useExistingData"
                                                 name="useExistingData"
                                                 class="modern-input">
-                                                <option value="false" <%= !config.USE_EXISTING_DATA ? 'selected' : '' %>>No</option>
-                                                <option value="true" <%= config.USE_EXISTING_DATA ? 'selected' : '' %>>Yes</option>
+                                                <option value="false" <%= !config.AI_USE_EXISTING_DATA ? 'selected' : '' %>>No</option>
+                                                <option value="true" <%= config.AI_USE_EXISTING_DATA ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
 
@@ -511,12 +511,12 @@
                                             <select id="usePromptTags"
                                                     name="usePromptTags"
                                                     class="modern-input">
-                                                <option value="false" <%= !config.USE_PROMPT_TAGS ? 'selected' : '' %>>No</option>
-                                                <option value="true" <%= config.USE_PROMPT_TAGS ? 'selected' : '' %>>Yes</option>
+                                                <option value="false" <%= !config.AI_USE_PROMPT_TAGS ? 'selected' : '' %>>No</option>
+                                                <option value="true" <%= config.AI_USE_PROMPT_TAGS ? 'selected' : '' %>>Yes</option>
                                             </select>
                                         </div>
 
-                                        <div id="promptTagsSection" class="<%= config.USE_PROMPT_TAGS ? '' : 'hidden' %>">
+                                        <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %>">
                                             <div class="form-group">
                                                 <label for="promptTagInput">Prompt Tags</label>
                                                 <div class="tag-input-container">
@@ -531,8 +531,8 @@
                                                     </button>
                                                 </div>
                                                 <div id="promptTagsContainer" class="tags-container">
-                                                    <% if (config.PROMPT_TAGS && Array.isArray(config.PROMPT_TAGS) && config.PROMPT_TAGS.length > 0) { %>
-                                                        <% config.PROMPT_TAGS.forEach(tag => { %>
+                                                    <% if (config.AI_PROMPT_TAGS && Array.isArray(config.AI_PROMPT_TAGS) && config.AI_PROMPT_TAGS.length > 0) { %>
+                                                        <% config.AI_PROMPT_TAGS.forEach(tag => { %>
                                                             <div class="modern-tag fade-in">
                                                                 <span><%= tag %></span>
                                                                 <button type="button"><i class="fas fa-times"></i></button>
@@ -540,7 +540,7 @@
                                                         <% }); %>
                                                     <% } %>
                                                 </div>
-                                                <input type="hidden" id="promptTags" name="promptTags" value="<%= Array.isArray(config.PROMPT_TAGS) ? config.PROMPT_TAGS.join(',') : '' %>">
+                                                <input type="hidden" id="promptTags" name="promptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
                                                 <p class="help-text">These tags will be exclusively used in the AI prompt</p>
                                             </div>
                                         </div>
@@ -724,8 +724,8 @@
 
                                                 <!-- Fields Container -->
                                                 <div id="customFieldsList" class="space-y-2">
-                                                    <% if (config.CUSTOM_FIELDS && Array.isArray(JSON.parse(config.CUSTOM_FIELDS).custom_fields)) { %>
-                                                        <% JSON.parse(config.CUSTOM_FIELDS).custom_fields.forEach((field, index) => { %>
+                                                    <% if (config.AI_CUSTOM_FIELDS && Array.isArray(JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields)) { %>
+                                                        <% JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields.forEach((field, index) => { %>
                                                             <div class="custom-field-item flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-200 transition-colors">
                                                                 <div class="cursor-move text-gray-400">
                                                                     <i class="fas fa-grip-vertical"></i>
@@ -803,7 +803,7 @@
                                             <input type="hidden"
                                                 id="customFieldsJson"
                                                 name="customFields"
-                                                value="<%= config.CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
+                                                value="<%= config.AI_CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
                                         </div>
                                     </section>
 
@@ -816,13 +816,22 @@
                                                      name="systemPrompt"
                                                      rows="8"
                                                      class="modern-input"
-                                                     placeholder="Describe how the AI should analyze your documents..."><%= config.SYSTEM_PROMPT %></textarea>
+                                                     placeholder="Describe how the AI should analyze your documents..."><%= config.AI_SYSTEM_PROMPT %></textarea>
                                             <button id="systemPromptBtn" type="button"
                                                     class="material-button example-btn">
                                                 <i class="fas fa-lightbulb"></i>
                                                 Example
                                             </button>
                                         </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mustHavePrompt">Must-Have-Prompt (<em>(only appended, if placeholder <code>%JSON_SCHEMA%</code> is not present in Prompt above)</em>)</label>
+                                        <textarea id="mustHavePrompt"
+                                                  name="mustHavePrompt"
+                                                  rows="6"
+                                                  class="modern-input"
+                                                  placeholder="mandatory appendix defined in application configuration"
+                                                  disabled><%= config.ai?.mustHavePrompt || '' %></textarea>
                                     </div>
                                 </div>
                             </section>

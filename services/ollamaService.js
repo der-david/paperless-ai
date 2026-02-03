@@ -11,7 +11,6 @@ const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const OpenAI = require('openai');
-const RestrictionPromptService = require('./restrictionPromptService');
 const BaseAIService = require('./baseAiService');
 
 /**
@@ -21,14 +20,19 @@ class OllamaService extends BaseAIService {
     /**
      * Initialize the Ollama service
      */
-    constructor({ paperlessService, defaults = {} } = {}) {
-        super({ paperlessService });
-        this.apiUrl = null;
-        this.model = null;
+    constructor({
+        paperlessService,
+        restrictionPromptService,
+        apiUrl,
+        model,
+        aiSettings
+    } = {}) {
+        super({ paperlessService, restrictionPromptService, aiSettings });
+        this.apiUrl = apiUrl || null;
+        this.model = model || null;
         this.client = axios.create({
             timeout: 1800000 // 30 minutes timeout
         });
-        this.defaults = defaults;
 
         // Schema for playground analysis (simpler version)
         this.playgroundSchema = {
@@ -47,6 +51,13 @@ class OllamaService extends BaseAIService {
             },
             required: ["title", "correspondent", "tags", "document_type", "document_date", "language"]
         };
+
+        this._applyConfig();
+
+    }
+
+    _applyConfig() {
+        this.apiUrl = this.apiUrl || 'http://localhost:11434';
     }
 
 
@@ -59,11 +70,9 @@ class OllamaService extends BaseAIService {
      * @param {string} customPrompt - Custom prompt (optional)
      * @returns {Object} Analysis results
      */
-    async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
+    async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null) {
         try {
-            const config = serviceConfig;
-            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || this.defaults.apiUrl || 'http://localhost:11434';
-            this.model = config.ollama?.model || this.model || this.defaults.model;
+            const config = this.settings;
             // Truncate content if needed
             content = this._truncateContent(content, config.contentMaxLength);
 
@@ -100,22 +109,22 @@ class OllamaService extends BaseAIService {
             // Build prompt
             let prompt;
             if (!customPrompt) {
-                prompt = this._buildPrompt(content, existingTags, existingCorrespondentList, existingDocumentTypesList, externalApiData, config);
+                prompt = this._buildPrompt(content, existingTags, existingCorrespondentList, existingDocumentTypesList, externalApiData);
             } else {
-                const customFieldsStr = this._generateCustomFieldsTemplate(config);
+                const customFieldsStr = this._generateCustomFieldsTemplate();
                 prompt = customPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr) + "\n\n" + JSON.stringify(content);
                 console.debug('Ollama Service started with custom prompt');
             }
 
             // Generate custom fields for the prompt
-            const customFieldsStr = this._generateCustomFieldsTemplate(config);
+            const customFieldsStr = this._generateCustomFieldsTemplate();
 
             // Generate system prompt
             const systemPrompt = this._generateSystemPrompt(customFieldsStr);
 
             // Calculate context window size
             const promptTokenCount = this._calculatePromptTokenCount(prompt);
-            const numCtx = this._calculateNumCtx(promptTokenCount, 1024, Number(config.tokenLimit || this.defaults.tokenLimit) || undefined);
+            const numCtx = this._calculateNumCtx(promptTokenCount, 1024, Number(config.tokenLimit) || undefined);
 
             console.debug(`Use existing data: ${config.useExistingData}, Restrictions applied based on useExistingData setting`);
             console.debug(`External API data: ${validatedExternalApiData ? 'included' : 'none'}`);
@@ -194,14 +203,12 @@ class OllamaService extends BaseAIService {
      * @param {string} prompt - User-provided prompt
      * @returns {Object} Analysis results
      */
-    async analyzePlayground(content, prompt, serviceConfig = {}) {
+    async analyzePlayground(content, prompt) {
         try {
-            const config = serviceConfig;
-            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || 'http://localhost:11434';
-            this.model = config.ollama?.model || this.model;
+            const config = this.settings;
             // Calculate context window size
             const promptTokenCount = await calculateTokens(prompt, this.model || 'gpt-4o-mini');
-            const numCtx = this._calculateNumCtx(promptTokenCount, 1024, Number(config.tokenLimit || this.defaults.tokenLimit) || undefined);
+            const numCtx = this._calculateNumCtx(promptTokenCount, 1024, Number(config.tokenLimit) || undefined);
 
             // Generate playground system prompt (simpler than full analysis)
             const systemPrompt = this._generatePlaygroundSystemPrompt();
@@ -267,23 +274,22 @@ class OllamaService extends BaseAIService {
      * @param {Array} existingDocumentTypes - List of existing document types
      * @returns {string} Formatted prompt
      */
-    _buildPrompt(content, existingTags = [], existingCorrespondent = [], existingDocumentTypes = [], externalApiData = null, serviceConfig = {}) {
-        const config = serviceConfig;
+    _buildPrompt(content, existingTags = [], existingCorrespondent = [], existingDocumentTypes = [], externalApiData = null) {
+        const config = this.settings;
         let systemPrompt;
         let promptTags = '';
+        const existingTagsList = existingTags.join(', ');
 
         // Validate that existingCorrespondent is an array and handle if it's not
         const correspondentList = Array.isArray(existingCorrespondent)
             ? existingCorrespondent
             : [];
 
-        const customFieldsStr = this._generateCustomFieldsTemplate(config);
+        const customFieldsStr = this._generateCustomFieldsTemplate();
 
         // Get system prompt based on configuration
         if (config.useExistingData && !config.restrictToExisting.tags && !config.restrictToExisting.correspondents) {
             // Format existing tags
-            const existingTagsList = existingTags.join(', ');
-
             // Format existing correspondents - handle both array of objects and array of strings
             const existingCorrespondentList = correspondentList
                 .filter(Boolean)  // Remove any null/undefined entries
@@ -321,7 +327,7 @@ class OllamaService extends BaseAIService {
             promptTags = '';
         } else {
             config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-            let systemPrompt = config.systemPrompt + '\n\n' + config.mustHavePrompt;
+            systemPrompt = config.systemPrompt + '\n\n' + config.mustHavePrompt;
             if (config.restrictToExisting.tags) {
                 systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n` + systemPrompt;
             }
@@ -352,7 +358,7 @@ class OllamaService extends BaseAIService {
         }
 
         // Process placeholder replacements in system prompt
-        systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
+        systemPrompt = this.restrictionPromptService.processRestrictionsInPrompt(
             systemPrompt,
             existingTags,
             correspondentList,
@@ -410,8 +416,8 @@ class OllamaService extends BaseAIService {
      * Generate custom fields template for prompts
      * @returns {string} Custom fields template as a string
      */
-    _generateCustomFieldsTemplate(serviceConfig = {}) {
-        const customFields = parseCustomFields(serviceConfig.customFields);
+    _generateCustomFieldsTemplate() {
+        const customFields = parseCustomFields(this.settings.customFields);
         const { customFieldsStr } = buildResponseSchema({
             includeCustomFieldProperties: true,
             customFields,
@@ -682,14 +688,12 @@ class OllamaService extends BaseAIService {
      * @param {string} prompt - The prompt to generate text from
      * @returns {Promise<string>} - The generated text
      */
-    async generateText(prompt, serviceConfig = {}) {
+    async generateText(prompt) {
         try {
-            const config = serviceConfig;
-            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || 'http://localhost:11434';
-            this.model = config.ollama?.model || this.model;
+            const config = this.settings;
             // Calculate context window size based on prompt length
             const promptTokenCount = this._calculatePromptTokenCount(prompt);
-            const numCtx = this._calculateNumCtx(promptTokenCount, 512, Number(config.tokenLimit || this.defaults.tokenLimit) || undefined);
+            const numCtx = this._calculateNumCtx(promptTokenCount, 512, Number(config.tokenLimit) || undefined);
 
             // Simple system prompt for text generation
             const systemPrompt = `You are a helpful assistant. Generate a clear, concise, and informative response to the user's question or request.`;
@@ -723,11 +727,9 @@ class OllamaService extends BaseAIService {
      * Check if the Ollama service is running
      * @returns {Promise<boolean>} - True if the service is running, false otherwise
      */
-    async checkStatus(serviceConfig = {}) {
+    async checkStatus() {
         // use ollama status endpoint
         try {
-            const config = serviceConfig;
-            this.apiUrl = config.ollama?.apiUrl || this.apiUrl || 'http://localhost:11434';
             const response = await this.client.get(`${this.apiUrl}/api/ps`);
             if (response.status === 200) {
                 const data = response.data;

@@ -1,10 +1,16 @@
 class BaseAIService {
-  constructor({ paperlessService } = {}) {
+  constructor({ paperlessService, restrictionPromptService, aiSettings } = {}) {
     this.paperlessService = paperlessService;
+    this.restrictionPromptService = restrictionPromptService;
+    this.settings = aiSettings || {};
   }
 
   setPaperlessService(paperlessService) {
     this.paperlessService = paperlessService;
+  }
+
+  setRestrictionPromptService(restrictionPromptService) {
+    this.restrictionPromptService = restrictionPromptService;
   }
 
   initialize() {

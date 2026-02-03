@@ -245,7 +245,7 @@ function parseCustomFields(rawValue) {
             return parsed.custom_fields;
         }
     } catch (error) {
-        console.error('Failed to parse CUSTOM_FIELDS:', error);
+        console.error('Failed to parse AI_CUSTOM_FIELDS:', error);
     }
 
     return [];

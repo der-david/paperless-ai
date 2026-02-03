@@ -227,7 +227,7 @@ class SetupService {
 
       const envContent = Object.entries(config)
         .map(([key, value]) => {
-          if (key === "SYSTEM_PROMPT") {
+          if (key === "AI_SYSTEM_PROMPT") {
             return `${key}="${value}"`;
           }
           return `${key}=${value}`;

@@ -213,7 +213,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     paperlessService.getDocument(doc.id)
   ]);
 
-  if ((config.contentSourceMode || 'content') === 'content') {
+  if ((config.ai?.contentSourceMode || 'content') === 'content') {
     if (!content || content.length < 10) {
       console.debug(`Document ${doc.id} has no content, skipping analysis`);
       return null;
@@ -229,8 +229,8 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   // Get external API data if enabled
   if (config.externalApiConfig.enabled === true) {
     try {
-      const externalApiService = require('../services/externalApiService');
-      const externalData = await externalApiService.fetchData(config.externalApiConfig);
+      const externalApiService = container.getExternalApiService();
+      const externalData = await externalApiService.fetchData();
       if (externalData) {
         externalApiData = externalData;
         console.debug('Retrieved external API data for prompt enrichment');
@@ -244,9 +244,9 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   let analysis;
   if(customPrompt) {
     console.debug('Starting document analysis with custom prompt');
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, externalApiData, config);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, externalApiData);
   }else{
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData, config);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData);
   }
   console.log('Response from AI service:', analysis);
   if (analysis.error) {

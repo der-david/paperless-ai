@@ -11,50 +11,47 @@ const {
 const OpenAI = require('openai');
 const fs = require('fs').promises;
 const path = require('path');
-const RestrictionPromptService = require('./restrictionPromptService');
 const BaseAIService = require('./baseAiService');
 
 class OpenAIService extends BaseAIService {
-  constructor({ paperlessService, defaults = {} } = {}) {
-    super({ paperlessService });
+  constructor({
+    paperlessService,
+    restrictionPromptService,
+    apiKey,
+    model,
+    systemPromptRole,
+    gizmoId,
+    aiSettings
+  } = {}) {
+    super({ paperlessService, restrictionPromptService, aiSettings });
     this.client = null;
-    this.defaults = defaults;
+    this.apiKey = apiKey;
+    this.model = model;
+    this.systemPromptRole = systemPromptRole || 'system';
+    this.gizmoId = gizmoId;
+    this.initialize();
   }
 
-  initialize(serviceConfig = {}) {
-    const config = serviceConfig;
-    if (!this.client && config.aiProvider === 'ollama') {
+  initialize() {
+    if (!this.client && this.apiKey) {
       this.client = new OpenAI({
-        baseURL: config.ollama.apiUrl + '/v1',
-        apiKey: 'ollama'
+        apiKey: this.apiKey
       });
-    } else if (!this.client && config.aiProvider === 'custom') {
-      this.client = new OpenAI({
-        baseURL: config.custom.apiUrl,
-        apiKey: config.custom.apiKey
-      });
-    } else if (!this.client && config.aiProvider === 'openai') {
-      if (!this.client && config.openai.apiKey) {
-        this.client = new OpenAI({
-          apiKey: config.openai.apiKey
-        });
-      }
     }
   }
 
-  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
+  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null) {
     const cachePath = path.join('./public/images', `${id}.png`);
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
       const envSystemPrompt = (config.systemPrompt || '').replace(/\\n/g, '\n');
       let systemPrompt = '';
       let promptTags = '';
-      const baseModel = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
-      const gizmoId = config.openai.gizmoId;
+      const baseModel = this.model || 'gpt-4o-mini';
+      const gizmoId = this.gizmoId;
       const model = gizmoId ? `${baseModel}-gizmo-${gizmoId}` : baseModel;
       const modelForTokens = baseModel || model;
 
@@ -108,9 +105,9 @@ class OpenAIService extends BaseAIService {
         existingTags,
         existingDocumentTypesList,
         existingCorrespondents: existingCorrespondentList,
-        restrictToExistingTags: config.restrictToExisting.tags,
-        restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes,
-        restrictToExistingCorrespondents: config.restrictToExisting.correspondents,
+        restrictToExistingTags: config.restrictToExisting?.tags,
+        restrictToExistingDocumentTypes: config.restrictToExisting?.documentTypes,
+        restrictToExistingCorrespondents: config.restrictToExisting?.correspondents,
         limitFunctions: config.limitFunctions,
         includeCustomFieldProperties: true,
         customFields,
@@ -132,7 +129,7 @@ class OpenAIService extends BaseAIService {
       }
 
       // Get system prompt and model
-      if (config.useExistingData && !config.restrictToExisting.tags && !config.restrictToExisting.correspondents) {
+      if (config.useExistingData && !config.restrictToExisting?.tags && !config.restrictToExisting?.correspondents) {
         systemPrompt += `
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
@@ -145,7 +142,7 @@ class OpenAIService extends BaseAIService {
       }
 
       // Process placeholder replacements in system prompt
-      systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
+      systemPrompt = this.restrictionPromptService.processRestrictionsInPrompt(
         systemPrompt,
         existingTags,
         existingCorrespondentList,
@@ -282,7 +279,7 @@ class OpenAIService extends BaseAIService {
         model: model,
         messages: [
           {
-            role: config.openai.systemPromptRole || this.defaults.systemPromptRole || 'system', /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
+            role: this.systemPromptRole || 'system', /* https://platform.openai.com/docs/api-reference/chat/create#chat_create-messages-developer_message */
             content: systemPrompt
           },
           {
@@ -435,7 +432,7 @@ class OpenAIService extends BaseAIService {
     return dataString;
   }
 
-  async analyzePlayground(content, prompt, serviceConfig = {}) {
+  async analyzePlayground(content, prompt) {
     const musthavePrompt = `
     Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
         {
@@ -447,8 +444,7 @@ class OpenAIService extends BaseAIService {
         }`;
 
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -467,14 +463,14 @@ class OpenAIService extends BaseAIService {
       const availableTokens = maxTokens - reservedTokens;
 
       // Truncate content if necessary
-      const model = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
+      const model = this.model || 'gpt-4o-mini';
       const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
       // Make API request
       const response = await this.client.chat.completions.create({
         model: model,
         messages: [
           {
-            role: config.openai?.systemPromptRole || this.defaults.systemPromptRole || 'system',
+            role: this.systemPromptRole || 'system',
             content: prompt + musthavePrompt
           },
           {
@@ -549,16 +545,15 @@ class OpenAIService extends BaseAIService {
    * @param {string} prompt - The prompt to generate text from
    * @returns {Promise<string>} - The generated text
    */
-  async generateText(prompt, serviceConfig = {}) {
+  async generateText(prompt) {
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
 
       if (!this.client) {
         throw new Error('OpenAI client not initialized - missing API key');
       }
 
-      const model = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
+      const model = this.model || 'gpt-4o-mini';
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -582,16 +577,15 @@ class OpenAIService extends BaseAIService {
     }
   }
 
-  async checkStatus(serviceConfig = {}) {
+  async checkStatus() {
     // send test request to OpenAI API and respond with 'ok' or 'error'
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
 
       if (!this.client) {
         throw new Error('OpenAI client not initialized - missing API key');
       }
-      const model = config.openai?.model || this.defaults.model || 'gpt-4o-mini';
+      const model = this.model || 'gpt-4o-mini';
       const response = await this.client.chat.completions.create({
         model: model,
         messages: [

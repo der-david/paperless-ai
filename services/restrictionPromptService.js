@@ -12,7 +12,7 @@ class RestrictionPromptService {
    * @param {Object} config - Configuration object (unused but kept for compatibility)
    * @returns {string} - Prompt with placeholders replaced
    */
-  static processRestrictionsInPrompt(prompt, existingTags, existingCorrespondentList, existingDocumentTypesList, config) {
+  processRestrictionsInPrompt(prompt, existingTags, existingCorrespondentList, existingDocumentTypesList, config) {
     // Replace placeholders in the original prompt
     return this._replacePlaceholders(prompt, existingTags, existingCorrespondentList, existingDocumentTypesList);
   }
@@ -25,7 +25,7 @@ class RestrictionPromptService {
    * @param {Array|string} existingDocumentTypesList - List of existing document types
    * @returns {string} - Prompt with placeholders replaced
    */
-  static _replacePlaceholders(prompt, existingTags, existingCorrespondentList, existingDocumentTypesList) {
+  _replacePlaceholders(prompt, existingTags, existingCorrespondentList, existingDocumentTypesList) {
     let processedPrompt = prompt;
 
     // Replace %RESTRICTED_TAGS% placeholder
@@ -54,7 +54,7 @@ class RestrictionPromptService {
    * @param {Array} existingTags - Array of existing tags
    * @returns {string} - Comma-separated list of tag names or empty string
    */
-  static _formatTagsList(existingTags) {
+  _formatTagsList(existingTags) {
     if (!Array.isArray(existingTags) || existingTags.length === 0) {
       return '';
     }
@@ -70,7 +70,7 @@ class RestrictionPromptService {
    * @param {Array|string} existingCorrespondentList - List of existing correspondents
    * @returns {string} - Comma-separated list of correspondent names or empty string
    */
-  static _formatCorrespondentsList(existingCorrespondentList) {
+  _formatCorrespondentsList(existingCorrespondentList) {
     if (!existingCorrespondentList) {
       return '';
     }
@@ -98,7 +98,7 @@ class RestrictionPromptService {
    * @param {Array|string} existingDocumentTypesList - List of existing document types
    * @returns {string} - Comma-separated list of document type names or empty string
    */
-  static _formatDocumentTypesList(existingDocumentTypesList) {
+  _formatDocumentTypesList(existingDocumentTypesList) {
     if (!existingDocumentTypesList) {
       return 'No restriction applied';
     }

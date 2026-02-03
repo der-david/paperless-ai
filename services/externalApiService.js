@@ -3,40 +3,40 @@ const axios = require('axios');
  * Service for fetching data from external APIs to enrich AI prompts
  */
 class ExternalApiService {
+  constructor({ enabled = false, url = '', method = 'GET', headers = {}, body = {}, timeout = 5000, transform = '' } = {}) {
+    this.enabled = enabled;
+    this.url = url;
+    this.method = method;
+    this.headers = headers;
+    this.body = body;
+    this.timeout = timeout;
+    this.transform = transform;
+  }
+
   /**
    * Fetch data from the configured external API
    * @returns {Promise<Object|string|null>} The data from the API or null if disabled/error
    */
-  async fetchData(externalApiConfig = {}) {
+  async fetchData() {
     try {
-      const resolvedConfig = externalApiConfig || {};
       // Check if external API integration is enabled
-      if (!resolvedConfig || resolvedConfig.enabled !== true) {
+      if (!this.enabled) {
         console.debug('External API integration is disabled');
         return null;
       }
 
-      const {
-        url,
-        method = 'GET',
-        headers = {},
-        body = {},
-        timeout = 5000,
-        transform
-      } = resolvedConfig;
-
-      if (!url) {
+      if (!this.url) {
         console.error('External API URL not configured');
         return null;
       }
 
-      console.debug(`Fetching data from external API: ${url}`);
+      console.debug(`Fetching data from external API: ${this.url}`);
 
       // Parse headers if they're a string
-      let parsedHeaders = headers;
-      if (typeof headers === 'string') {
+      let parsedHeaders = this.headers;
+      if (typeof this.headers === 'string') {
         try {
-          parsedHeaders = JSON.parse(headers);
+          parsedHeaders = JSON.parse(this.headers);
         } catch (error) {
           console.error('Failed to parse external API headers:', error.message);
           parsedHeaders = {};
@@ -44,10 +44,10 @@ class ExternalApiService {
       }
 
       // Parse body if it's a string
-      let parsedBody = body;
-      if (typeof body === 'string' && (method === 'POST' || method === 'PUT')) {
+      let parsedBody = this.body;
+      if (typeof this.body === 'string' && (this.method === 'POST' || this.method === 'PUT')) {
         try {
-          parsedBody = JSON.parse(body);
+          parsedBody = JSON.parse(this.body);
         } catch (error) {
           console.error('Failed to parse external API body:', error.message);
           parsedBody = {};
@@ -56,14 +56,14 @@ class ExternalApiService {
 
       // Configure request options
       const options = {
-        method,
-        url,
+        method: this.method,
+        url: this.url,
         headers: parsedHeaders,
-        timeout: parseInt(timeout) || 5000,
+        timeout: parseInt(this.timeout) || 5000,
       };
 
       // Add request body for POST/PUT requests
-      if (method === 'POST' || method === 'PUT') {
+      if (this.method === 'POST' || this.method === 'PUT') {
         options.data = parsedBody;
       }
 
@@ -72,10 +72,10 @@ class ExternalApiService {
       let data = response.data;
 
       // Apply transform function if provided
-      if (transform && typeof transform === 'string') {
+      if (this.transform && typeof this.transform === 'string') {
         try {
           // Create a safe transform function
-          const transformFn = new Function('data', transform);
+          const transformFn = new Function('data', this.transform);
           data = transformFn(data);
           console.debug('Successfully transformed external API data');
         } catch (error) {
@@ -94,4 +94,4 @@ class ExternalApiService {
   }
 }
 
-module.exports = new ExternalApiService();
+module.exports = ExternalApiService;

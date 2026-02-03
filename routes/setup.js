@@ -32,9 +32,9 @@ const coerceConfigBooleans = (config) => {
   const defaults = {
     PROCESS_PREDEFINED_DOCUMENTS: false,
     ADD_AI_PROCESSED_TAG: false,
-    USE_PROMPT_TAGS: false,
+    AI_USE_PROMPT_TAGS: false,
     PROCESS_ONLY_NEW_DOCUMENTS: true,
-    USE_EXISTING_DATA: false,
+    AI_USE_EXISTING_DATA: false,
     DISABLE_AUTOMATIC_PROCESSING: false,
     ACTIVATE_TAGGING: true,
     ACTIVATE_CORRESPONDENT: true,
@@ -838,7 +838,7 @@ router.get('/chat', authenticateUI, async (req, res) => {
  */
 router.get('/chat/init', authenticateAPI, async (req, res) => {
   const documentId = req.query.documentId;
-  const result = await ChatService.initializeChat(documentId, config);
+  const result = await ChatService.initializeChat(documentId);
   res.json(result);
 });
 
@@ -928,7 +928,7 @@ router.post('/chat/message', authenticateAPI, async (req, res) => {
     }
 
     // Use the new streaming method
-    await ChatService.sendMessageStream(documentId, message, res, config);
+    await ChatService.sendMessageStream(documentId, message, res);
   } catch (error) {
     console.error('Chat message error:', error);
     res.status(500).json({ error: error.message });
@@ -1026,7 +1026,7 @@ router.get('/chat/init/:documentId', authenticateAPI, async (req, res) => {
       if (!documentId) {
           return res.status(400).json({ error: 'Document ID is required' });
       }
-      const result = await ChatService.initializeChat(documentId, config);
+      const result = await ChatService.initializeChat(documentId);
       res.json(result);
   } catch (error) {
       console.error('initializing chat:', error);
@@ -1609,7 +1609,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     paperlessService.getDocument(doc.id)
   ]);
 
-  if ((config.contentSourceMode || 'content') === 'content') {
+  if ((config.ai?.contentSourceMode || 'content') === 'content') {
     if (!content || content.length < 10) {
       console.debug(`Document ${doc.id} has no content, skipping analysis`);
       return null;
@@ -1625,8 +1625,8 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   // Get external API data if enabled
   if (config.externalApiConfig.enabled === true) {
     try {
-      const externalApiService = require('../services/externalApiService');
-      const externalData = await externalApiService.fetchData(config.externalApiConfig);
+      const externalApiService = container.getExternalApiService();
+      const externalData = await externalApiService.fetchData();
       if (externalData) {
         externalApiData = externalData;
         console.debug('Retrieved external API data for prompt enrichment');
@@ -1640,9 +1640,9 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   let analysis;
   if(customPrompt) {
     console.debug('Starting document analysis with custom prompt');
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, externalApiData, config);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, customPrompt, externalApiData);
   }else{
-    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData, config);
+    analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData);
   }
   console.log('Response from AI service:', analysis);
   if (analysis.error) {
@@ -1975,20 +1975,20 @@ router.get('/setup', async (req, res) => {
       OLLAMA_API_URL: process.env.OLLAMA_API_URL || 'http://localhost:11434',
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
-      SYSTEM_PROMPT: process.env.SYSTEM_PROMPT || '',
+      AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT || '',
       PROCESS_PREDEFINED_DOCUMENTS: parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
-      TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
-      RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
-      CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
-      RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
+      AI_TOKEN_LIMIT: process.env.AI_TOKEN_LIMIT || 128000,
+      AI_RESPONSE_TOKENS: process.env.AI_RESPONSE_TOKENS || 1000,
+      AI_CONTENT_SOURCE_MODE: process.env.AI_CONTENT_SOURCE_MODE || 'content',
+      AI_RAW_DOCUMENT_MODE: process.env.AI_RAW_DOCUMENT_MODE || 'text',
       TAGS: normalizeArray(process.env.TAGS),
       ADD_AI_PROCESSED_TAG: parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
       AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-      USE_PROMPT_TAGS: parseBoolean(process.env.USE_PROMPT_TAGS, false),
-      PROMPT_TAGS: normalizeArray(process.env.PROMPT_TAGS),
+      AI_USE_PROMPT_TAGS: parseBoolean(process.env.AI_USE_PROMPT_TAGS, false),
+      AI_PROMPT_TAGS: normalizeArray(process.env.AI_PROMPT_TAGS),
       PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
       PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
-      USE_EXISTING_DATA: parseBoolean(process.env.USE_EXISTING_DATA, false),
+      AI_USE_EXISTING_DATA: parseBoolean(process.env.AI_USE_EXISTING_DATA, false),
       DISABLE_AUTOMATIC_PROCESSING: parseBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false),
       AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
       AZURE_API_KEY: process.env.AZURE_API_KEY || '',
@@ -2010,7 +2010,7 @@ router.get('/setup', async (req, res) => {
       }
 
       savedConfig.TAGS = normalizeArray(savedConfig.TAGS);
-      savedConfig.PROMPT_TAGS = normalizeArray(savedConfig.PROMPT_TAGS);
+      savedConfig.AI_PROMPT_TAGS = normalizeArray(savedConfig.AI_PROMPT_TAGS);
 
       config = { ...config, ...savedConfig };
     }
@@ -2019,7 +2019,7 @@ router.get('/setup', async (req, res) => {
 
     // Debug output
     console.log('Current config TAGS:', config.TAGS);
-    console.log('Current config PROMPT_TAGS:', config.PROMPT_TAGS);
+    console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
 
     // Check if system is fully configured
     const hasUsers = Array.isArray(users) && users.length > 0;
@@ -2040,6 +2040,7 @@ router.get('/setup', async (req, res) => {
     }
 
     // Render setup page with config and appropriate message
+    config.ai = configFile.ai;
     res.render('setup', {
       config,
       success: successMessage,
@@ -2784,21 +2785,21 @@ router.get('/settings', authenticateUI, async (req, res) => {
     OLLAMA_API_URL: process.env.OLLAMA_API_URL || 'http://localhost:11434',
     OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
     SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
-    SYSTEM_PROMPT: process.env.SYSTEM_PROMPT || '',
+    AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT || '',
     PROCESS_PREDEFINED_DOCUMENTS: parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
 
-    TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
-    RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
-    CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
-    RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
+    AI_TOKEN_LIMIT: process.env.AI_TOKEN_LIMIT || 128000,
+    AI_RESPONSE_TOKENS: process.env.AI_RESPONSE_TOKENS || 1000,
+    AI_CONTENT_SOURCE_MODE: process.env.AI_CONTENT_SOURCE_MODE || 'content',
+    AI_RAW_DOCUMENT_MODE: process.env.AI_RAW_DOCUMENT_MODE || 'text',
     TAGS: normalizeArray(process.env.TAGS),
     ADD_AI_PROCESSED_TAG: parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
     AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-    USE_PROMPT_TAGS: parseBoolean(process.env.USE_PROMPT_TAGS, false),
-    PROMPT_TAGS: normalizeArray(process.env.PROMPT_TAGS),
+    AI_USE_PROMPT_TAGS: parseBoolean(process.env.AI_USE_PROMPT_TAGS, false),
+    AI_PROMPT_TAGS: normalizeArray(process.env.AI_PROMPT_TAGS),
     PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
     PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
-    USE_EXISTING_DATA: parseBoolean(process.env.USE_EXISTING_DATA, false),
+    AI_USE_EXISTING_DATA: parseBoolean(process.env.AI_USE_EXISTING_DATA, false),
     CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
     CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
     CUSTOM_MODEL: process.env.CUSTOM_MODEL || '',
@@ -2825,7 +2826,7 @@ router.get('/settings', authenticateUI, async (req, res) => {
     }
 
     savedConfig.TAGS = normalizeArray(savedConfig.TAGS);
-    savedConfig.PROMPT_TAGS = normalizeArray(savedConfig.PROMPT_TAGS);
+    savedConfig.AI_PROMPT_TAGS = normalizeArray(savedConfig.AI_PROMPT_TAGS);
 
     config = { ...config, ...savedConfig };
   }
@@ -2833,8 +2834,9 @@ router.get('/settings', authenticateUI, async (req, res) => {
 
   // Debug-output
   console.log('Current config TAGS:', config.TAGS);
-  console.log('Current config PROMPT_TAGS:', config.PROMPT_TAGS);
+  console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
   const version = configFile.PAPERLESS_AI_VERSION || ' ';
+  config.ai = configFile.ai;
   res.render('settings', {
     version,
     config,
@@ -3144,7 +3146,7 @@ router.post('/manual/analyze', [express.json(), authenticateAPI], async (req, re
     }
 
     if (process.env.AI_PROVIDER === 'openai') {
-      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null);
       await documentModel.addOpenAIMetrics(
             id,
             analyzeDocument.metrics.promptTokens,
@@ -3153,13 +3155,13 @@ router.post('/manual/analyze', [express.json(), authenticateAPI], async (req, re
           )
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'ollama') {
-      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null);
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'custom') {
-      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null);
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'azure') {
-      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null, config);
+      const analyzeDocument = await container.getAIService().analyzeDocument(content, existingTagsList, existingCorrespondentList, existingDocumentTypesList, id || [], null, null);
       return res.json(analyzeDocument);
     } else {
       return res.status(500).json({ error: 'AI provider not configured' });
@@ -3256,7 +3258,7 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
     }
 
     if (process.env.AI_PROVIDER === 'openai') {
-      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt);
       await documentModel.addOpenAIMetrics(
         documentId,
         analyzeDocument.metrics.promptTokens,
@@ -3265,10 +3267,10 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
       )
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'ollama') {
-      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt);
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'custom') {
-      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt);
       await documentModel.addOpenAIMetrics(
         documentId,
         analyzeDocument.metrics.promptTokens,
@@ -3277,7 +3279,7 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
       )
       return res.json(analyzeDocument);
     } else if (process.env.AI_PROVIDER === 'azure') {
-      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt, config);
+      const analyzeDocument = await container.getAIService().analyzePlayground(content, prompt);
       await documentModel.addOpenAIMetrics(
         documentId,
         analyzeDocument.metrics.promptTokens,
@@ -3884,18 +3886,18 @@ router.post('/setup', express.json(), async (req, res) => {
       PAPERLESS_USERNAME: paperlessUsername,
       AI_PROVIDER: aiProvider,
       SCAN_INTERVAL: scanInterval || '*/30 * * * *',
-      SYSTEM_PROMPT: processedPrompt,
+      AI_SYSTEM_PROMPT: processedPrompt,
       PROCESS_PREDEFINED_DOCUMENTS: toEnvBoolean(showTagsBool),
-      TOKEN_LIMIT: tokenLimit || 128000,
-      RESPONSE_TOKENS: responseTokens || 1000,
-      CONTENT_SOURCE_MODE: contentSourceMode || 'content',
-      RAW_DOCUMENT_MODE: rawDocumentMode || 'text',
+      AI_TOKEN_LIMIT: tokenLimit || 128000,
+      AI_RESPONSE_TOKENS: responseTokens || 1000,
+      AI_CONTENT_SOURCE_MODE: contentSourceMode || 'content',
+      AI_RAW_DOCUMENT_MODE: rawDocumentMode || 'text',
       TAGS: normalizeArray(tags),
       ADD_AI_PROCESSED_TAG: toEnvBoolean(aiProcessedTagBool),
       AI_PROCESSED_TAG_NAME: aiTagName || 'ai-processed',
-      USE_PROMPT_TAGS: toEnvBoolean(usePromptTagsBool),
-      PROMPT_TAGS: normalizeArray(promptTags),
-      USE_EXISTING_DATA: toEnvBoolean(useExistingDataBool),
+      AI_USE_PROMPT_TAGS: toEnvBoolean(usePromptTagsBool),
+      AI_PROMPT_TAGS: normalizeArray(promptTags),
+      AI_USE_EXISTING_DATA: toEnvBoolean(useExistingDataBool),
       API_KEY: apiToken,
       JWT_SECRET: jwtToken,
       CUSTOM_API_KEY: customApiKey || '',
@@ -3911,7 +3913,7 @@ router.post('/setup', express.json(), async (req, res) => {
       ACTIVATE_LANGUAGE: toEnvBoolean(activateLanguageBool),
       ACTIVATE_CONTENT: toEnvBoolean(activateContentBool),
       ACTIVATE_CUSTOM_FIELDS: toEnvBoolean(activateCustomFieldsBool),
-      CUSTOM_FIELDS: processedCustomFields.length > 0
+      AI_CUSTOM_FIELDS: processedCustomFields.length > 0
         ? JSON.stringify({ custom_fields: processedCustomFields })
         : '{"custom_fields":[]}',
       DISABLE_AUTOMATIC_PROCESSING: toEnvBoolean(disableAutomaticProcessingBool),
@@ -4261,21 +4263,21 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
       OPENAI_MODEL: process.env.OPENAI_MODEL || '',
       OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
-      CONTENT_SOURCE_MODE: process.env.CONTENT_SOURCE_MODE || 'content',
-      RAW_DOCUMENT_MODE: process.env.RAW_DOCUMENT_MODE || 'text',
+      AI_CONTENT_SOURCE_MODE: process.env.AI_CONTENT_SOURCE_MODE || 'content',
+      AI_RAW_DOCUMENT_MODE: process.env.AI_RAW_DOCUMENT_MODE || 'text',
       OLLAMA_API_URL: process.env.OLLAMA_API_URL || '',
       OLLAMA_MODEL: process.env.OLLAMA_MODEL || '',
       SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
-      SYSTEM_PROMPT: process.env.SYSTEM_PROMPT || '',
+      AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT || '',
       PROCESS_PREDEFINED_DOCUMENTS: toEnvBoolean(parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false)),
-      TOKEN_LIMIT: process.env.TOKEN_LIMIT || 128000,
-      RESPONSE_TOKENS: process.env.RESPONSE_TOKENS || 1000,
+      AI_TOKEN_LIMIT: process.env.AI_TOKEN_LIMIT || 128000,
+      AI_RESPONSE_TOKENS: process.env.AI_RESPONSE_TOKENS || 1000,
       TAGS: process.env.TAGS || '',
       ADD_AI_PROCESSED_TAG: toEnvBoolean(parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false)),
       AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-      USE_PROMPT_TAGS: toEnvBoolean(parseBoolean(process.env.USE_PROMPT_TAGS, false)),
-      PROMPT_TAGS: process.env.PROMPT_TAGS || '',
-      USE_EXISTING_DATA: toEnvBoolean(parseBoolean(process.env.USE_EXISTING_DATA, false)),
+      AI_USE_PROMPT_TAGS: toEnvBoolean(parseBoolean(process.env.AI_USE_PROMPT_TAGS, false)),
+      AI_PROMPT_TAGS: process.env.AI_PROMPT_TAGS || '',
+      AI_USE_EXISTING_DATA: toEnvBoolean(parseBoolean(process.env.AI_USE_EXISTING_DATA, false)),
       API_KEY: process.env.API_KEY || '',
       CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
       CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
@@ -4288,7 +4290,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       ACTIVATE_LANGUAGE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_LANGUAGE, true)),
       ACTIVATE_CONTENT: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CONTENT, false)),
       ACTIVATE_CUSTOM_FIELDS: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, true)),
-      CUSTOM_FIELDS: process.env.CUSTOM_FIELDS || '{"custom_fields":[]}',  // Added default
+      AI_CUSTOM_FIELDS: process.env.AI_CUSTOM_FIELDS || '{"custom_fields":[]}',  // Added default
       DISABLE_AUTOMATIC_PROCESSING: toEnvBoolean(parseBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false)),
       AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
       AZURE_API_KEY: process.env.AZURE_API_KEY || '',
@@ -4413,18 +4415,18 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
 
     // Update general settings
     if (scanInterval) updatedConfig.SCAN_INTERVAL = scanInterval;
-    if (systemPrompt) updatedConfig.SYSTEM_PROMPT = processedPrompt.replace(/\r\n/g, '\n').replace(/\n/g, '\\n');
+    if (systemPrompt) updatedConfig.AI_SYSTEM_PROMPT = processedPrompt.replace(/\r\n/g, '\n').replace(/\n/g, '\\n');
     if (showTags !== undefined) updatedConfig.PROCESS_PREDEFINED_DOCUMENTS = toEnvBoolean(showTagsBool);
-    if (tokenLimit) updatedConfig.TOKEN_LIMIT = tokenLimit;
-    if (responseTokens) updatedConfig.RESPONSE_TOKENS = responseTokens;
-    if (contentSourceMode) updatedConfig.CONTENT_SOURCE_MODE = contentSourceMode;
-    if (rawDocumentMode) updatedConfig.RAW_DOCUMENT_MODE = rawDocumentMode;
+    if (tokenLimit) updatedConfig.AI_TOKEN_LIMIT = tokenLimit;
+    if (responseTokens) updatedConfig.AI_RESPONSE_TOKENS = responseTokens;
+    if (contentSourceMode) updatedConfig.AI_CONTENT_SOURCE_MODE = contentSourceMode;
+    if (rawDocumentMode) updatedConfig.AI_RAW_DOCUMENT_MODE = rawDocumentMode;
     if (tags !== undefined) updatedConfig.TAGS = normalizeArray(tags);
     if (aiProcessedTag !== undefined) updatedConfig.ADD_AI_PROCESSED_TAG = toEnvBoolean(aiProcessedTagBool);
     if (aiTagName) updatedConfig.AI_PROCESSED_TAG_NAME = aiTagName;
-    if (usePromptTags !== undefined) updatedConfig.USE_PROMPT_TAGS = toEnvBoolean(usePromptTagsBool);
-    if (promptTags) updatedConfig.PROMPT_TAGS = normalizeArray(promptTags);
-    if (useExistingData !== undefined) updatedConfig.USE_EXISTING_DATA = toEnvBoolean(useExistingDataBool);
+    if (usePromptTags !== undefined) updatedConfig.AI_USE_PROMPT_TAGS = toEnvBoolean(usePromptTagsBool);
+    if (promptTags) updatedConfig.AI_PROMPT_TAGS = normalizeArray(promptTags);
+    if (useExistingData !== undefined) updatedConfig.AI_USE_EXISTING_DATA = toEnvBoolean(useExistingDataBool);
     if (customApiKey) updatedConfig.CUSTOM_API_KEY = customApiKey;
     if (customBaseUrl) updatedConfig.CUSTOM_BASE_URL = customBaseUrl;
     if (customModel) updatedConfig.CUSTOM_MODEL = customModel;
@@ -4432,7 +4434,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
 
     // Update custom fields
     if (processedCustomFields.length > 0 || customFields) {
-      updatedConfig.CUSTOM_FIELDS = JSON.stringify({
+      updatedConfig.AI_CUSTOM_FIELDS = JSON.stringify({
         custom_fields: processedCustomFields
       });
     }

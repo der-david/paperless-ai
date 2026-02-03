@@ -11,32 +11,39 @@ const OpenAI = require('openai');
 const tiktoken = require('tiktoken');
 const fs = require('fs').promises;
 const path = require('path');
-const RestrictionPromptService = require('./restrictionPromptService');
 const BaseAIService = require('./baseAiService');
 
 class CustomOpenAIService extends BaseAIService {
-  constructor({ paperlessService, defaults = {} } = {}) {
-    super({ paperlessService });
+  constructor({
+    paperlessService,
+    restrictionPromptService,
+    apiUrl,
+    apiKey,
+    model,
+    aiSettings
+  } = {}) {
+    super({ paperlessService, restrictionPromptService, aiSettings });
     this.client = null;
     this.tokenizer = null;
-    this.defaults = defaults;
+    this.apiUrl = apiUrl;
+    this.apiKey = apiKey;
+    this.model = model;
+    this.initialize();
   }
 
-  initialize(serviceConfig = {}) {
-    const config = serviceConfig;
-    if (!this.client && config.custom?.apiUrl) {
+  initialize() {
+    if (!this.client && this.apiUrl) {
       this.client = new OpenAI({
-        baseURL: config.custom.apiUrl,
-        apiKey: config.custom.apiKey
+        baseURL: this.apiUrl,
+        apiKey: this.apiKey
       });
     }
   }
 
-  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null, serviceConfig = {}) {
+  async analyzeDocument(content, existingTags = [], existingCorrespondentList = [], existingDocumentTypesList = [], id, customPrompt = null, externalApiData = null) {
     const cachePath = path.join('./public/images', `${id}.png`);
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -79,7 +86,7 @@ class CustomOpenAIService extends BaseAIService {
 
       let systemPrompt = '';
       let promptTags = '';
-      const model = config.custom?.model || this.defaults.model;
+      const model = this.model;
 
       const promptCustomFields = parseCustomFields(config.customFields);
       const { customFieldsStr } = buildResponseSchema({
@@ -104,7 +111,7 @@ class CustomOpenAIService extends BaseAIService {
       }
 
       // Process placeholder replacements in system prompt
-      systemPrompt = RestrictionPromptService.processRestrictionsInPrompt(
+      systemPrompt = this.restrictionPromptService.processRestrictionsInPrompt(
         systemPrompt,
         existingTags,
         existingCorrespondentList,
@@ -406,7 +413,7 @@ class CustomOpenAIService extends BaseAIService {
     return dataString;
   }
 
-  async analyzePlayground(content, prompt, serviceConfig = {}) {
+  async analyzePlayground(content, prompt) {
     const musthavePrompt = `
     Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
         {
@@ -418,8 +425,7 @@ class CustomOpenAIService extends BaseAIService {
         }`;
 
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
@@ -438,7 +444,7 @@ class CustomOpenAIService extends BaseAIService {
       const availableTokens = maxTokens - reservedTokens;
 
       // Truncate content if necessary
-      const model = config.custom?.model || this.defaults.model;
+      const model = this.model;
       const truncatedContent = await truncateToTokenLimit(content, availableTokens, model);
 
       // Make API request
@@ -514,16 +520,15 @@ class CustomOpenAIService extends BaseAIService {
    * @param {string} prompt - The prompt to generate text from
    * @returns {Promise<string>} - The generated text
    */
-  async generateText(prompt, serviceConfig = {}) {
+  async generateText(prompt) {
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
 
       if (!this.client) {
         throw new Error('Custom OpenAI client not initialized - missing API key');
       }
 
-      const model = config.custom?.model || this.defaults.model;
+      const model = this.model;
 
       const response = await this.client.chat.completions.create({
         model: model,
@@ -548,16 +553,15 @@ class CustomOpenAIService extends BaseAIService {
     }
   }
 
-  async checkStatus(serviceConfig = {}) {
+  async checkStatus() {
     try {
-      const config = serviceConfig;
-      this.initialize(config);
+      const config = this.settings;
 
       if (!this.client) {
         throw new Error('Custom OpenAI client not initialized - missing API key');
       }
 
-      const model = config.custom?.model || this.defaults.model;
+      const model = this.model;
 
       const response = await this.client.chat.completions.create({
         model: model,

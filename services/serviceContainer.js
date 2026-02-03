@@ -4,6 +4,8 @@ const DocumentsService = require('./documentsService');
 const ChatService = require('./chatService');
 const RagService = require('./ragService');
 const setupServiceInstance = require('./setupService');
+const ExternalApiService = require('./externalApiService');
+const RestrictionPromptService = require('./restrictionPromptService');
 
 class ServiceContainer {
   constructor(config = {}) {
@@ -18,16 +20,56 @@ class ServiceContainer {
 
   getPaperlessService() {
     if (!this.instances.has('paperlessService')) {
-      this.instances.set('paperlessService', new PaperlessService(this.config));
+      const paperlessConfig = this.config.paperless || {};
+      const paperlessSettings = {
+        restrictToExisting: this.config.restrictToExisting,
+        addAIProcessedTag: this.config.addAIProcessedTag,
+        addAIProcessedTags: this.config.addAIProcessedTags,
+        predefinedMode: this.config.predefinedMode,
+        tags: this.config.tags,
+        paperless: {
+          username: paperlessConfig.username
+        }
+      };
+      this.instances.set('paperlessService', new PaperlessService({
+        apiUrl: paperlessConfig.apiUrl,
+        apiToken: paperlessConfig.apiToken,
+        settings: paperlessSettings
+      }));
     }
     return this.instances.get('paperlessService');
+  }
+
+  getRestrictionPromptService() {
+    if (!this.instances.has('restrictionPromptService')) {
+      this.instances.set('restrictionPromptService', new RestrictionPromptService());
+    }
+    return this.instances.get('restrictionPromptService');
+  }
+
+  getExternalApiService() {
+    if (!this.instances.has('externalApiService')) {
+      const externalConfig = this.config.externalApiConfig || {};
+      const service = new ExternalApiService({
+        enabled: externalConfig.enabled,
+        url: externalConfig.url,
+        method: externalConfig.method,
+        headers: externalConfig.headers,
+        body: externalConfig.body,
+        timeout: externalConfig.timeout,
+        transform: externalConfig.transformationTemplate || externalConfig.transform
+      });
+      this.instances.set('externalApiService', service);
+    }
+    return this.instances.get('externalApiService');
   }
 
   _getAIServiceFactory() {
     if (!this.aiServiceFactory) {
       this.aiServiceFactory = new AIServiceFactory({
         paperlessService: this.getPaperlessService(),
-        config: this.config
+        config: this.config,
+        restrictionPromptService: this.getRestrictionPromptService()
       });
     }
     return this.aiServiceFactory;
@@ -50,8 +92,24 @@ class ServiceContainer {
 
   getChatService() {
     if (!this.instances.has('chatService')) {
+      const openaiConfig = this.config.openai || {};
+      const customConfig = this.config.custom || {};
+      const azureConfig = this.config.azure || {};
+      const ollamaConfig = this.config.ollama || {};
       const service = new ChatService({
-        paperlessService: this.getPaperlessService()
+        paperlessService: this.getPaperlessService(),
+        aiProvider: this.config.aiProvider,
+        openaiApiKey: openaiConfig.apiKey,
+        openaiModel: openaiConfig.model,
+        customApiKey: customConfig.apiKey,
+        customApiUrl: customConfig.apiUrl,
+        customModel: customConfig.model,
+        azureApiKey: azureConfig.apiKey,
+        azureEndpoint: azureConfig.endpoint,
+        azureDeploymentName: azureConfig.deploymentName,
+        azureApiVersion: azureConfig.apiVersion,
+        ollamaApiUrl: ollamaConfig.apiUrl,
+        ollamaModel: ollamaConfig.model
       });
       this.instances.set('chatService', service);
     }
@@ -62,8 +120,7 @@ class ServiceContainer {
     if (!this.instances.has('ragService')) {
       const service = new RagService({
         aiService: this.getAIService(),
-        paperlessService: this.getPaperlessService(),
-        serviceConfig: this.config
+        paperlessService: this.getPaperlessService()
       });
       this.instances.set('ragService', service);
     }
