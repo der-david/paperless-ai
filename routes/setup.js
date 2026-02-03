@@ -4246,6 +4246,15 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     const aiProcessedTagBool = parseBoolean(aiProcessedTag, false);
     const usePromptTagsBool = parseBoolean(usePromptTags, false);
     const useExistingDataBool = parseBoolean(useExistingData, false);
+    const activateTaggingBool = parseBoolean(activateTagging, true);
+    const activateCorrespondentBool = parseBoolean(activateCorrespondent, true);
+    const activateDocumentTypeBool = parseBoolean(activateDocumentType, true);
+    const activateTitleBool = parseBoolean(activateTitle, true);
+    const activateDocumentDateBool = parseBoolean(activateDocumentDate, true);
+    const activateLanguageBool = parseBoolean(activateLanguage, true);
+    const activateContentBool = parseBoolean(activateContent, false);
+    const activateCustomFieldsBool = parseBoolean(activateCustomFields, true);
+    const disableAutomaticProcessingBool = parseBoolean(disableAutomaticProcessing, false);
 
     const allowedContentSourceModes = new Set(['content', 'raw_document', 'both']);
     if (contentSourceMode && !allowedContentSourceModes.has(contentSourceMode)) {
