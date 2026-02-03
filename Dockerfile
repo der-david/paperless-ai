@@ -30,7 +30,9 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 COPY package*.json ./
 
 # Install node dependencies with clean install
-RUN npm ci --only=production && npm cache clean --force
+#RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production
+RUN npm cache clean --force
 
 # Copy application source code
 COPY . .
