@@ -138,6 +138,14 @@ app.set('layout', 'layouts/app');
 app.set('layout extractScripts', true);
 app.set('layout extractStyles', true);
 
+// Default layout locals
+app.use((req, res, next) => {
+  res.locals.showSidebar = true;
+  res.locals.active = '';
+  res.locals.version = config.PAPERLESS_AI_VERSION;
+  next();
+});
+
 // //Layout middleware
 // app.use((req, res, next) => {
 //   const originalRender = res.render;
