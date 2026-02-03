@@ -31,8 +31,9 @@ COPY package*.json ./
 
 # Install node dependencies with clean install
 #RUN npm ci --only=production && npm cache clean --force
-RUN npm ci --only=production
-RUN npm cache clean --force
+RUN npm install --loglevel verbose
+RUN npm ci --only=production --loglevel verbose
+RUN npm cache clean --force --loglevel verbose
 
 # Copy application source code
 COPY . .
