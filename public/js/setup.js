@@ -17,6 +17,7 @@ class FormManager {
         this.usePromptTags = document.getElementById('aiUsePromptTags');
         this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.systemPromptBtn = document.getElementById('systemPromptBtn');
+        this.enableAutomaticProcessing = document.getElementById('enableAutomaticProcessing');
         this.initialize();
     }
 
@@ -26,12 +27,16 @@ class FormManager {
 
         // Initialize tags section
         this.toggleTagsInput();
+        this.handleEnableAutomaticProcessing();
 
         // Add event listeners
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
         this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
+        if (this.enableAutomaticProcessing) {
+            this.enableAutomaticProcessing.addEventListener('change', () => this.handleEnableAutomaticProcessing());
+        }
         this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
         this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
         this.syncCheckboxHidden('addAiProcessedTag', 'addAiProcessedTagValue');
@@ -48,6 +53,28 @@ class FormManager {
         // Initialize new sections
         this.toggleAiTagInput();
         this.togglePromptTagsInput();
+    }
+
+    handleEnableAutomaticProcessing() {
+        if (!this.enableAutomaticProcessing) {
+            return;
+        }
+
+        let hiddenInput = document.getElementById('enableAutomaticProcessingValue');
+        if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'enableAutomaticProcessingValue';
+            hiddenInput.name = 'enableAutomaticProcessing';
+            this.form.appendChild(hiddenInput);
+        }
+
+        hiddenInput.value = this.enableAutomaticProcessing.checked ? 'true' : 'false';
+
+        const scanIntervalSection = document.getElementById('scanIntervalSection');
+        if (scanIntervalSection) {
+            scanIntervalSection.classList.toggle('hidden', !this.enableAutomaticProcessing.checked);
+        }
     }
 
     toggleProviderSettings() {

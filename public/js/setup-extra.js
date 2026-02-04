@@ -252,11 +252,11 @@ document.addEventListener("DOMContentLoaded", function() {
             beforeShow: () => switchToTab('advanced-tab')
         },
         {
-            id: 'disableAutomaticProcessing',
-            title: 'Disable/Enable Automatic Processing',
+            id: 'enableAutomaticProcessing',
+            title: 'Enable Automatic Processing',
             text: 'Choose whether the AI should run automatically or only when triggered manually. This can be useful for testing and control.',
             attachTo: {
-                element: '#disableAutomaticProcessing',
+                element: '#enableAutomaticProcessing',
                 on: 'right'
             },
             buttons: [
@@ -272,7 +272,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI Tag Assignment',
             text: 'Enable this feature to allow AI to automatically assign relevant tags to documents based on content analysis.',
             attachTo: {
-                element: '#tags',
+                element: '#enableTags',
                 on: 'right'
             },
             buttons: [
@@ -288,7 +288,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI Correspondent Detection',
             text: 'When enabled, AI will attempt to extract the senders name and link it to an existing Paperless-NGX correspondent.',
             attachTo: {
-                element: '#correspondent',
+                element: '#enableCorrespondent',
                 on: 'right'
             },
             buttons: [
@@ -304,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Document Type Classification',
             text: 'This feature allows AI to classify documents automatically, e.g., invoices, contracts, receipts.',
             attachTo: {
-                element: '#documentType',
+                element: '#enableDocumentType',
                 on: 'right'
             },
             buttons: [
@@ -320,7 +320,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Title Generation',
             text: 'AI can generate meaningful titles for documents based on their content.',
             attachTo: {
-                element: '#title',
+                element: '#enableTitle',
                 on: 'right'
             },
             buttons: [
@@ -336,7 +336,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Custom Fields',
             text: 'AI will try to extract additional metadata fields from documents based on your configuration. </br><b>NOTE:</b> This requires careful setup and testing. Vague or incorrect fields may lead to inaccurate results.',
             attachTo: {
-                element: '#customFields',
+                element: '#enableCustomFields',
                 on: 'right'
             },
             buttons: [

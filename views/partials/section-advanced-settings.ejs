@@ -13,89 +13,123 @@ const isSetup = variant === 'setup';
     Advanced settings
   </h2>
   <div class="space-y-6">
-    <div class="form-group">
-      <label for="scanInterval">Scan interval (cron format)</label>
-      <input type="text"
-             id="scanInterval"
-             name="scanInterval"
-             value="<%= config.SCAN_INTERVAL %>"
-             class="modern-input"
-             required>
-      <p class="help-text">Default: every 30 minutes</p>
-    </div>
-
-    <div class="form-group">
-      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
-        <label class="flex items-start cursor-pointer w-full">
-          <input type="checkbox"
-                 id="filterDocuments"
-                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                 <%= config.FILTER_DOCUMENTS ? 'checked' : '' %>>
-          <div class="ml-3">
-            <div class="flex items-center font-medium">
-              <i class="fas fa-filter text-blue-500 mr-2"></i>
-              Filter documents by tags
-            </div>
-            <p class="text-sm text-gray-500 mt-1">Include or exclude documents based on their tags</p>
+    <div class="form-group space-y-4">
+      <label class="flex items-center gap-2 font-medium">
+        <i class="fas fa-clipboard-check text-blue-500"></i>
+        Document processing
+      </label>
+      <p class="text-sm text-gray-500">Control automation, schedules, and tag-based filtering.</p>
+      <div class="space-y-6">
+        <div class="form-group">
+          <label for="enableAutomaticProcessing">Enable automatic processing?</label>
+          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+            <label class="flex items-start cursor-pointer w-full">
+              <input type="checkbox"
+                  id="enableAutomaticProcessing"
+                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.ENABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center font-medium">
+                  <i class="fas fa-robot text-blue-500 mr-2"></i>
+                  Enable automatic processing
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Determines if the AI will run on its own or every scan is started manually</p>
+              </div>
+            </label>
+            <input type="hidden"
+                  id="enableAutomaticProcessingValue"
+                  name="enableAutomaticProcessing"
+                  value="<%= config.ENABLE_AUTOMATIC_PROCESSING ? 'true' : 'false' %>">
           </div>
-        </label>
-        <input type="hidden"
-               id="filterDocumentsValue"
-               name="filterDocuments"
-               value="<%= config.FILTER_DOCUMENTS ? 'true' : 'false' %>">
-      </div>
-    </div>
+        </div>
 
-    <div id="tagsInputSection" class="<%= config.FILTER_DOCUMENTS ? '' : 'hidden' %>">
-      <div class="form-group">
-        <label for="tagInput">Include tags</label>
-        <div class="tag-input-container">
-          <input type="text"
-              id="tagInput"
-              class="modern-input"
-              placeholder="Enter a tag to include and press Enter">
-          <button type="button"
-                  class="material-button add-tag-btn">
-            <i class="fas fa-plus"></i>
-            Add
-          </button>
+        <div class="form-group">
+          <div id="scanIntervalSection" class="<%= config.ENABLE_AUTOMATIC_PROCESSING ? '' : 'hidden' %>">
+            <label for="scanInterval">Scan interval (cron format)</label>
+            <input type="text"
+                  id="scanInterval"
+                  name="scanInterval"
+                  value="<%= config.SCAN_INTERVAL %>"
+                  class="modern-input"
+                  required>
+            <p class="help-text">Default: every 30 minutes</p>
+          </div>
         </div>
-        <div id="tagsContainer" class="tags-container">
-          <% if (config.FILTER_INCLUDE_TAGS && Array.isArray(config.FILTER_INCLUDE_TAGS) && config.FILTER_INCLUDE_TAGS.length > 0) { %>
-              <% config.FILTER_INCLUDE_TAGS.forEach(tag => { %>
-                  <div class="modern-tag fade-in tag-chip">
-                      <span><%= tag %></span>
-                      <button type="button"><i class="fas fa-times"></i></button>
-                  </div>
-              <% }); %>
-          <% } %>
+
+        <div class="form-group">
+          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+            <label class="flex items-start cursor-pointer w-full">
+              <input type="checkbox"
+                    id="filterDocuments"
+                    class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.FILTER_DOCUMENTS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center font-medium">
+                  <i class="fas fa-filter text-blue-500 mr-2"></i>
+                  Filter documents by tags
+                </div>
+                <p class="text-sm text-gray-500 mt-1">Include or exclude documents based on their tags</p>
+              </div>
+            </label>
+            <input type="hidden"
+                  id="filterDocumentsValue"
+                  name="filterDocuments"
+                  value="<%= config.FILTER_DOCUMENTS ? 'true' : 'false' %>">
+          </div>
         </div>
-        <input type="hidden" id="filterIncludeTags" name="filterIncludeTags" value="<%= Array.isArray(config.FILTER_INCLUDE_TAGS) ? config.FILTER_INCLUDE_TAGS.join(',') : '' %>">
-      </div>
-      <div class="form-group">
-        <label for="excludeTagInput">Exclude tags</label>
-        <div class="tag-input-container">
-          <input type="text"
-              id="excludeTagInput"
-              class="modern-input"
-              placeholder="Enter a tag to exclude and press Enter">
-          <button type="button"
-                  class="material-button add-exclude-tag-btn">
-            <i class="fas fa-minus"></i>
-            Exclude
-          </button>
+
+        <div id="tagsInputSection" class="<%= config.FILTER_DOCUMENTS ? '' : 'hidden' %>">
+          <div class="form-group">
+            <label for="tagInput">Include tags</label>
+            <div class="tag-input-container">
+              <input type="text"
+                  id="tagInput"
+                  class="modern-input"
+                  placeholder="Enter a tag to include and press Enter">
+              <button type="button"
+                      class="material-button add-tag-btn">
+                <i class="fas fa-plus"></i>
+                Add
+              </button>
+            </div>
+            <div id="tagsContainer" class="tags-container">
+              <% if (config.FILTER_INCLUDE_TAGS && Array.isArray(config.FILTER_INCLUDE_TAGS) && config.FILTER_INCLUDE_TAGS.length > 0) { %>
+                  <% config.FILTER_INCLUDE_TAGS.forEach(tag => { %>
+                      <div class="modern-tag fade-in tag-chip">
+                          <span><%= tag %></span>
+                          <button type="button"><i class="fas fa-times"></i></button>
+                      </div>
+                  <% }); %>
+              <% } %>
+            </div>
+            <input type="hidden" id="filterIncludeTags" name="filterIncludeTags" value="<%= Array.isArray(config.FILTER_INCLUDE_TAGS) ? config.FILTER_INCLUDE_TAGS.join(',') : '' %>">
+          </div>
+          <div class="form-group">
+            <label for="excludeTagInput">Exclude tags</label>
+            <div class="tag-input-container">
+              <input type="text"
+                  id="excludeTagInput"
+                  class="modern-input"
+                  placeholder="Enter a tag to exclude and press Enter">
+              <button type="button"
+                      class="material-button add-exclude-tag-btn">
+                <i class="fas fa-minus"></i>
+                Exclude
+              </button>
+            </div>
+            <div id="excludeTagsContainer" class="tags-container">
+              <% if (config.FILTER_EXCLUDE_TAGS && Array.isArray(config.FILTER_EXCLUDE_TAGS) && config.FILTER_EXCLUDE_TAGS.length > 0) { %>
+                  <% config.FILTER_EXCLUDE_TAGS.forEach(tag => { %>
+                      <div class="modern-tag fade-in tag-chip">
+                          <span><%= tag %></span>
+                          <button type="button"><i class="fas fa-times"></i></button>
+                      </div>
+                  <% }); %>
+              <% } %>
+            </div>
+            <input type="hidden" id="filterExcludeTags" name="filterExcludeTags" value="<%= Array.isArray(config.FILTER_EXCLUDE_TAGS) ? config.FILTER_EXCLUDE_TAGS.join(',') : '' %>">
+          </div>
         </div>
-        <div id="excludeTagsContainer" class="tags-container">
-          <% if (config.FILTER_EXCLUDE_TAGS && Array.isArray(config.FILTER_EXCLUDE_TAGS) && config.FILTER_EXCLUDE_TAGS.length > 0) { %>
-              <% config.FILTER_EXCLUDE_TAGS.forEach(tag => { %>
-                  <div class="modern-tag fade-in tag-chip">
-                      <span><%= tag %></span>
-                      <button type="button"><i class="fas fa-times"></i></button>
-                  </div>
-              <% }); %>
-          <% } %>
-        </div>
-        <input type="hidden" id="filterExcludeTags" name="filterExcludeTags" value="<%= Array.isArray(config.FILTER_EXCLUDE_TAGS) ? config.FILTER_EXCLUDE_TAGS.join(',') : '' %>">
       </div>
     </div>
 
@@ -120,72 +154,6 @@ const isSetup = variant === 'setup';
                value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
       </div>
     </div>
-
-    <% if (includeRestrictions) { %>
-    <div class="border-t pt-4 space-y-4">
-      <div class="space-y-2">
-        <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
-          <i class="fas fa-filter"></i>
-          AI restrictions
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
-            <label for="restrictToExistingTags" class="flex items-start cursor-pointer w-full">
-              <input type="checkbox"
-                  id="restrictToExistingTags"
-                  name="restrictToExistingTags"
-                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  <%= config.RESTRICT_TO_EXISTING_TAGS ? 'checked' : '' %>>
-              <div class="ml-3">
-                <div class="flex items-center font-medium">
-                  <i class="fas fa-tags text-blue-500 mr-2"></i>
-                  Restrict to existing tags
-                </div>
-                <p class="text-sm text-gray-500 mt-1">AI will only use tags that already exist in Paperless-ngx</p>
-              </div>
-            </label>
-          </div>
-
-          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
-            <label for="restrictToExistingCorrespondents" class="flex items-start cursor-pointer w-full">
-              <input type="checkbox"
-                  id="restrictToExistingCorrespondents"
-                  name="restrictToExistingCorrespondents"
-                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  <%= config.RESTRICT_TO_EXISTING_CORRESPONDENTS ? 'checked' : '' %>>
-              <div class="ml-3">
-                <div class="flex items-center font-medium">
-                  <i class="fas fa-user text-blue-500 mr-2"></i>
-                  Restrict to existing correspondents
-                </div>
-                <p class="text-sm text-gray-500 mt-1">AI will only use correspondents that already exist in Paperless-ngx</p>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
-            <label for="restrictToExistingDocumentTypes" class="flex items-start cursor-pointer w-full">
-              <input type="checkbox"
-                  id="restrictToExistingDocumentTypes"
-                  name="restrictToExistingDocumentTypes"
-                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  <%= config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES ? 'checked' : '' %>>
-              <div class="ml-3">
-                <div class="flex items-center font-medium">
-                  <i class="fas fa-file-alt text-blue-500 mr-2"></i>
-                  Restrict to existing document types
-                </div>
-                <p class="text-sm text-gray-500 mt-1">AI will only use document types that already exist in Paperless-ngx</p>
-              </div>
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-    <% } %>
 
     <% if (includeExternalApi) { %>
     <div class="border-t pt-4 space-y-4">
@@ -280,42 +248,6 @@ const isSetup = variant === 'setup';
       <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
         <label class="flex items-start cursor-pointer w-full">
           <input type="checkbox"
-                 id="addAiProcessedTag"
-                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                 <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
-          <div class="ml-3">
-            <div class="flex items-center font-medium">
-              <i class="fas fa-tag text-blue-500 mr-2"></i>
-              Add AI-processed tag to documents
-            </div>
-            <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
-          </div>
-        </label>
-        <input type="hidden"
-               id="addAiProcessedTagValue"
-               name="addAiProcessedTag"
-               value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
-      </div>
-    </div>
-
-    <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
-      <div class="form-group">
-        <label for="aiProcessedTagName">AI-processed tag name</label>
-        <input type="text"
-            id="aiProcessedTagName"
-            name="aiProcessedTagName"
-            value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
-            class="modern-input"
-            placeholder="ai-processed">
-        <p class="help-text">This tag will be added to documents after AI processing</p>
-      </div>
-    </div>
-
-    <hr/>
-    <div class="form-group">
-      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
-        <label class="flex items-start cursor-pointer w-full">
-          <input type="checkbox"
                  id="aiUsePromptTags"
                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
@@ -364,27 +296,6 @@ const isSetup = variant === 'setup';
     </div>
 
     <hr/>
-    <div class="form-group">
-      <label for="disableAutomaticProcessing">Disable automatic processing?</label>
-      <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
-        <label class="flex items-start cursor-pointer w-full">
-          <input type="checkbox"
-              id="disableAutomaticProcessing"
-              name="disableAutomaticProcessing"
-              class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-              <%= config.DISABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
-          <div class="ml-3">
-            <div class="flex items-center font-medium">
-              <i class="fas fa-robot text-blue-500 mr-2"></i>
-              Disable automatic processing
-            </div>
-            <p class="text-sm text-gray-500 mt-1">Determines if the AI will run on its own or every scan is started manually</p>
-          </div>
-        </label>
-      </div>
-    </div>
-
-    <hr/>
     <div class="form-group space-y-4">
       <label class="flex items-center gap-2 font-medium">
         <i class="fas fa-sliders-h text-blue-500"></i>
@@ -396,8 +307,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="documentType"
-                name="documentType"
+                id="enableDocumentType"
+                name="enableDocumentType"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_DOCUMENT_TYPE ? 'checked' : '' %>>
             <div class="ml-3">
@@ -413,8 +324,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="title"
-                name="title"
+                id="enableTitle"
+                name="enableTitle"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_TITLE ? 'checked' : '' %>>
             <div class="ml-3">
@@ -430,8 +341,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="documentDate"
-                name="documentDate"
+                id="enableDocumentDate"
+                name="enableDocumentDate"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_DOCUMENT_DATE ? 'checked' : '' %>>
             <div class="ml-3">
@@ -447,8 +358,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="language"
-                name="language"
+                id="enableLanguage"
+                name="enableLanguage"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_LANGUAGE ? 'checked' : '' %>>
             <div class="ml-3">
@@ -464,8 +375,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="tags"
-                name="tags"
+                id="enableTags"
+                name="enableTags"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_TAGS ? 'checked' : '' %>>
             <div class="ml-3">
@@ -481,8 +392,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="correspondent"
-                name="correspondent"
+                id="enableCorrespondent"
+                name="enableCorrespondent"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_CORRESPONDENT ? 'checked' : '' %>>
             <div class="ml-3">
@@ -498,8 +409,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="content"
-                name="content"
+                id="enableContent"
+                name="enableContent"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_CONTENT ? 'checked' : '' %>>
             <div class="ml-3">
@@ -515,8 +426,8 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="customFields"
-                name="customFields"
+                id="enableCustomFields"
+                name="enableCustomFields"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.ENABLE_CUSTOM_FIELDS ? 'checked' : '' %>>
             <div class="ml-3">
@@ -647,6 +558,116 @@ const isSetup = variant === 'setup';
                 placeholder="mandatory appendix defined in application configuration"
                 disabled><%= config.ai?.mustHavePrompt || '' %></textarea>
     </div>
+
+    <hr/>
+    <section class="space-y-4">
+      <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
+        <i class="fas fa-wand-magic-sparkles"></i>
+        AI result refinement
+      </h3>
+      <p class="text-sm text-gray-500">Fine-tune how AI results are constrained and labeled.</p>
+
+      <div class="form-group">
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                   id="addAiProcessedTag"
+                   class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-tag text-blue-500 mr-2"></i>
+                Add AI-processed tag to documents
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="addAiProcessedTagValue"
+                 name="addAiProcessedTag"
+                 value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
+        <div class="form-group">
+          <label for="aiProcessedTagName">AI-processed tag name</label>
+          <input type="text"
+              id="aiProcessedTagName"
+              name="aiProcessedTagName"
+              value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
+              class="modern-input"
+              placeholder="ai-processed">
+          <p class="help-text">This tag will be added to documents after AI processing</p>
+        </div>
+      </div>
+
+      <% if (includeRestrictions) { %>
+      <div class="border-t pt-4 space-y-4">
+        <div class="space-y-2">
+          <h4 class="text-base font-medium flex items-center gap-2 text-primary">
+            <i class="fas fa-filter"></i>
+            AI restrictions
+          </h4>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+              <label for="restrictToExistingTags" class="flex items-start cursor-pointer w-full">
+                <input type="checkbox"
+                    id="restrictToExistingTags"
+                    name="restrictToExistingTags"
+                    class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.RESTRICT_TO_EXISTING_TAGS ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center font-medium">
+                    <i class="fas fa-tags text-blue-500 mr-2"></i>
+                    Restrict to existing tags
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">AI will only use tags that already exist in Paperless-ngx</p>
+                </div>
+              </label>
+            </div>
+
+            <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+              <label for="restrictToExistingCorrespondents" class="flex items-start cursor-pointer w-full">
+                <input type="checkbox"
+                    id="restrictToExistingCorrespondents"
+                    name="restrictToExistingCorrespondents"
+                    class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.RESTRICT_TO_EXISTING_CORRESPONDENTS ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center font-medium">
+                    <i class="fas fa-user text-blue-500 mr-2"></i>
+                    Restrict to existing correspondents
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">AI will only use correspondents that already exist in Paperless-ngx</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+              <label for="restrictToExistingDocumentTypes" class="flex items-start cursor-pointer w-full">
+                <input type="checkbox"
+                    id="restrictToExistingDocumentTypes"
+                    name="restrictToExistingDocumentTypes"
+                    class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    <%= config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES ? 'checked' : '' %>>
+                <div class="ml-3">
+                  <div class="flex items-center font-medium">
+                    <i class="fas fa-file-alt text-blue-500 mr-2"></i>
+                    Restrict to existing document types
+                  </div>
+                  <p class="text-sm text-gray-500 mt-1">AI will only use document types that already exist in Paperless-ngx</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <% } %>
+    </section>
   </div>
 </section>
 <% } else { %>
@@ -656,7 +677,36 @@ const isSetup = variant === 'setup';
     Advanced settings
   </h2>
   <div class="space-y-2">
-    <div class="space-y-2">
+    <section class="space-y-4">
+      <h2 class="text-lg font-semibold flex items-center gap-2 text-primary">
+        <i class="fas fa-clipboard-check text-blue-500"></i>
+        Document processing
+      </h2>
+      <p class="text-sm text-gray-500">Control automation, schedules, and tag-based filtering.</p>
+      <div class="space-y-2">
+      <label for="enableAutomaticProcessing" class="text-sm font-medium">Enable automatic processing?</label>
+      <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+        <label for="enableAutomaticProcessing" class="flex items-center p-4 cursor-pointer w-full">
+          <input type="checkbox"
+                 id="enableAutomaticProcessing"
+                 class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 <%= config.ENABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
+          <div class="ml-3">
+            <div class="flex items-center text-gray-900 font-medium">
+              <i class="fas fa-robot mr-2 text-blue-500"></i>
+              Enable automatic processing
+            </div>
+            <p class="text-sm text-gray-500 mt-1">Determines if the AI will run on its own or every scan is started manually</p>
+          </div>
+        </label>
+        <input type="hidden"
+               id="enableAutomaticProcessingValue"
+               name="enableAutomaticProcessing"
+               value="<%= config.ENABLE_AUTOMATIC_PROCESSING ? 'true' : 'false' %>">
+      </div>
+      </div>
+
+      <div class="space-y-2 <%= config.ENABLE_AUTOMATIC_PROCESSING ? '' : 'hidden' %>" id="scanIntervalSection">
       <label for="scanInterval" class="text-sm font-medium">Scan interval (cron format)</label>
       <input type="text"
              id="scanInterval"
@@ -665,9 +715,9 @@ const isSetup = variant === 'setup';
              class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
              required>
       <p class="text-sm text-gray-500">Default: every 30 minutes</p>
-    </div>
+      </div>
 
-    <div class="space-y-4">
+      <div class="space-y-4">
       <div class="space-y-2">
         <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-center p-4 cursor-pointer w-full">
@@ -691,7 +741,7 @@ const isSetup = variant === 'setup';
       </div>
 
       <div id="tagsInputSection" class="<%= config.FILTER_DOCUMENTS ? '' : 'hidden' %> space-y-4">
-        <div class="space-y-2">
+      <div class="space-y-2">
           <label for="tagInput" class="text-sm font-medium">Include tags</label>
           <div class="flex gap-2">
             <input type="text"
@@ -743,6 +793,7 @@ const isSetup = variant === 'setup';
         </div>
       </div>
     </div>
+    </section>
 
     <div class="space-y-4">
       <div class="space-y-2">
@@ -755,7 +806,7 @@ const isSetup = variant === 'setup';
             <div class="ml-3">
               <div class="flex items-center text-gray-900 font-medium">
                 <i class="fas fa-database mr-2 text-blue-500"></i>
-                Use existing Correspondents and Tags
+                Use existing correspondents and tags
               </div>
               <p class="text-sm text-gray-500 mt-1">Prefer existing metadata before creating new entries</p>
             </div>
@@ -767,72 +818,6 @@ const isSetup = variant === 'setup';
         </div>
       </div>
     </div>
-
-    <% if (includeRestrictions) { %>
-    <div class="border-t pt-4 space-y-4">
-      <div class="space-y-2">
-        <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
-          <i class="fas fa-filter"></i>
-          AI Restrictions
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-            <label for="restrictToExistingTags" class="flex items-center p-4 cursor-pointer w-full">
-              <input type="checkbox"
-                  id="restrictToExistingTags"
-                  name="restrictToExistingTags"
-                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  <%= config.RESTRICT_TO_EXISTING_TAGS ? 'checked' : '' %>>
-              <div class="ml-3">
-                <div class="flex items-center text-gray-900 font-medium">
-                  <i class="fas fa-tags mr-2 text-blue-500"></i>
-                  Restrict to existing tags
-                </div>
-                <p class="text-sm text-gray-500 mt-1">AI will only use tags that already exist in Paperless-ngx</p>
-              </div>
-            </label>
-          </div>
-
-          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-            <label for="restrictToExistingCorrespondents" class="flex items-center p-4 cursor-pointer w-full">
-              <input type="checkbox"
-                  id="restrictToExistingCorrespondents"
-                  name="restrictToExistingCorrespondents"
-                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  <%= config.RESTRICT_TO_EXISTING_CORRESPONDENTS ? 'checked' : '' %>>
-              <div class="ml-3">
-                <div class="flex items-center text-gray-900 font-medium">
-                  <i class="fas fa-user mr-2 text-blue-500"></i>
-                  Restrict to existing correspondents
-                </div>
-                <p class="text-sm text-gray-500 mt-1">AI will only use correspondents that already exist in Paperless-ngx</p>
-              </div>
-            </label>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-            <label for="restrictToExistingDocumentTypes" class="flex items-center p-4 cursor-pointer w-full">
-              <input type="checkbox"
-                  id="restrictToExistingDocumentTypes"
-                  name="restrictToExistingDocumentTypes"
-                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                  <%= config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES ? 'checked' : '' %>>
-              <div class="ml-3">
-                <div class="flex items-center text-gray-900 font-medium">
-                  <i class="fas fa-file-alt mr-2 text-blue-500"></i>
-                  Restrict to existing document types
-                </div>
-                <p class="text-sm text-gray-500 mt-1">AI will only use document types that already exist in Paperless-ngx</p>
-              </div>
-            </label>
-          </div>
-        </div>
-      </div>
-    </div>
-    <% } %>
 
     <% if (includeExternalApi) { %>
     <div class="border-t pt-4 space-y-4">
@@ -927,41 +912,6 @@ const isSetup = variant === 'setup';
         <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-center p-4 cursor-pointer w-full">
             <input type="checkbox"
-                   id="addAiProcessedTag"
-                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
-            <div class="ml-3">
-              <div class="flex items-center text-gray-900 font-medium">
-                <i class="fas fa-tag mr-2 text-blue-500"></i>
-                Add AI-processed tag to documents
-              </div>
-              <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
-            </div>
-          </label>
-          <input type="hidden"
-                 id="addAiProcessedTagValue"
-                 name="addAiProcessedTag"
-                 value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
-        </div>
-      </div>
-
-      <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
-        <label for="aiProcessedTagName" class="text-sm font-medium">AI-processed tag name</label>
-        <input type="text"
-            id="aiProcessedTagName"
-            name="aiProcessedTagName"
-            value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="ai-processed">
-        <p class="text-sm text-gray-500">This tag will be added to documents after AI processing</p>
-      </div>
-    </div>
-
-    <div class="border-t pt-4 space-y-4">
-      <div class="space-y-2">
-        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-          <label class="flex items-center p-4 cursor-pointer w-full">
-            <input type="checkbox"
                    id="aiUsePromptTags"
                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                    <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
@@ -1010,28 +960,6 @@ const isSetup = variant === 'setup';
       </div>
     </div>
 
-    <hr/>
-    <div class="border-t pt-4 space-y-4">
-      <div class="space-y-2">
-        <label for="disableAutomaticProcessing" class="text-sm font-medium">Disable automatic processing?</label>
-        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-          <label for="disableAutomaticProcessing" class="flex items-center p-4 cursor-pointer w-full">
-            <input type="checkbox"
-                   id="disableAutomaticProcessing"
-                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                   <%= config.DISABLE_AUTOMATIC_PROCESSING ? 'checked' : '' %>>
-            <div class="ml-3">
-              <div class="flex items-center text-gray-900 font-medium">
-                <i class="fas fa-robot mr-2 text-blue-500"></i>
-                Disable automatic processing
-              </div>
-              <p class="text-sm text-gray-500 mt-1">Determines if the AI will run on its own or every scan is started manually</p>
-            </div>
-          </label>
-        </div>
-      </div>
-    </div>
-
     <hr class="my-6"/>
     <section class="space-y-6">
       <h2 class="text-xl font-bold flex items-center gap-2 text-primary mb-4">
@@ -1046,9 +974,9 @@ const isSetup = variant === 'setup';
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="documentType" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="documentType"
-                    name="documentType"
+                    <input type="checkbox"
+                        id="enableDocumentType"
+                        name="enableDocumentType"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_DOCUMENT_TYPE ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1063,9 +991,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="title" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="title"
-                    name="title"
+                    <input type="checkbox"
+                        id="enableTitle"
+                        name="enableTitle"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_TITLE ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1080,9 +1008,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="documentDate" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="documentDate"
-                    name="documentDate"
+                    <input type="checkbox"
+                        id="enableDocumentDate"
+                        name="enableDocumentDate"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_DOCUMENT_DATE ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1097,9 +1025,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="language" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="language"
-                    name="language"
+                    <input type="checkbox"
+                        id="enableLanguage"
+                        name="enableLanguage"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_LANGUAGE ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1114,9 +1042,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="tags" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="tags"
-                    name="tags"
+                    <input type="checkbox"
+                        id="enableTags"
+                        name="enableTags"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_TAGS ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1131,9 +1059,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="correspondent" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="correspondent"
-                    name="correspondent"
+                    <input type="checkbox"
+                        id="enableCorrespondent"
+                        name="enableCorrespondent"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_CORRESPONDENT ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1148,9 +1076,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="content" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="content"
-                    name="content"
+                    <input type="checkbox"
+                        id="enableContent"
+                        name="enableContent"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_CONTENT ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1165,9 +1093,9 @@ const isSetup = variant === 'setup';
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
               <label for="customFields" class="flex items-center p-4 cursor-pointer w-full">
-                <input type="checkbox"
-                    id="customFields"
-                    name="customFields"
+                    <input type="checkbox"
+                        id="enableCustomFields"
+                        name="enableCustomFields"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     <%= config.ENABLE_CUSTOM_FIELDS ? 'checked' : '' %>>
                 <div class="ml-3">
@@ -1352,6 +1280,111 @@ const isSetup = variant === 'setup';
                     disabled><%= config.ai?.mustHavePrompt || '' %></textarea>
         </div>
       </div>
+    </div>
+
+    <div class="border-t pt-4 space-y-4">
+      <h3 class="text-lg font-semibold flex items-center gap-2 text-primary">
+        <i class="fas fa-wand-magic-sparkles text-blue-500"></i>
+        AI result refinement
+      </h3>
+      <p class="text-sm text-gray-500">Fine-tune how AI results are constrained and labeled.</p>
+
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="addAiProcessedTag"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-tag mr-2 text-blue-500"></i>
+                Add AI-processed tag to documents
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="addAiProcessedTagValue"
+                 name="addAiProcessedTag"
+                 value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
+        <label for="aiProcessedTagName" class="text-sm font-medium">AI-processed tag name</label>
+        <input type="text"
+            id="aiProcessedTagName"
+            name="aiProcessedTagName"
+            value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            placeholder="ai-processed">
+        <p class="text-sm text-gray-500">This tag will be added to documents after AI processing</p>
+      </div>
+
+      <% if (includeRestrictions) { %>
+      <div class="space-y-2">
+        <h4 class="text-base font-medium flex items-center gap-2 text-primary">
+          <i class="fas fa-filter"></i>
+          AI restrictions
+        </h4>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingTags" class="flex items-center p-4 cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingTags"
+                  name="restrictToExistingTags"
+                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_TAGS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center text-gray-900 font-medium">
+                  <i class="fas fa-tags mr-2 text-blue-500"></i>
+                  Restrict to existing tags
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use tags that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+
+          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingCorrespondents" class="flex items-center p-4 cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingCorrespondents"
+                  name="restrictToExistingCorrespondents"
+                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_CORRESPONDENTS ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center text-gray-900 font-medium">
+                  <i class="fas fa-user mr-2 text-blue-500"></i>
+                  Restrict to existing correspondents
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use correspondents that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+            <label for="restrictToExistingDocumentTypes" class="flex items-center p-4 cursor-pointer w-full">
+              <input type="checkbox"
+                  id="restrictToExistingDocumentTypes"
+                  name="restrictToExistingDocumentTypes"
+                  class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  <%= config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES ? 'checked' : '' %>>
+              <div class="ml-3">
+                <div class="flex items-center text-gray-900 font-medium">
+                  <i class="fas fa-file-alt mr-2 text-blue-500"></i>
+                  Restrict to existing document types
+                </div>
+                <p class="text-sm text-gray-500 mt-1">AI will only use document types that already exist in Paperless-ngx</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+      <% } %>
     </div>
   </div>
 </section>

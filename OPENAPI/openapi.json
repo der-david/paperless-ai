@@ -2155,6 +2155,11 @@
                     "description": "Interval in minutes for scanning new documents",
                     "example": 15
                   },
+                  "enableAutomaticProcessing": {
+                    "type": "boolean",
+                    "description": "Enable automatic document processing",
+                    "example": false
+                  },
                   "aiSystemPrompt": {
                     "type": "string",
                     "description": "Custom system prompt for document analysis",
@@ -3179,9 +3184,9 @@
                     "description": "JSON string defining custom fields to extract",
                     "example": "{\"invoice_number\":{\"type\":\"string\"},\"total_amount\":{\"type\":\"number\"}}"
                   },
-                  "disableAutomaticProcessing": {
+                  "enableAutomaticProcessing": {
                     "type": "boolean",
-                    "description": "Disable automatic document processing",
+                    "description": "Enable automatic document processing",
                     "example": false
                   }
                 }

@@ -3447,6 +3447,10 @@ router.get('/health', async (req, res) => {
  *                 type: number
  *                 description: Interval in minutes for scanning new documents
  *                 example: 15
+ *               enableAutomaticProcessing:
+ *                 type: boolean
+ *                 description: Enable automatic document processing
+ *                 example: false
  *               aiSystemPrompt:
  *                 type: string
  *                 description: Custom system prompt for document analysis
@@ -3509,35 +3513,35 @@ router.get('/health', async (req, res) => {
  *                 type: boolean
  *                 description: Whether to use existing data from a previous setup
  *                 example: false
- *               tags:
+ *               enableTags:
  *                 type: boolean
  *                 description: Enable AI-based tag suggestions
  *                 example: true
- *               correspondent:
+ *               enableCorrespondent:
  *                 type: boolean
  *                 description: Enable AI-based correspondent suggestions
  *                 example: true
- *               documentType:
+ *               enableDocumentType:
  *                 type: boolean
  *                 description: Enable AI-based document type suggestions
  *                 example: true
- *               title:
+ *               enableTitle:
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
- *               documentDate:
+ *               enableDocumentDate:
  *                 type: boolean
  *                 description: Enable AI-based document date extraction
  *                 example: true
- *               language:
+ *               enableLanguage:
  *                 type: boolean
  *                 description: Enable AI-based language detection
  *                 example: true
- *               content:
+ *               enableContent:
  *                 type: boolean
  *                 description: Enable AI-based document content updates
  *                 example: false
- *               customFields:
+ *               enableCustomFields:
  *                 type: boolean
  *                 description: Enable AI-based custom field extraction
  *                 example: false
@@ -3615,16 +3619,16 @@ router.post('/setup', express.json(), async (req, res) => {
       customApiKey,
       customBaseUrl,
       customModel,
-      tags,
-      correspondent,
-      documentType,
-      title,
-      documentDate,
-      language,
-      content,
-      customFields,
+      enableTags,
+      enableCorrespondent,
+      enableDocumentType,
+      enableTitle,
+      enableDocumentDate,
+      enableLanguage,
+      enableContent,
+      enableCustomFields,
       aiCustomFields,
-      disableAutomaticProcessing,
+      enableAutomaticProcessing,
       restrictToExistingTags,
       restrictToExistingCorrespondents,
       restrictToExistingDocumentTypes,
@@ -3678,14 +3682,14 @@ router.post('/setup', express.json(), async (req, res) => {
 
     const requiredPermissions = buildRequiredPaperlessPermissions({
       enableUpdates: {
-        tags,
-        correspondent,
-        documentType,
-        title,
-        documentDate,
-        language,
-        content,
-        customFields
+        tags: enableTags,
+        correspondent: enableCorrespondent,
+        documentType: enableDocumentType,
+        title: enableTitle,
+        documentDate: enableDocumentDate,
+        language: enableLanguage,
+        content: enableContent,
+        customFields: enableCustomFields
       },
       restrictToExisting: {
         tags: restrictToExistingTags,
@@ -3703,7 +3707,7 @@ router.post('/setup', express.json(), async (req, res) => {
 
     // Process custom fields if enabled
     let processedCustomFields = [];
-    if (aiCustomFields && parseBoolean(customFields, true)) {
+    if (aiCustomFields && parseBoolean(enableCustomFields, true)) {
       const inputFields = configService.parseCustomFieldsInput(aiCustomFields);
       for (const field of inputFields) {
         try {
@@ -3878,10 +3882,14 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 description: How raw document data is sent to the AI
  *                 enum: ["text", "file", "image"]
  *                 example: "text"
- *               tags:
+ *               filterIncludeTags:
  *                 type: string
- *                 description: Comma-separated list of tags to use for filtering
+ *                 description: Comma-separated list of tags to include
  *                 example: "Invoice,Receipt,Contract"
+ *               filterExcludeTags:
+ *                 type: string
+ *                 description: Comma-separated list of tags to exclude (takes precedence)
+ *                 example: "no-AI,ignore"
  *               addAiProcessedTag:
  *                 type: boolean
  *                 description: Whether to add a tag for AI-processed documents
@@ -3902,45 +3910,45 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: boolean
  *                 description: Whether to use existing data from a previous setup
  *                 example: false
- *               tags:
+ *               enableTags:
  *                 type: boolean
  *                 description: Enable AI-based tag suggestions
  *                 example: true
- *               correspondent:
+ *               enableCorrespondent:
  *                 type: boolean
  *                 description: Enable AI-based correspondent suggestions
  *                 example: true
- *               documentType:
+ *               enableDocumentType:
  *                 type: boolean
  *                 description: Enable AI-based document type suggestions
  *                 example: true
- *               title:
+ *               enableTitle:
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
- *               documentDate:
+ *               enableDocumentDate:
  *                 type: boolean
  *                 description: Enable AI-based document date extraction
  *                 example: true
- *               language:
+ *               enableLanguage:
  *                 type: boolean
  *                 description: Enable AI-based language detection
  *                 example: true
- *               content:
+ *               enableContent:
  *                 type: boolean
  *                 description: Enable AI-based document content updates
  *                 example: false
- *               customFields:
+ *               enableCustomFields:
  *                 type: boolean
  *                 description: Enable AI-based custom field extraction
  *                 example: false
- *               customFields:
+ *               aiCustomFields:
  *                 type: string
  *                 description: JSON string defining custom fields to extract
  *                 example: '{"invoice_number":{"type":"string"},"total_amount":{"type":"number"}}'
- *               disableAutomaticProcessing:
+ *               enableAutomaticProcessing:
  *                 type: boolean
- *                 description: Disable automatic document processing
+ *                 description: Enable automatic document processing
  *                 example: false
  *     responses:
  *       200:
@@ -4014,16 +4022,16 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       customApiKey,
       customBaseUrl,
       customModel,
-      tags,
-      correspondent,
-      documentType,
-      title,
-      documentDate,
-      language,
-      content,
-      customFields,
+      enableTags,
+      enableCorrespondent,
+      enableDocumentType,
+      enableTitle,
+      enableDocumentDate,
+      enableLanguage,
+      enableContent,
+      enableCustomFields,
       aiCustomFields,
-      disableAutomaticProcessing,
+      enableAutomaticProcessing,
       restrictToExistingTags,
       restrictToExistingCorrespondents,
       restrictToExistingDocumentTypes,
@@ -4074,14 +4082,14 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       }
       const requiredPermissions = buildRequiredPaperlessPermissions({
         enableUpdates: {
-          tags,
-          correspondent,
-          documentType,
-          title,
-          documentDate,
-          language,
-          content,
-          customFields
+          tags: enableTags,
+          correspondent: enableCorrespondent,
+          documentType: enableDocumentType,
+          title: enableTitle,
+          documentDate: enableDocumentDate,
+          language: enableLanguage,
+          content: enableContent,
+          customFields: enableCustomFields
         },
         restrictToExisting: {
           tags: restrictToExistingTags,

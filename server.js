@@ -658,7 +658,7 @@ async function startScanning() {
 
     console.log('Configured scan interval:', config.scanInterval);
     console.log(`Starting initial scan at ${new Date().toISOString()}`);
-    if (config.disableAutomaticProcessing !== true) {
+    if (config.enableAutomaticProcessing === true) {
       await scanInitial();
 
       cron.schedule(config.scanInterval, async () => {

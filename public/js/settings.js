@@ -10,14 +10,14 @@ class FormManager {
         this.usePromptTags = document.getElementById('aiUsePromptTags');
         this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.systemPromptBtn = document.getElementById('systemPromptBtn');
-        this.disableAutomaticProcessing = document.getElementById('disableAutomaticProcessing');
+        this.enableAutomaticProcessing = document.getElementById('enableAutomaticProcessing');
         this.initialize();
     }
 
     initialize() {
         this.toggleProviderSettings();
         this.toggleTagsInput();
-        this.handleDisableAutomaticProcessing();
+        this.handleEnableAutomaticProcessing();
         this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
         this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
         this.syncCheckboxHidden('addAiProcessedTag', 'addAiProcessedTagValue');
@@ -29,7 +29,9 @@ class FormManager {
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
         this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
-        this.disableAutomaticProcessing.addEventListener('change', () => this.handleDisableAutomaticProcessing());
+        if (this.enableAutomaticProcessing) {
+            this.enableAutomaticProcessing.addEventListener('change', () => this.handleEnableAutomaticProcessing());
+        }
 
         this.initializePasswordToggles();
 
@@ -59,19 +61,26 @@ class FormManager {
         }
     }
 
-    handleDisableAutomaticProcessing() {
-        // Create a hidden input if it doesn't exist
-        let hiddenInput = document.getElementById('disableAutomaticProcessingValue');
+    handleEnableAutomaticProcessing() {
+        if (!this.enableAutomaticProcessing) {
+            return;
+        }
+
+        let hiddenInput = document.getElementById('enableAutomaticProcessingValue');
         if (!hiddenInput) {
             hiddenInput = document.createElement('input');
             hiddenInput.type = 'hidden';
-            hiddenInput.id = 'disableAutomaticProcessingValue';
-            hiddenInput.name = 'disableAutomaticProcessing';
+            hiddenInput.id = 'enableAutomaticProcessingValue';
+            hiddenInput.name = 'enableAutomaticProcessing';
             this.form.appendChild(hiddenInput);
         }
 
-        // Update the hidden input value based on checkbox state
-        hiddenInput.value = this.disableAutomaticProcessing.checked ? 'true' : 'false';
+        hiddenInput.value = this.enableAutomaticProcessing.checked ? 'true' : 'false';
+
+        const scanIntervalSection = document.getElementById('scanIntervalSection');
+        if (scanIntervalSection) {
+            scanIntervalSection.classList.toggle('hidden', !this.enableAutomaticProcessing.checked);
+        }
     }
 
     toggleProviderSettings() {

@@ -33,7 +33,7 @@ class ConfigService {
     PAPERLESS_AI_VERSION: ' ',
     PROCESS_ONLY_NEW_DOCUMENTS: true,
     AI_USE_EXISTING_DATA: false,
-    DISABLE_AUTOMATIC_PROCESSING: false,
+    ENABLE_AUTOMATIC_PROCESSING: false,
     ENABLE_TAGS: true,
     ENABLE_CORRESPONDENT: true,
     ENABLE_DOCUMENT_TYPE: true,
@@ -179,14 +179,7 @@ class ConfigService {
     const config = {};
 
     Object.entries(ConfigService.DEFAULTS).forEach(([key, defaultValue]) => {
-      let payloadKey = this.toCamelCase(key);
-      if (key === 'FILTER_INCLUDE_TAGS') {
-        payloadKey = 'filterIncludeTags';
-      } else if (key === 'FILTER_EXCLUDE_TAGS') {
-        payloadKey = 'filterExcludeTags';
-      } else if (key.startsWith('ENABLE_')) {
-        payloadKey = this.toCamelCase(key.replace('ENABLE_', ''));
-      }
+      const payloadKey = this.toCamelCase(key);
       if (Object.prototype.hasOwnProperty.call(body, payloadKey)) {
         config[key] = this.coerceValueWithDefault(body[payloadKey], defaultValue);
       } else {
@@ -218,14 +211,7 @@ class ConfigService {
     const updatedConfig = {};
 
     Object.entries(ConfigService.DEFAULTS).forEach(([key, defaultValue]) => {
-      let payloadKey = this.toCamelCase(key);
-      if (key === 'FILTER_INCLUDE_TAGS') {
-        payloadKey = 'filterIncludeTags';
-      } else if (key === 'FILTER_EXCLUDE_TAGS') {
-        payloadKey = 'filterExcludeTags';
-      } else if (key.startsWith('ENABLE_')) {
-        payloadKey = this.toCamelCase(key.replace('ENABLE_', ''));
-      }
+      const payloadKey = this.toCamelCase(key);
       if (!Object.prototype.hasOwnProperty.call(body, payloadKey)) {
         return;
       }

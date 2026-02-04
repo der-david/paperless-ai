@@ -104,7 +104,7 @@ console.log('Loaded environment variables:', {
 module.exports = {
   PAPERLESS_AI_VERSION: '3.0.9',
   CONFIGURED: false,
-  disableAutomaticProcessing: parseEnvBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false),
+  enableAutomaticProcessing: parseEnvBoolean(process.env.ENABLE_AUTOMATIC_PROCESSING, false),
   filterDocuments: parseEnvBoolean(process.env.FILTER_DOCUMENTS, false),
   addAIProcessedTag: parseEnvBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
   addAIProcessedTags: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
