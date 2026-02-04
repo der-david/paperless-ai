@@ -213,6 +213,17 @@ class PaperlessService {
     return apiUrl.replace(/\/api\/?$/, '') + '/api';
   }
 
+  normalizeTagList(value) {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      return value.map(tag => String(tag).trim()).filter(Boolean);
+    }
+    if (typeof value === 'string') {
+      return value.split(',').map(tag => tag.trim()).filter(Boolean);
+    }
+    return [];
+  }
+
   async validateConfig() {
     this.initialize();
     if (!this.client) {
@@ -671,21 +682,23 @@ class PaperlessService {
       }
 
       // Add AI-Processed tag if enabled
-      if (this.settings?.addAIProcessedTag === true && this.settings?.addAIProcessedTags) {
+      if (this.settings?.postProcessAddTags === true && this.settings?.postProcessTagsToAdd) {
         try {
-          const aiTagName = this.settings.addAIProcessedTags;
-          let aiTag = await this.findExistingTag(aiTagName);
+          const aiTagNames = this.normalizeTagList(this.settings.postProcessTagsToAdd);
+          for (const aiTagName of aiTagNames) {
+            let aiTag = await this.findExistingTag(aiTagName);
 
-          if (!aiTag) {
-            aiTag = await this.createTagSafely(aiTagName);
-          }
+            if (!aiTag) {
+              aiTag = await this.createTagSafely(aiTagName);
+            }
 
-          if (aiTag && aiTag.id) {
-            tagIds.push(aiTag.id);
+            if (aiTag && aiTag.id) {
+              tagIds.push(aiTag.id);
+            }
           }
         } catch (error) {
-          console.error(`processing AI tag "${this.settings.addAIProcessedTags}":`, error.message);
-          errors.push({ tagName: this.settings.addAIProcessedTags, error: error.message });
+          console.error(`processing AI tag "${this.settings.postProcessTagsToAdd}":`, error.message);
+          errors.push({ tagName: this.settings.postProcessTagsToAdd, error: error.message });
         }
       }
 
@@ -979,8 +992,8 @@ class PaperlessService {
     if (shouldFilterByTags) {
       const includeTagsValue = this.settings?.filterIncludeTags;
       const excludeTagsValue = this.settings?.filterExcludeTags;
-      const includeTagNames = includeTagsValue ? includeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-      const excludeTagNames = excludeTagsValue ? excludeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+      const includeTagNames = this.normalizeTagList(includeTagsValue);
+      const excludeTagNames = this.normalizeTagList(excludeTagsValue);
 
       if (includeTagNames.length === 0 && excludeTagNames.length === 0) {
         console.debug('FILTER_DOCUMENTS is set to true but no filter tags are defined');
@@ -1118,8 +1131,8 @@ class PaperlessService {
     if (shouldFilterByTags) {
       const includeTagsValue = this.settings?.filterIncludeTags;
       const excludeTagsValue = this.settings?.filterExcludeTags;
-      const includeTagNames = includeTagsValue ? includeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
-      const excludeTagNames = excludeTagsValue ? excludeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+      const includeTagNames = this.normalizeTagList(includeTagsValue);
+      const excludeTagNames = this.normalizeTagList(excludeTagsValue);
 
       if (includeTagNames.length === 0 && excludeTagNames.length === 0) {
         console.debug('FILTER_DOCUMENTS is set to true but no filter tags are defined');
@@ -1608,6 +1621,52 @@ async getOrCreateDocumentType(name) {
       return await this.getDocument(documentId);
     } catch (error) {
       console.error(`Error removing unused tags from document ${documentId}:`, error.message);
+      throw error;
+    }
+  }
+
+  async removeTagsFromDocument(documentId, tagNames) {
+    this.initialize();
+    if (!this.client) return null;
+
+    const normalizedTagNames = this.normalizeTagList(tagNames);
+    if (normalizedTagNames.length === 0) {
+      return null;
+    }
+
+    try {
+      const currentDoc = await this.getDocument(documentId);
+      const currentTagIds = Array.isArray(currentDoc?.tags) ? currentDoc.tags : [];
+
+      const tagsToRemove = new Set();
+
+      for (const tagName of normalizedTagNames) {
+        if (!tagName) continue;
+        const numericId = Number(tagName);
+        if (!Number.isNaN(numericId) && Number.isFinite(numericId)) {
+          tagsToRemove.add(numericId);
+          continue;
+        }
+        const existing = await this.findExistingTag(tagName);
+        if (existing?.id) {
+          tagsToRemove.add(existing.id);
+        }
+      }
+
+      if (tagsToRemove.size === 0) {
+        return currentDoc;
+      }
+
+      const filteredTags = currentTagIds.filter(tagId => !tagsToRemove.has(tagId));
+      if (filteredTags.length === currentTagIds.length) {
+        return currentDoc;
+      }
+
+      await this.client.patch(`/documents/${documentId}/`, { tags: filteredTags });
+      console.debug(`Removed tags from document ${documentId}:`, Array.from(tagsToRemove));
+      return await this.getDocument(documentId);
+    } catch (error) {
+      console.error(`Error removing tags from document ${documentId}:`, error.message);
       throw error;
     }
   }

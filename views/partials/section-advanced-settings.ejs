@@ -281,16 +281,17 @@ const isSetup = variant === 'setup';
           </button>
         </div>
         <div id="promptTagsContainer" class="tags-container">
-          <% if (config.AI_PROMPT_TAGS && Array.isArray(config.AI_PROMPT_TAGS) && config.AI_PROMPT_TAGS.length > 0) { %>
-              <% config.AI_PROMPT_TAGS.forEach(tag => { %>
-                  <div class="modern-tag fade-in">
+          <% const promptTags = Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS : (config.AI_PROMPT_TAGS ? String(config.AI_PROMPT_TAGS).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+          <% if (promptTags.length > 0) { %>
+              <% promptTags.forEach(tag => { %>
+                  <div class="modern-tag fade-in tag-chip">
                       <span><%= tag %></span>
                       <button type="button"><i class="fas fa-times"></i></button>
                   </div>
               <% }); %>
           <% } %>
         </div>
-        <input type="hidden" id="aiPromptTags" name="aiPromptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
+        <input type="hidden" id="aiPromptTags" name="aiPromptTags" value="<%= promptTags.join(',') %>">
         <p class="help-text">These tags will be exclusively used in the AI prompt</p>
       </div>
     </div>
@@ -571,34 +572,103 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                   id="addAiProcessedTag"
+                   id="postProcessAddTags"
                    class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
+                   <%= config.POST_PROCESS_ADD_TAGS ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-tag text-blue-500 mr-2"></i>
-                Add AI-processed tag to documents
+                Add tags after processing
               </div>
-              <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
+              <p class="text-sm text-gray-500 mt-1">Add selected tags once the document is processed</p>
             </div>
           </label>
           <input type="hidden"
-                 id="addAiProcessedTagValue"
-                 name="addAiProcessedTag"
-                 value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
+                 id="postProcessAddTagsValue"
+                 name="postProcessAddTags"
+                 value="<%= config.POST_PROCESS_ADD_TAGS ? 'true' : 'false' %>">
         </div>
       </div>
 
-      <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
+      <div id="postProcessTagsToAddSection" class="<%= config.POST_PROCESS_ADD_TAGS ? '' : 'hidden' %>">
         <div class="form-group">
-          <label for="aiProcessedTagName">AI-processed tag name</label>
+          <label for="postProcessTagToAddInput">Tags to add</label>
+          <div class="tag-input-container">
+            <input type="text"
+                id="postProcessTagToAddInput"
+                class="modern-input"
+                placeholder="Enter a tag and press Enter">
+            <button type="button"
+                    class="material-button add-post-process-tag-to-add-btn">
+              <i class="fas fa-plus"></i>
+              Add
+            </button>
+          </div>
+          <div id="postProcessTagsToAddContainer" class="tags-container">
+            <% const processedTags = Array.isArray(config.POST_PROCESS_TAGS_TO_ADD) ? config.POST_PROCESS_TAGS_TO_ADD : (config.POST_PROCESS_TAGS_TO_ADD ? String(config.POST_PROCESS_TAGS_TO_ADD).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+            <% if (processedTags.length > 0) { %>
+                <% processedTags.forEach(tag => { %>
+                    <div class="modern-tag fade-in tag-chip">
+                        <span><%= tag %></span>
+                        <button type="button"><i class="fas fa-times"></i></button>
+                    </div>
+                <% }); %>
+            <% } %>
+          </div>
+          <input type="hidden" id="postProcessTagsToAdd" name="postProcessTagsToAdd" value="<%= processedTags.join(',') %>">
+          <p class="help-text">These tags will be added to documents after AI processing</p>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-start cursor-pointer w-full">
+            <input type="checkbox"
+                   id="postProcessRemoveTags"
+                   class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.POST_PROCESS_REMOVE_TAGS ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center font-medium">
+                <i class="fas fa-eraser text-blue-500 mr-2"></i>
+                Remove tags after processing
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Remove selected tags once the document is processed</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="postProcessRemoveTagsValue"
+                 name="postProcessRemoveTags"
+                 value="<%= config.POST_PROCESS_REMOVE_TAGS ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="postProcessTagsToRemoveSection" class="<%= config.POST_PROCESS_REMOVE_TAGS ? '' : 'hidden' %>">
+        <div class="form-group">
+        <label for="postProcessTagToRemoveInput">Tags to remove</label>
+        <div class="tag-input-container">
           <input type="text"
-              id="aiProcessedTagName"
-              name="aiProcessedTagName"
-              value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
+              id="postProcessTagToRemoveInput"
               class="modern-input"
-              placeholder="ai-processed">
-          <p class="help-text">This tag will be added to documents after AI processing</p>
+              placeholder="Enter a tag and press Enter">
+          <button type="button"
+                  class="material-button add-post-process-tag-to-remove-btn">
+            <i class="fas fa-minus"></i>
+            Remove
+          </button>
+        </div>
+        <div id="postProcessTagsToRemoveContainer" class="tags-container">
+          <% const removeTags = Array.isArray(config.POST_PROCESS_TAGS_TO_REMOVE) ? config.POST_PROCESS_TAGS_TO_REMOVE : (config.POST_PROCESS_TAGS_TO_REMOVE ? String(config.POST_PROCESS_TAGS_TO_REMOVE).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+          <% if (removeTags.length > 0) { %>
+              <% removeTags.forEach(tag => { %>
+                  <div class="modern-tag fade-in tag-chip">
+                      <span><%= tag %></span>
+                      <button type="button"><i class="fas fa-times"></i></button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+        <input type="hidden" id="postProcessTagsToRemove" name="postProcessTagsToRemove" value="<%= removeTags.join(',') %>">
+        <p class="help-text">These tags will be removed after a document is processed successfully</p>
         </div>
       </div>
 
@@ -1289,39 +1359,6 @@ const isSetup = variant === 'setup';
       </h3>
       <p class="text-sm text-gray-500">Fine-tune how AI results are constrained and labeled.</p>
 
-      <div class="space-y-2">
-        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-          <label class="flex items-center p-4 cursor-pointer w-full">
-            <input type="checkbox"
-                   id="addAiProcessedTag"
-                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                   <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
-            <div class="ml-3">
-              <div class="flex items-center text-gray-900 font-medium">
-                <i class="fas fa-tag mr-2 text-blue-500"></i>
-                Add AI-processed tag to documents
-              </div>
-              <p class="text-sm text-gray-500 mt-1">Mark documents that were handled by the AI</p>
-            </div>
-          </label>
-          <input type="hidden"
-                 id="addAiProcessedTagValue"
-                 name="addAiProcessedTag"
-                 value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
-        </div>
-      </div>
-
-      <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
-        <label for="aiProcessedTagName" class="text-sm font-medium">AI-processed tag name</label>
-        <input type="text"
-            id="aiProcessedTagName"
-            name="aiProcessedTagName"
-            value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="ai-processed">
-        <p class="text-sm text-gray-500">This tag will be added to documents after AI processing</p>
-      </div>
-
       <% if (includeRestrictions) { %>
       <div class="space-y-2">
         <h4 class="text-base font-medium flex items-center gap-2 text-primary">
@@ -1385,6 +1422,107 @@ const isSetup = variant === 'setup';
         </div>
       </div>
       <% } %>
+
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="postProcessAddTags"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.POST_PROCESS_ADD_TAGS ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-tag mr-2 text-blue-500"></i>
+                Add tags after processing
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Add selected tags once the document is processed</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="postProcessAddTagsValue"
+                 name="postProcessAddTags"
+                 value="<%= config.POST_PROCESS_ADD_TAGS ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="postProcessTagsToAddSection" class="<%= config.POST_PROCESS_ADD_TAGS ? '' : 'hidden' %> space-y-2">
+        <label for="postProcessTagToAddInput" class="text-sm font-medium">Tags to add</label>
+        <div class="flex gap-2">
+          <input type="text"
+              id="postProcessTagToAddInput"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter a tag and press Enter">
+          <button type="button"
+                  class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-post-process-tag-to-add-btn">
+            <i class="fas fa-plus mr-2"></i>
+            Add
+          </button>
+        </div>
+        <div id="postProcessTagsToAddContainer" class="flex flex-wrap gap-2 mt-2">
+          <% const addTags = Array.isArray(config.POST_PROCESS_TAGS_TO_ADD) ? config.POST_PROCESS_TAGS_TO_ADD : (config.POST_PROCESS_TAGS_TO_ADD ? String(config.POST_PROCESS_TAGS_TO_ADD).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+          <% if (addTags.length > 0) { %>
+              <% addTags.forEach(tag => { %>
+                  <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
+                      <span><%= tag %></span>
+                      <button type="button" class="hover:text-blue-600"><i class="fas fa-times"></i></button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+        <input type="hidden" id="postProcessTagsToAdd" name="postProcessTagsToAdd" value="<%= processedTags.join(',') %>">
+        <p class="text-sm text-gray-500">These tags will be added to documents after AI processing</p>
+      </div>
+
+      <div class="space-y-2">
+        <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
+          <label class="flex items-center p-4 cursor-pointer w-full">
+            <input type="checkbox"
+                   id="postProcessRemoveTags"
+                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                   <%= config.POST_PROCESS_REMOVE_TAGS ? 'checked' : '' %>>
+            <div class="ml-3">
+              <div class="flex items-center text-gray-900 font-medium">
+                <i class="fas fa-eraser mr-2 text-blue-500"></i>
+                Remove tags after processing
+              </div>
+              <p class="text-sm text-gray-500 mt-1">Remove selected tags once the document is processed</p>
+            </div>
+          </label>
+          <input type="hidden"
+                 id="postProcessRemoveTagsValue"
+                 name="postProcessRemoveTags"
+                 value="<%= config.POST_PROCESS_REMOVE_TAGS ? 'true' : 'false' %>">
+        </div>
+      </div>
+
+      <div id="postProcessTagsToRemoveSection" class="<%= config.POST_PROCESS_REMOVE_TAGS ? '' : 'hidden' %> space-y-2">
+        <label for="postProcessTagToRemoveInput" class="text-sm font-medium">Tags to remove</label>
+        <div class="flex gap-2">
+          <input type="text"
+              id="postProcessTagToRemoveInput"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Enter a tag and press Enter">
+          <button type="button"
+                  class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-post-process-tag-to-remove-btn">
+            <i class="fas fa-minus mr-2"></i>
+            Remove
+          </button>
+        </div>
+        <div id="postProcessTagsToRemoveContainer" class="flex flex-wrap gap-2 mt-2">
+          <% const removeTags = Array.isArray(config.POST_PROCESS_TAGS_TO_REMOVE) ? config.POST_PROCESS_TAGS_TO_REMOVE : (config.POST_PROCESS_TAGS_TO_REMOVE ? String(config.POST_PROCESS_TAGS_TO_REMOVE).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+          <% if (removeTags.length > 0) { %>
+              <% removeTags.forEach(tag => { %>
+                  <div class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
+                      <span><%= tag %></span>
+                      <button type="button" class="hover:text-gray-600"><i class="fas fa-times"></i></button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+        <input type="hidden" id="postProcessTagsToRemove" name="postProcessTagsToRemove" value="<%= removeTags.join(',') %>">
+        <p class="text-sm text-gray-500">These tags will be removed after a document is processed successfully</p>
+      </div>
+
     </div>
   </div>
 </section>

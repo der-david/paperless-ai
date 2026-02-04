@@ -2200,15 +2200,25 @@
                     "description": "Comma-separated list of tags to exclude (takes precedence)",
                     "example": "no-AI,ignore"
                   },
-                  "addAiProcessedTag": {
+                  "postProcessAddTags": {
                     "type": "boolean",
                     "description": "Whether to add a tag for AI-processed documents",
                     "example": true
                   },
-                  "aiTagName": {
+                  "postProcessTagsToAdd": {
                     "type": "string",
-                    "description": "Tag name to use for AI-processed documents",
-                    "example": "AI-Processed"
+                    "description": "Comma-separated list of tags to add after AI processing",
+                    "example": "ai-processed,reviewed"
+                  },
+                  "postProcessRemoveTags": {
+                    "type": "boolean",
+                    "description": "Whether to remove tags after processing",
+                    "example": false
+                  },
+                  "postProcessTagsToRemove": {
+                    "type": "string",
+                    "description": "Comma-separated list of tags to remove after processing",
+                    "example": "inbox,no-ai"
                   },
                   "aiUsePromptTags": {
                     "type": "boolean",
@@ -3124,15 +3134,25 @@
                     "description": "Comma-separated list of tags to exclude (takes precedence)",
                     "example": "no-AI,ignore"
                   },
-                  "addAiProcessedTag": {
+                  "postProcessAddTags": {
                     "type": "boolean",
                     "description": "Whether to add a tag for AI-processed documents",
                     "example": true
                   },
-                  "aiTagName": {
+                  "postProcessTagsToAdd": {
                     "type": "string",
-                    "description": "Tag name to use for AI-processed documents",
-                    "example": "AI-Processed"
+                    "description": "Comma-separated list of tags to add after AI processing",
+                    "example": "ai-processed,reviewed"
+                  },
+                  "postProcessRemoveTags": {
+                    "type": "boolean",
+                    "description": "Whether to remove tags after processing",
+                    "example": false
+                  },
+                  "postProcessTagsToRemove": {
+                    "type": "string",
+                    "description": "Comma-separated list of tags to remove after processing",
+                    "example": "inbox,no-ai"
                   },
                   "aiUsePromptTags": {
                     "type": "boolean",

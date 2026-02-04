@@ -6,7 +6,8 @@ class FormManager {
         this.tokenLimit = document.getElementById('aiTokenLimit');
         this.responseTokens = document.getElementById('aiResponseTokens');
         this.showTags = document.getElementById('filterDocuments');
-        this.aiProcessedTag = document.getElementById('addAiProcessedTag');
+        this.postProcessAddTags = document.getElementById('postProcessAddTags');
+        this.postProcessRemoveTags = document.getElementById('postProcessRemoveTags');
         this.usePromptTags = document.getElementById('aiUsePromptTags');
         this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.systemPromptBtn = document.getElementById('systemPromptBtn');
@@ -20,14 +21,16 @@ class FormManager {
         this.handleEnableAutomaticProcessing();
         this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
         this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
-        this.syncCheckboxHidden('addAiProcessedTag', 'addAiProcessedTagValue');
+        this.syncCheckboxHidden('postProcessAddTags', 'postProcessAddTagsValue');
+        this.syncCheckboxHidden('postProcessRemoveTags', 'postProcessRemoveTagsValue');
         this.syncCheckboxHidden('aiUsePromptTags', 'aiUsePromptTagsValue');
 
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
         this.tokenLimit.addEventListener('input', () => this.validateTokenLimit());
         this.responseTokens.addEventListener('input', () => this.validateResponseTokens());
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
-        this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
+        this.postProcessAddTags.addEventListener('change', () => this.togglePostProcessAddTagsInput());
+        this.postProcessRemoveTags.addEventListener('change', () => this.togglePostProcessRemoveTagsInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
         if (this.enableAutomaticProcessing) {
             this.enableAutomaticProcessing.addEventListener('change', () => this.handleEnableAutomaticProcessing());
@@ -39,7 +42,8 @@ class FormManager {
             this.disablePromptElements();
         }
 
-        this.toggleAiTagInput();
+        this.togglePostProcessAddTagsInput();
+        this.togglePostProcessRemoveTagsInput();
         this.togglePromptTagsInput();
     }
 
@@ -175,14 +179,25 @@ class FormManager {
         }
     }
 
-    toggleAiTagInput() {
-        const showAiTag = this.aiProcessedTag.checked;
-        const aiTagNameSection = document.getElementById('aiTagNameSection');
+    togglePostProcessAddTagsInput() {
+        const showAddTags = this.postProcessAddTags.checked;
+        const addTagsSection = document.getElementById('postProcessTagsToAddSection');
 
-        if (showAiTag) {
-            aiTagNameSection.classList.remove('hidden');
+        if (showAddTags) {
+            addTagsSection.classList.remove('hidden');
         } else {
-            aiTagNameSection.classList.add('hidden');
+            addTagsSection.classList.add('hidden');
+        }
+    }
+
+    togglePostProcessRemoveTagsInput() {
+        const showRemoveTags = this.postProcessRemoveTags.checked;
+        const removeTagsSection = document.getElementById('postProcessTagsToRemoveSection');
+
+        if (showRemoveTags) {
+            removeTagsSection.classList.remove('hidden');
+        } else {
+            removeTagsSection.classList.add('hidden');
         }
     }
 
@@ -371,7 +386,7 @@ class TagsManager {
     updateHiddenInput() {
         if (!this.tagsHiddenInput || !this.tagsContainer) return;
 
-        const tags = Array.from(this.tagsContainer.querySelectorAll('.bg-blue-100 span'))
+        const tags = Array.from(this.tagsContainer.querySelectorAll('.tag-chip span'))
             .map(span => span.textContent.trim())
             .filter(tag => tag); // Remove any empty tags
 
@@ -443,6 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagsManager = new TagsManager('tagInput','tagsContainer','filterIncludeTags');
     const excludeTagsManager = new TagsManager('excludeTagInput','excludeTagsContainer','filterExcludeTags');
     const promptTagsManager = new TagsManager('promptTagInput','promptTagsContainer','aiPromptTags');
+    const processedTagsManager = new TagsManager('postProcessTagToAddInput','postProcessTagsToAddContainer','postProcessTagsToAdd');
+    const removeTagsManager = new TagsManager('postProcessTagToRemoveInput','postProcessTagsToRemoveContainer','postProcessTagsToRemove');
     const promptManager = new PromptManager();
 
     // Initialize textarea newlines

@@ -13,7 +13,8 @@ class FormManager {
         this.form = document.getElementById('setupForm');
         this.aiProvider = document.getElementById('aiProvider');
         this.showTags = document.getElementById('filterDocuments');
-        this.aiProcessedTag = document.getElementById('addAiProcessedTag');
+        this.postProcessAddTags = document.getElementById('postProcessAddTags');
+        this.postProcessRemoveTags = document.getElementById('postProcessRemoveTags');
         this.usePromptTags = document.getElementById('aiUsePromptTags');
         this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.systemPromptBtn = document.getElementById('systemPromptBtn');
@@ -32,14 +33,16 @@ class FormManager {
         // Add event listeners
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
-        this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
+        this.postProcessAddTags.addEventListener('change', () => this.togglePostProcessAddTagsInput());
+        this.postProcessRemoveTags.addEventListener('change', () => this.togglePostProcessRemoveTagsInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
         if (this.enableAutomaticProcessing) {
             this.enableAutomaticProcessing.addEventListener('change', () => this.handleEnableAutomaticProcessing());
         }
         this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
         this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
-        this.syncCheckboxHidden('addAiProcessedTag', 'addAiProcessedTagValue');
+        this.syncCheckboxHidden('postProcessAddTags', 'postProcessAddTagsValue');
+        this.syncCheckboxHidden('postProcessRemoveTags', 'postProcessRemoveTagsValue');
         this.syncCheckboxHidden('aiUsePromptTags', 'aiUsePromptTagsValue');
 
         // Initialize password toggles
@@ -51,7 +54,8 @@ class FormManager {
         }
 
         // Initialize new sections
-        this.toggleAiTagInput();
+        this.togglePostProcessAddTagsInput();
+        this.togglePostProcessRemoveTagsInput();
         this.togglePromptTagsInput();
     }
 
@@ -152,14 +156,25 @@ class FormManager {
         }
     }
 
-    toggleAiTagInput() {
-        const showAiTag = this.aiProcessedTag.checked;
-        const aiTagNameSection = document.getElementById('aiTagNameSection');
+    togglePostProcessAddTagsInput() {
+        const showAddTags = this.postProcessAddTags.checked;
+        const addTagsSection = document.getElementById('postProcessTagsToAddSection');
 
-        if (showAiTag) {
-            aiTagNameSection.classList.remove('hidden');
+        if (showAddTags) {
+            addTagsSection.classList.remove('hidden');
         } else {
-            aiTagNameSection.classList.add('hidden');
+            addTagsSection.classList.add('hidden');
+        }
+    }
+
+    togglePostProcessRemoveTagsInput() {
+        const showRemoveTags = this.postProcessRemoveTags.checked;
+        const removeTagsSection = document.getElementById('postProcessTagsToRemoveSection');
+
+        if (showRemoveTags) {
+            removeTagsSection.classList.remove('hidden');
+        } else {
+            removeTagsSection.classList.add('hidden');
         }
     }
 
@@ -434,119 +449,6 @@ class TagsManager {
     }
 }
 
-// Prompt Tags Management
-class PromptTagsManager {
-    constructor() {
-        this.tagInput = document.getElementById('promptTagInput');
-        this.tagsContainer = document.getElementById('promptTagsContainer');
-        this.tagsHiddenInput = document.getElementById('aiPromptTags');
-        this.addTagButton = document.querySelector('.add-prompt-tag-btn');
-        this.initialize();
-
-        // Initialize existing tags with click handlers
-        document.querySelectorAll('#promptTagsContainer .modern-tag button').forEach(button => {
-            button.addEventListener('click', async () => {
-                const result = await Swal.fire({
-                    title: 'Remove Tag',
-                    text: 'Are you sure you want to remove this tag?',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, remove it',
-                    cancelButtonText: 'Cancel',
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    customClass: {
-                        container: 'my-swal'
-                    }
-                });
-
-                if (result.isConfirmed) {
-                    button.closest('.modern-tag').remove();
-                    this.updateHiddenInput();
-                }
-            });
-        });
-    }
-
-    initialize() {
-        // Add event listeners
-        this.addTagButton.addEventListener('click', () => this.addTag());
-        this.tagInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                this.addTag();
-            }
-        });
-    }
-
-    async addTag() {
-        const tagText = this.tagInput.value.trim();
-        const specialChars = /[,;:\n\r\\/]/;
-        if (specialChars.test(tagText)) {
-            await Swal.fire({
-                title: 'Invalid Characters',
-                text: 'Tags cannot contain commas, semi-colons, colons, or line breaks.',
-                icon: 'warning',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#3085d6',
-                customClass: {
-                    container: 'my-swal'
-                }
-            });
-            return;
-        }
-        if (tagText) {
-            const tag = this.createTagElement(tagText);
-            this.tagsContainer.appendChild(tag);
-            this.updateHiddenInput();
-            this.tagInput.value = '';
-        }
-    }
-
-    createTagElement(text) {
-        const tag = document.createElement('div');
-        tag.className = 'modern-tag fade-in tag-chip';
-
-        const tagText = document.createElement('span');
-        tagText.textContent = text;
-
-        const removeButton = document.createElement('button');
-        removeButton.type = 'button';
-        removeButton.innerHTML = '<i class="fas fa-times"></i>';
-        removeButton.addEventListener('click', async () => {
-            const result = await Swal.fire({
-                title: 'Remove Tag',
-                text: 'Are you sure you want to remove this tag?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, remove it',
-                cancelButtonText: 'Cancel',
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                customClass: {
-                    container: 'my-swal'
-                }
-            });
-
-            if (result.isConfirmed) {
-                tag.remove();
-                this.updateHiddenInput();
-            }
-        });
-
-        tag.appendChild(tagText);
-        tag.appendChild(removeButton);
-
-        return tag;
-    }
-
-    updateHiddenInput() {
-        const tags = Array.from(this.tagsContainer.children)
-            .map(tag => tag.querySelector('span').textContent);
-        this.tagsHiddenInput.value = tags.join(',');
-    }
-}
-
 // Prompt Management
 class PromptManager {
     constructor() {
@@ -734,7 +636,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const formManager = new FormManager();
     const tagsManager = new TagsManager('tagInput', 'tagsContainer', 'filterIncludeTags', '.add-tag-btn');
     const excludeTagsManager = new TagsManager('excludeTagInput', 'excludeTagsContainer', 'filterExcludeTags', '.add-exclude-tag-btn');
-    const promptTagsManager = new PromptTagsManager();
+    const promptTagsManager = new TagsManager('promptTagInput', 'promptTagsContainer', 'aiPromptTags', '.add-prompt-tag-btn');
+    const processedTagsManager = new TagsManager('postProcessTagToAddInput', 'postProcessTagsToAddContainer', 'postProcessTagsToAdd', '.add-post-process-tag-to-add-btn');
+    const removeTagsManager = new TagsManager('postProcessTagToRemoveInput', 'postProcessTagsToRemoveContainer', 'postProcessTagsToRemove', '.add-post-process-tag-to-remove-btn');
     const promptManager = new PromptManager();
     const passwordManager = new PasswordManager();
     /* eslint-enable no-unused-vars */

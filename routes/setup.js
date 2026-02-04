@@ -1633,10 +1633,9 @@ async function buildUpdateData(analysis, doc) {
     updateData.tags = tagIds;
   } else if (config.enableUpdates?.tags === false && config.addAIProcessedTag === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
-    // get tags from .env file and split them by comma and make an array
     console.debug('Tagging is disabled but AI processed tag will be added');
-    const tags = config.addAIProcessedTags.split(',');
-    const { tagIds, errors } = await paperlessService.processTags(tags, options);
+    const processedTags = Array.isArray(config.addAIProcessedTags) ? config.addAIProcessedTags : [];
+    const { tagIds, errors } = await paperlessService.processTags(processedTags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
@@ -1775,9 +1774,16 @@ async function buildUpdateData(analysis, doc) {
 async function saveDocumentChanges(docId, updateData, analysis, originalData) {
   const { tags: originalTags, correspondent: originalCorrespondent, title: originalTitle } = originalData;
 
+  await documentModel.saveOriginalData(docId, originalTags, originalCorrespondent, originalTitle);
+  await paperlessService.updateDocument(docId, updateData);
+
+  if (config.postProcessRemoveTags === true &&
+      config.postProcessTagsToRemove &&
+      (Array.isArray(config.postProcessTagsToRemove) ? config.postProcessTagsToRemove.length > 0 : String(config.postProcessTagsToRemove).trim() !== '')) {
+    await paperlessService.removeTagsFromDocument(docId, config.postProcessTagsToRemove);
+  }
+
   await Promise.all([
-    documentModel.saveOriginalData(docId, originalTags, originalCorrespondent, originalTitle),
-    paperlessService.updateDocument(docId, updateData),
     documentModel.addProcessedDocument(docId, updateData.title),
     documentModel.addOpenAIMetrics(
       docId,
@@ -3485,14 +3491,22 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: Comma-separated list of tags to exclude (takes precedence)
  *                 example: "no-AI,ignore"
- *               addAiProcessedTag:
+ *               postProcessAddTags:
  *                 type: boolean
- *                 description: Whether to add a tag for AI-processed documents
+ *                 description: Whether to add tags after AI processing
  *                 example: true
- *               aiTagName:
+ *               postProcessTagsToAdd:
  *                 type: string
- *                 description: Tag name to use for AI-processed documents
- *                 example: "AI-Processed"
+ *                 description: Comma-separated list of tags to add after AI processing
+ *                 example: "ai-processed,reviewed"
+ *               postProcessRemoveTags:
+ *                 type: boolean
+ *                 description: Whether to remove tags after processing
+ *                 example: false
+ *               postProcessTagsToRemove:
+ *                 type: string
+ *                 description: Comma-separated list of tags to remove after processing
+ *                 example: "inbox,no-ai"
  *               aiUsePromptTags:
  *                 type: boolean
  *                 description: Whether to use tags in prompts
@@ -3609,8 +3623,10 @@ router.post('/setup', express.json(), async (req, res) => {
       aiRawDocumentMode,
       filterIncludeTags,
       filterExcludeTags,
-      addAiProcessedTag,
-      aiProcessedTagName,
+      postProcessAddTags,
+      postProcessTagsToAdd,
+      postProcessRemoveTags,
+      postProcessTagsToRemove,
       aiUsePromptTags,
       aiPromptTags,
       username,
@@ -3696,7 +3712,7 @@ router.post('/setup', express.json(), async (req, res) => {
         correspondents: restrictToExistingCorrespondents,
         documentTypes: restrictToExistingDocumentTypes
       },
-      addAiProcessedTag
+      postProcessAddTags
     });
     const isPermissionValid = await paperlessService.validatePermissions(requiredPermissions);
     if (!isPermissionValid.success) {
@@ -3890,14 +3906,22 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: Comma-separated list of tags to exclude (takes precedence)
  *                 example: "no-AI,ignore"
- *               addAiProcessedTag:
+ *               postProcessAddTags:
  *                 type: boolean
- *                 description: Whether to add a tag for AI-processed documents
+ *                 description: Whether to add tags after AI processing
  *                 example: true
- *               aiTagName:
+ *               postProcessTagsToAdd:
  *                 type: string
- *                 description: Tag name to use for AI-processed documents
- *                 example: "AI-Processed"
+ *                 description: Comma-separated list of tags to add after AI processing
+ *                 example: "ai-processed,reviewed"
+ *               postProcessRemoveTags:
+ *                 type: boolean
+ *                 description: Whether to remove tags after processing
+ *                 example: false
+ *               postProcessTagsToRemove:
+ *                 type: string
+ *                 description: Comma-separated list of tags to remove after processing
+ *                 example: "inbox,no-ai"
  *               aiUsePromptTags:
  *                 type: boolean
  *                 description: Whether to use tags in prompts
@@ -4014,8 +4038,10 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       aiRawDocumentMode,
       filterIncludeTags,
       filterExcludeTags,
-      addAiProcessedTag,
-      aiProcessedTagName,
+      postProcessAddTags,
+      postProcessTagsToAdd,
+      postProcessRemoveTags,
+      postProcessTagsToRemove,
       aiUsePromptTags,
       aiPromptTags,
       aiUseExistingData,
@@ -4096,7 +4122,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
           correspondents: restrictToExistingCorrespondents,
           documentTypes: restrictToExistingDocumentTypes
         },
-        addAiProcessedTag
+      postProcessAddTags
       });
       const isPermissionValid = await tempPaperlessService.validatePermissions(requiredPermissions);
       if (!isPermissionValid.success) {

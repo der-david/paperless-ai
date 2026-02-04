@@ -12,6 +12,12 @@ const parseEnvBoolean = (value, defaultValue = true) => {
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 };
 
+const parseEnvList = (value, fallback = []) => {
+  if (value === undefined || value === null || value === '') return fallback;
+  if (Array.isArray(value)) return value;
+  return String(value).split(',').map(item => item.trim()).filter(Boolean);
+};
+
 // Initialize update enablement flags with defaults
 const enableUpdates = {
   tags: parseEnvBoolean(process.env.ENABLE_TAGS, true),
@@ -106,8 +112,10 @@ module.exports = {
   CONFIGURED: false,
   enableAutomaticProcessing: parseEnvBoolean(process.env.ENABLE_AUTOMATIC_PROCESSING, false),
   filterDocuments: parseEnvBoolean(process.env.FILTER_DOCUMENTS, false),
-  addAIProcessedTag: parseEnvBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
-  addAIProcessedTags: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
+  postProcessAddTags: parseEnvBoolean(process.env.POST_PROCESS_ADD_TAGS, false),
+  postProcessTagsToAdd: parseEnvList(process.env.POST_PROCESS_TAGS_TO_ADD || 'ai-processed', ['ai-processed']),
+  postProcessRemoveTags: parseEnvBoolean(process.env.POST_PROCESS_REMOVE_TAGS, false),
+  postProcessTagsToRemove: parseEnvList(process.env.POST_PROCESS_TAGS_TO_REMOVE || ''),
   // External API config
   externalApiConfig: externalApiConfig,
   paperless: {
@@ -137,8 +145,8 @@ module.exports = {
   },
   aiProvider: process.env.AI_PROVIDER || 'openai',
   scanInterval: process.env.SCAN_INTERVAL || '*/30 * * * *',
-  filterIncludeTags: process.env.FILTER_INCLUDE_TAGS || 'inbox',
-  filterExcludeTags: process.env.FILTER_EXCLUDE_TAGS || 'no-AI',
+  filterIncludeTags: parseEnvList(process.env.FILTER_INCLUDE_TAGS || 'inbox', ['inbox']),
+  filterExcludeTags: parseEnvList(process.env.FILTER_EXCLUDE_TAGS || 'no-AI', ['no-AI']),
   ai,
   // AI restrictions config
   restrictToExisting,

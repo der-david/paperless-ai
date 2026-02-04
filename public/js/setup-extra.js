@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI-Processed Tag',
             text: 'Enable this to mark AI-processed documents with a specific tag (e.g., "ai-processed"). This helps differentiate AI-analyzed files.',
             attachTo: {
-                element: '#addAiProcessedTag',
+                element: '#postProcessAddTags',
                 on: 'right'
             },
             buttons: [

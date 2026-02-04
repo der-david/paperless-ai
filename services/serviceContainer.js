@@ -24,8 +24,10 @@ class ServiceContainer {
       const paperlessConfig = this.config.paperless || {};
       const paperlessSettings = {
         restrictToExisting: this.config.restrictToExisting,
-        addAIProcessedTag: this.config.addAIProcessedTag,
-        addAIProcessedTags: this.config.addAIProcessedTags,
+        postProcessAddTags: this.config.postProcessAddTags,
+        postProcessTagsToAdd: this.config.postProcessTagsToAdd,
+        postProcessRemoveTags: this.config.postProcessRemoveTags,
+        postProcessTagsToRemove: this.config.postProcessTagsToRemove,
         filterDocuments: this.config.filterDocuments,
         filterIncludeTags: this.config.filterIncludeTags,
         filterExcludeTags: this.config.filterExcludeTags

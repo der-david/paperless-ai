@@ -274,12 +274,11 @@ async function buildUpdateData(analysis, doc) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.enableUpdates?.tags === false && config.addAIProcessedTag === true) {
+  } else if (config.enableUpdates?.tags === false && config.postProcessAddTags === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
-    // get tags from .env file and split them by comma and make an array
     console.debug('Tagging is deactivated but AI processed tag will be added');
-    const tags = config.addAIProcessedTags.split(',');
-    const { tagIds, errors } = await paperlessService.processTags(tags, options);
+    const processedTags = Array.isArray(config.postProcessTagsToAdd) ? config.postProcessTagsToAdd : [];
+    const { tagIds, errors } = await paperlessService.processTags(processedTags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
@@ -418,9 +417,16 @@ async function buildUpdateData(analysis, doc) {
 async function saveDocumentChanges(docId, updateData, analysis, originalData) {
   const { tags: originalTags, correspondent: originalCorrespondent, title: originalTitle } = originalData;
 
+  await documentModel.saveOriginalData(docId, originalTags, originalCorrespondent, originalTitle);
+  await paperlessService.updateDocument(docId, updateData);
+
+  if (config.postProcessRemoveTags === true &&
+      config.postProcessTagsToRemove &&
+      (Array.isArray(config.postProcessTagsToRemove) ? config.postProcessTagsToRemove.length > 0 : String(config.postProcessTagsToRemove).trim() !== '')) {
+    await paperlessService.removeTagsFromDocument(docId, config.postProcessTagsToRemove);
+  }
+
   await Promise.all([
-    documentModel.saveOriginalData(docId, originalTags, originalCorrespondent, originalTitle),
-    paperlessService.updateDocument(docId, updateData),
     documentModel.addProcessedDocument(docId, updateData.title),
     documentModel.addOpenAIMetrics(
       docId,
