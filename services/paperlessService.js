@@ -10,6 +10,7 @@ class PaperlessService {
     this.tagCache = new Map();
     this.customFieldCache = new Map();
     this.lastTagRefresh = 0;
+    this.lastCustomFieldRefresh = 0;
     this.CACHE_LIFETIME = 3000; // 3 Sekunden
     this.apiUrl = apiUrl || process.env.PAPERLESS_API_URL;
     this.apiToken = apiToken || process.env.PAPERLESS_API_TOKEN;
@@ -253,6 +254,21 @@ class PaperlessService {
         throw error;
       }
     }
+
+  async getCustomFieldsCached({ refresh = false } = {}) {
+    this.initialize();
+    if (!this.client) {
+      console.debug('Client not initialized for custom fields');
+      return [];
+    }
+
+    const now = Date.now();
+    if (refresh || this.customFieldCache.size === 0 || (now - this.lastCustomFieldRefresh) > this.CACHE_LIFETIME) {
+      await this.refreshCustomFieldCache();
+    }
+
+    return Array.from(this.customFieldCache.values());
+  }
 
 
   async findExistingTag(tagName) {

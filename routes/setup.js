@@ -2797,6 +2797,7 @@ router.get('/settings', authenticateUI, async (req, res) => {
     AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
     AI_USE_PROMPT_TAGS: parseBoolean(process.env.AI_USE_PROMPT_TAGS, false),
     AI_PROMPT_TAGS: normalizeArray(process.env.AI_PROMPT_TAGS),
+    AI_CUSTOM_FIELDS: process.env.AI_CUSTOM_FIELDS || '{"custom_fields":[]}',
     PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
     PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
     AI_USE_EXISTING_DATA: parseBoolean(process.env.AI_USE_EXISTING_DATA, false),
@@ -2837,9 +2838,16 @@ router.get('/settings', authenticateUI, async (req, res) => {
   console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
   const version = configFile.PAPERLESS_AI_VERSION || ' ';
   config.ai = configFile.ai;
+  let paperlessCustomFields = [];
+  try {
+    paperlessCustomFields = await paperlessService.getCustomFieldsCached();
+  } catch (error) {
+    console.error('Failed to load custom fields from Paperless-ngx:', error.message);
+  }
   res.render('settings', {
     version,
     config,
+    paperlessCustomFields,
     success: isConfigured ? 'The application is already configured. You can update the configuration below.' : undefined,
     settingsError: showErrorCheckSettings ? 'Please check your settings. Something is not working correctly.' : undefined,
     active: 'settings',
@@ -3845,25 +3853,42 @@ router.post('/setup', express.json(), async (req, res) => {
         const parsedFields = typeof customFields === 'string'
           ? JSON.parse(customFields)
           : customFields;
+        const rawFields = Array.isArray(parsedFields?.custom_fields) ? parsedFields.custom_fields : [];
 
-        for (const field of parsedFields.custom_fields) {
+        for (const field of rawFields) {
+          const fieldName = field?.name || field?.value;
+          const dataType = field?.data_type || field?.type;
+          if (!fieldName || !dataType || dataType === 'documentlink') {
+            continue;
+          }
+
+          const extraData = field.extra_data && typeof field.extra_data === 'object'
+            ? { ...field.extra_data }
+            : {};
+
+          if (field.currency && !extraData.default_currency) {
+            extraData.default_currency = field.currency;
+          }
+
           try {
             const createdField = await paperlessService.createCustomFieldSafely(
-              field.value,
-              field.data_type,
-              field.currency
+              fieldName,
+              dataType,
+              extraData.default_currency
             );
 
             if (createdField) {
               processedCustomFields.push({
-                value: field.value,
-                data_type: field.data_type,
-                ...(field.currency && { currency: field.currency })
+                name: fieldName,
+                data_type: dataType,
+                enabled: field.enabled !== undefined ? Boolean(field.enabled) : true,
+                description: field.description || '',
+                extra_data: extraData
               });
-              console.info(`Created/found custom field: ${field.value}`);
+              console.info(`Created/found custom field: ${fieldName}`);
             }
           } catch (fieldError) {
-            console.warn(`Error creating custom field ${field.value}:`, fieldError);
+            console.warn(`Error creating custom field ${fieldName}:`, fieldError);
           }
         }
       } catch (error) {
@@ -4330,23 +4355,34 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
           ? JSON.parse(customFields)
           : customFields;
 
-        processedCustomFields = parsedFields.custom_fields.map(field => ({
-          value: field.value,
-          data_type: field.data_type,
-          ...(field.currency && { currency: field.currency })
-        }));
+        const rawFields = Array.isArray(parsedFields?.custom_fields) ? parsedFields.custom_fields : [];
+        processedCustomFields = rawFields
+          .map((field) => {
+            const fieldName = field?.name || field?.value;
+            const dataType = field?.data_type || field?.type;
+            if (!fieldName || !dataType || dataType === 'documentlink') return null;
+
+            const extraData = field.extra_data && typeof field.extra_data === 'object'
+              ? { ...field.extra_data }
+              : {};
+
+            if (field.currency && !extraData.default_currency) {
+              extraData.default_currency = field.currency;
+            }
+
+            return {
+              name: fieldName,
+              data_type: dataType,
+              enabled: field.enabled !== undefined ? Boolean(field.enabled) : true,
+              description: field.description || '',
+              extra_data: extraData
+            };
+          })
+          .filter(Boolean);
       } catch (error) {
         console.error('Error processing custom fields:', error);
         processedCustomFields = [];
       }
-    }
-
-    try {
-      for (const field of processedCustomFields) {
-        await paperlessService.createCustomFieldSafely(field.value, field.data_type, field.currency);
-      }
-    } catch (error) {
-      console.error('Error creating custom fields:', error);
     }
 
     const normalizeArray = (value) => {
@@ -4491,14 +4527,6 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     };
 
     await setupService.saveConfig(mergedConfig);
-    try {
-      for (const field of processedCustomFields) {
-        await paperlessService.createCustomFieldSafely(field.value, field.data_type, field.currency);
-      }
-    } catch (error) {
-      console.error('Error creating custom fields:', error);
-    }
-
     res.json({
       success: true,
       message: 'Configuration saved successfully.',

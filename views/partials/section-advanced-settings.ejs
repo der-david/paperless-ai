@@ -3,6 +3,7 @@ const variant = locals.variant || 'setup';
 const config = locals.config || {};
 const includeRestrictions = locals.includeRestrictions === true;
 const includeExternalApi = locals.includeExternalApi === true;
+const paperlessCustomFields = Array.isArray(locals.paperlessCustomFields) ? locals.paperlessCustomFields : [];
 const isSetup = variant === 'setup';
 %>
 <% if (isSetup) { %>
@@ -523,11 +524,11 @@ const isSetup = variant === 'setup';
                       </div>
                       <div class="flex-1 flex items-center gap-4">
                           <div class="flex-1">
-                              <p class="font-medium"><%= field.value %></p>
+                              <p class="font-medium"><%= field.name || field.value %></p>
                               <p class="text-sm text-gray-500">
                                   Type: <%= field.data_type %>
-                                  <% if (field.data_type === 'monetary' && field.currency) { %>
-                                      (<%= field.currency %>)
+                                  <% if (field.data_type === 'monetary' && (field.currency || (field.extra_data && field.extra_data.default_currency))) { %>
+                                      (<%= field.currency || (field.extra_data && field.extra_data.default_currency) %>)
                                   <% } %>
                               </p>
                           </div>
@@ -1139,82 +1140,135 @@ const isSetup = variant === 'setup';
         Custom fields
       </h2>
       <div class="space-y-4">
-        <div id="customFieldsList" class="space-y-2">
-          <% if (config.AI_CUSTOM_FIELDS && Array.isArray(JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields)) { %>
-              <% JSON.parse(config.AI_CUSTOM_FIELDS).custom_fields.forEach((field, index) => { %>
-                  <div class="custom-field-item flex items-center gap-2 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 transition-colors">
-                      <div class="cursor-move text-gray-400">
-                          <i class="fas fa-grip-vertical"></i>
-                      </div>
-                      <div class="flex-1">
-                          <p class="font-medium text-gray-900 dark:text-gray-100"><%= field.value %></p>
-                          <p class="text-sm text-gray-500 dark:text-gray-400">
-                              Type: <%= field.data_type %>
-                              <% if (field.data_type === 'monetary' && field.currency) { %>
-                                  (<%= field.currency %>)
-                              <% } %>
-                          </p>
-                      </div>
-                      <button type="button"
-                              onclick="removeCustomField(this)"
-                              class="text-gray-400 hover:text-red-500 transition-colors">
-                          <i class="fas fa-trash"></i>
-                      </button>
+        <%
+          const rawCustomFieldsConfig = config.AI_CUSTOM_FIELDS || '{"custom_fields":[]}';
+          let customFieldsConfig = { custom_fields: [] };
+          try {
+            customFieldsConfig = JSON.parse(rawCustomFieldsConfig);
+          } catch (error) {
+            customFieldsConfig = { custom_fields: [] };
+          }
+          const storedFields = Array.isArray(customFieldsConfig.custom_fields) ? customFieldsConfig.custom_fields : [];
+          const storedByName = {};
+          storedFields.forEach((field) => {
+            const key = (field?.name || field?.value || '').toLowerCase();
+            if (key) storedByName[key] = field;
+          });
+
+          const dataTypeIcon = (type) => {
+            switch (type) {
+              case 'boolean':
+                return 'fa-toggle-on';
+              case 'date':
+                return 'fa-calendar-alt';
+              case 'integer':
+              case 'float':
+                return 'fa-hashtag';
+              case 'monetary':
+                return 'fa-coins';
+              case 'url':
+                return 'fa-link';
+              case 'select':
+                return 'fa-list';
+              case 'longtext':
+                return 'fa-align-left';
+              default:
+                return 'fa-font';
+            }
+          };
+
+          const defaultDescription = (field, options, defaultCurrency) => {
+            const name = field?.name || 'field';
+            switch (field?.data_type) {
+              case 'date':
+                return `Extract the date for "${name}" (YYYY-MM-DD).`;
+              case 'boolean':
+                return `Set "${name}" to true or false based on the document.`;
+              case 'integer':
+                return `Extract the integer value for "${name}".`;
+              case 'float':
+                return `Extract the numeric value for "${name}".`;
+              case 'monetary':
+                return `Extract the monetary amount for "${name}" (number only${defaultCurrency ? `, ${defaultCurrency}` : ''}).`;
+              case 'url':
+                return `Extract the URL for "${name}".`;
+              case 'select':
+                return options.length > 0
+                  ? `Choose one of the predefined options for "${name}".`
+                  : `Choose the most suitable option for "${name}".`;
+              case 'longtext':
+                return `Extract a detailed text for "${name}".`;
+              default:
+                return `Extract the value for "${name}".`;
+            }
+          };
+
+          const selectableFields = paperlessCustomFields.filter((field) => field && field.data_type !== 'documentlink');
+        %>
+
+        <% if (selectableFields.length === 0) { %>
+          <p class="text-sm text-gray-500">No custom fields available from Paperless-ngx.</p>
+        <% } %>
+
+        <div id="customFieldsList" class="space-y-3">
+          <% selectableFields.forEach((field) => { %>
+            <%
+              const stored = storedByName[(field.name || '').toLowerCase()] || {};
+              const enabled = stored.enabled !== undefined ? Boolean(stored.enabled) : Boolean(stored.name || stored.value);
+              const extraData = field.extra_data || {};
+              const selectOptions = Array.isArray(extraData.select_options)
+                ? extraData.select_options.map((option) => (typeof option === 'string' ? option : option?.label)).filter(Boolean)
+                : [];
+              const defaultCurrency = extraData.default_currency || '';
+              const description = stored.description && String(stored.description).trim()
+                ? stored.description
+                : defaultDescription(field, selectOptions, defaultCurrency);
+              const iconClass = dataTypeIcon(field.data_type);
+            %>
+            <div class="custom-field-item border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200 p-4 space-y-3"
+                 data-field-name="<%= field.name %>"
+                 data-field-type="<%= field.data_type %>"
+                 data-field-extra="<%= JSON.stringify(extraData || {}) %>">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-3">
+                  <div class="text-blue-500 mt-1">
+                    <i class="fas <%= iconClass %>"></i>
                   </div>
-              <% }); %>
-          <% } %>
-        </div>
-
-        <div class="grid grid-cols-12 gap-3">
-          <div class="col-span-5">
-            <input type="text"
-                id="newFieldName"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                placeholder="Enter field name...">
-          </div>
-
-          <div class="col-span-3">
-            <select id="newFieldType" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" onchange="toggleCurrencySelect()">
-              <option value="string">Text</option>
-              <option value="float">Number</option>
-              <option value="integer">Integer</option>
-              <option value="boolean">Boolean</option>
-              <option value="date">Date</option>
-              <option value="monetary">Currency</option>
-              <option value="url">URL</option>
-            </select>
-          </div>
-
-          <div class="col-span-2">
-            <select id="currencyCode" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hidden">
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-              <option value="GBP">GBP</option>
-              <option value="JPY">JPY</option>
-              <option value="CHF">CHF</option>
-              <option value="AUD">AUD</option>
-              <option value="CAD">CAD</option>
-              <option value="CNY">CNY</option>
-              <option value="INR">INR</option>
-              <option value="NZD">NZD</option>
-            </select>
-          </div>
-
-          <div class="col-span-2">
-            <button type="button"
-                    onclick="addCustomField()"
-                    class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-2"
-                    id="addFieldBtn">
-              <i class="fas fa-plus"></i>
-              Add
-            </button>
-          </div>
+                  <div>
+                    <p class="font-medium text-gray-900 dark:text-gray-100"><%= field.name %></p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Type: <%= field.data_type %></p>
+                  </div>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200">
+                  <input type="checkbox"
+                         class="custom-field-toggle w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                         <%= enabled ? 'checked' : '' %>>
+                  Enabled
+                </label>
+              </div>
+              <% if (field.data_type === 'select') { %>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Options: <%= selectOptions.length > 0 ? selectOptions.join(', ') : 'No options configured' %>
+                </div>
+              <% } %>
+              <% if (field.data_type === 'monetary' && defaultCurrency) { %>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Default currency: <%= defaultCurrency %></div>
+              <% } %>
+              <div class="space-y-2">
+                <label class="text-sm font-medium text-gray-700 dark:text-gray-200">Schema description</label>
+                <input type="text"
+                       class="custom-field-description w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                       value="<%= description %>"
+                       placeholder="Describe how the AI should fill this field">
+              </div>
+            </div>
+          <% }); %>
         </div>
 
         <input type="hidden"
-            id="customFieldsJson"
-            name="customFields"
-            value="<%= config.AI_CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
+               id="customFieldsJson"
+               name="customFields"
+               value="<%= config.AI_CUSTOM_FIELDS || '{\"custom_fields\":[]}' %>">
       </div>
     </section>
 

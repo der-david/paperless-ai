@@ -690,38 +690,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const fieldsList = document.getElementById('customFieldsList');
-    if (fieldsList) {
-        // Initialize Sortable
-        new Sortable(fieldsList, {
-            animation: 150,
-            handle: '.cursor-move',
-            onEnd: updateCustomFieldsJson
-        });
+    const customFieldsJson = document.getElementById('customFieldsJson');
 
-        // Add initial theme classes based on current theme
-        const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-        if (isDarkMode) {
-            updateThemeClasses(true);
-        }
-    }
+    const syncCustomFieldsJson = () => {
+        if (!fieldsList || !customFieldsJson) return;
 
-    // Initialize type selection
-    const typeSelect = document.getElementById('newFieldType');
-    if (typeSelect) {
-        typeSelect.addEventListener('change', toggleCurrencySelect);
-        // Initial currency select visibility
-        toggleCurrencySelect();
-    }
+        const items = Array.from(fieldsList.querySelectorAll('.custom-field-item'));
+        const fields = items.map((item) => {
+            const name = item.dataset.fieldName || '';
+            const dataType = item.dataset.fieldType || '';
+            let extraData = {};
+            try {
+                extraData = item.dataset.fieldExtra ? JSON.parse(item.dataset.fieldExtra) : {};
+            } catch (error) {
+                extraData = {};
+            }
 
-    // Initialize name input
-    const nameInput = document.getElementById('newFieldName');
-    if (nameInput) {
-        nameInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addCustomField();
+            const descriptionInput = item.querySelector('.custom-field-description');
+            const toggleInput = item.querySelector('.custom-field-toggle');
+
+            return {
+                name,
+                data_type: dataType,
+                enabled: Boolean(toggleInput?.checked),
+                description: descriptionInput ? descriptionInput.value.trim() : '',
+                extra_data: extraData
+            };
+        }).filter((field) => field.name && field.data_type && field.data_type !== 'documentlink');
+
+        customFieldsJson.value = JSON.stringify({ custom_fields: fields });
+    };
+
+    if (fieldsList && customFieldsJson) {
+        fieldsList.addEventListener('input', (event) => {
+            if (event.target.closest('.custom-field-description')) {
+                syncCustomFieldsJson();
             }
         });
+
+        fieldsList.addEventListener('change', (event) => {
+            if (event.target.closest('.custom-field-toggle')) {
+                syncCustomFieldsJson();
+            }
+        });
+
+        syncCustomFieldsJson();
     }
 
     // Observer for theme changes
@@ -773,132 +786,5 @@ function updateThemeClasses(isDark) {
         input.classList.toggle('text-gray-100', isDark);
         input.classList.toggle('border-gray-300', !isDark);
         input.classList.toggle('border-gray-600', isDark);
-    });
-}
-
-function toggleCurrencySelect() {
-    const fieldType = document.getElementById('newFieldType').value;
-    const currencySelect = document.getElementById('currencyCode');
-
-    if (fieldType === 'monetary') {
-        currencySelect.classList.remove('hidden');
-    } else {
-        currencySelect.classList.add('hidden');
-    }
-}
-
-function updateCustomFieldsJson() {
-    const fieldItems = document.querySelectorAll('.custom-field-item');
-    const fields = Array.from(fieldItems).map(item => {
-        const fieldName = item.querySelector('p.font-medium').textContent;
-        const typeText = item.querySelector('p.text-sm').textContent;
-        const data_type = typeText.split('Type: ')[1].split(' ')[0];
-        const currency = typeText.includes('(') ? typeText.split('(')[1].split(')')[0] : null;
-
-        const field = {
-            value: fieldName,
-            data_type: data_type
-        };
-
-        if (currency) {
-            field.currency = currency;
-        }
-
-        return field;
-    });
-
-    document.getElementById('customFieldsJson').value = JSON.stringify({
-        custom_fields: fields
-    });
-}
-
-function createFieldElement(fieldName, data_type, currency = null) {
-    const div = document.createElement('div');
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-
-    div.className = `custom-field-item flex items-center gap-2 p-3 rounded-lg border hover:border-blue-500 transition-colors ${
-        isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-    }`;
-
-    let typeDisplay = `Type: ${data_type}`;
-    if (data_type === 'monetary' && currency) {
-        typeDisplay += ` (${currency})`;
-    }
-
-    div.innerHTML = `
-        <div class="cursor-move text-gray-400">
-            <i class="fas fa-grip-vertical"></i>
-        </div>
-        <div class="flex-1">
-            <p class="font-medium ${isDark ? 'text-gray-100' : 'text-gray-900'}">${fieldName}</p>
-            <p class="text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}">${typeDisplay}</p>
-        </div>
-        <button type="button"
-                onclick="removeCustomField(this)"
-                class="text-gray-400 hover:text-red-500 transition-colors">
-            <i class="fas fa-trash"></i>
-        </button>
-    `;
-
-    return div;
-}
-
-function addCustomField() {
-    const nameInput = document.getElementById('newFieldName');
-    const typeSelect = document.getElementById('newFieldType');
-    const currencySelect = document.getElementById('currencyCode');
-    const fieldsList = document.getElementById('customFieldsList');
-
-    const fieldName = nameInput.value.trim();
-    const data_type = typeSelect.value;
-    const currency = data_type === 'monetary' ? currencySelect.value : null;
-
-    if (!fieldName) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Invalid Field Name',
-            text: 'Please enter a field name'
-        });
-        return;
-    }
-
-    // Check for duplicates
-    const existingFields = Array.from(fieldsList.querySelectorAll('p.font-medium'))
-        .map(p => p.textContent);
-
-    if (existingFields.includes(fieldName)) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Duplicate Field',
-            text: 'A field with this name already exists'
-        });
-        return;
-    }
-
-    const fieldElement = createFieldElement(fieldName, data_type, currency);
-    fieldsList.appendChild(fieldElement);
-
-    // Reset inputs
-    nameInput.value = '';
-
-    // Update hidden input
-    updateCustomFieldsJson();
-}
-
-function removeCustomField(button) {
-    const fieldItem = button.closest('.custom-field-item');
-    Swal.fire({
-        title: 'Delete Field?',
-        text: 'Are you sure you want to delete this custom field?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fieldItem.remove();
-            updateCustomFieldsJson();
-        }
     });
 }

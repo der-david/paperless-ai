@@ -240,9 +240,39 @@ function parseCustomFields(rawValue) {
     }
 
     try {
-        const parsed = JSON.parse(rawValue);
+        const parseEnabled = (value) => {
+            if (value === undefined) return true;
+            if (typeof value === 'boolean') return value;
+            const normalized = String(value).toLowerCase();
+            return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
+        };
+
+        const parsed = typeof rawValue === 'string' ? JSON.parse(rawValue) : rawValue;
         if (parsed && Array.isArray(parsed.custom_fields)) {
-            return parsed.custom_fields;
+            return parsed.custom_fields
+                .map((field) => {
+                    if (!field || typeof field !== 'object') return null;
+                    const name = field.name || field.value;
+                    const dataType = field.data_type || field.type;
+                    if (!name || !dataType) return null;
+                    const enabled = parseEnabled(field.enabled);
+                    const extraData = field.extra_data && typeof field.extra_data === 'object'
+                        ? { ...field.extra_data }
+                        : {};
+
+                    if (field.currency && !extraData.default_currency) {
+                        extraData.default_currency = field.currency;
+                    }
+
+                    return {
+                        name,
+                        data_type: dataType,
+                        description: field.description || '',
+                        enabled,
+                        extra_data: extraData
+                    };
+                })
+                .filter((field) => field && field.data_type !== 'documentlink' && field.enabled);
         }
     } catch (error) {
         console.error('Failed to parse AI_CUSTOM_FIELDS:', error);
@@ -368,7 +398,7 @@ function buildResponseSchema({
     if (includeCustomFieldProperties) {
         customFields.forEach((field) => {
             const customField = {
-                description: 'Fill in the value based on your analysis'
+                description: field.description || 'Fill in the value based on your analysis'
             };
             switch (field.data_type) {
                 case 'boolean':
@@ -378,6 +408,7 @@ function buildResponseSchema({
                     customField.type = 'string';
                     customField.format = 'date';
                     break;
+                case 'float':
                 case 'number':
                     customField.type = 'number';
                     break;
@@ -386,15 +417,33 @@ function buildResponseSchema({
                     break;
                 case 'monetary':
                     customField.type = 'number';
+                    if (field.extra_data?.default_currency) {
+                        customField.description = `${customField.description} Currency: ${field.extra_data.default_currency}.`;
+                    }
                     break;
                 case 'url':
+                    customField.type = 'string';
+                    customField.format = 'uri';
+                    break;
+                case 'select':
+                    customField.type = 'string';
+                    if (Array.isArray(field.extra_data?.select_options) && field.extra_data.select_options.length > 0) {
+                        const optionLabels = field.extra_data.select_options
+                            .map((option) => (typeof option === 'string' ? option : option?.label))
+                            .filter(Boolean);
+                        if (optionLabels.length > 0) {
+                            customField.enum = optionLabels;
+                        }
+                    }
+                    break;
+                case 'longtext':
                     customField.type = 'string';
                     break;
                 default:
                     customField.type = 'string';
             }
-            if (field.value) {
-                responseSchema.properties.custom_fields.properties[field.value] = customField;
+            if (field.name) {
+                responseSchema.properties.custom_fields.properties[field.name] = customField;
             }
         });
 
