@@ -209,6 +209,15 @@ module.exports = {
     }
   },
 
+  async getProcessedDocumentIds() {
+    try {
+      return db.prepare('SELECT document_id FROM processed_documents').pluck().all();
+    } catch (error) {
+      console.error('getting processed document ids:', error);
+      return [];
+    }
+  },
+
   async isDocumentProcessed(documentId) {
     try {
       const row = findDocument.get(documentId);

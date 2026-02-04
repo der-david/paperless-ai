@@ -2592,6 +2592,8 @@ router.get('/dashboard', authenticateUI, async (req, res) => {
   const correspondentCount = await paperlessService.getCorrespondentCount();
   const documentCount = await paperlessService.getDocumentCount();
   const processedDocumentCount = await documentModel.getProcessedDocumentsCount();
+  const processedDocumentIds = await documentModel.getProcessedDocumentIds();
+  const processingBreakdown = await paperlessService.getDocumentProcessingBreakdown(processedDocumentIds);
   const metrics = await documentModel.getMetrics();
   const processingTimeStats = await documentModel.getProcessingTimeStats();
   const tokenDistribution = await documentModel.getTokenDistribution();
@@ -2610,6 +2612,7 @@ router.get('/dashboard', authenticateUI, async (req, res) => {
       correspondentCount,
       documentCount,
       processedDocumentCount,
+      processingBreakdown,
       processingTimeStats,
       tokenDistribution,
       documentTypes

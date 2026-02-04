@@ -8,6 +8,12 @@ function getDashboardPageData() {
     const documentTypes = JSON.parse(dataElement.dataset.documentTypes || '[]');
     const documentCount = Number(dataElement.dataset.documentCount || 0);
     const processedCount = Number(dataElement.dataset.processedCount || 0);
+    const processedInScope = Number(dataElement.dataset.processedInScope || processedCount || 0);
+    const unprocessedInScope = Number(dataElement.dataset.unprocessedInScope || Math.max(documentCount - processedCount, 0));
+    const excludedCount = Number(dataElement.dataset.excludedCount || 0);
+    const notIncludedCount = Number(dataElement.dataset.notIncludedCount || 0);
+    const includeTagsActive = dataElement.dataset.includeTagsActive === 'true';
+    const excludeTagsActive = dataElement.dataset.excludeTagsActive === 'true';
     const version = dataElement.dataset.version || '';
 
     return {
@@ -15,6 +21,12 @@ function getDashboardPageData() {
         documentTypes,
         documentCount,
         processedCount,
+        processedInScope,
+        unprocessedInScope,
+        excludedCount,
+        notIncludedCount,
+        includeTagsActive,
+        excludeTagsActive,
         version
     };
 }
@@ -290,7 +302,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.dashboardData = {
         documentCount: data.documentCount,
-        processedCount: data.processedCount
+        processedCount: data.processedCount,
+        processedInScope: data.processedInScope,
+        unprocessedInScope: data.unprocessedInScope,
+        excludedCount: data.excludedCount,
+        notIncludedCount: data.notIncludedCount,
+        includeTagsActive: data.includeTagsActive,
+        excludeTagsActive: data.excludeTagsActive
     };
 
     initTokenDistributionChart(data);

@@ -41,6 +41,17 @@
         <div class="card-grid">
             <!-- Document Chart -->
             <div class="material-card col-span-2">
+                <%
+                    const processingStats = paperless_data.processingBreakdown || {
+                        totalCount: paperless_data.documentCount,
+                        processedInScope: paperless_data.processedDocumentCount,
+                        unprocessedInScope: Math.max(paperless_data.documentCount - paperless_data.processedDocumentCount, 0),
+                        excludedCount: 0,
+                        notIncludedCount: 0,
+                        includeTagsActive: false,
+                        excludeTagsActive: false
+                    };
+                %>
                 <h3 class="card-title">Document Processing Status</h3>
                 <div class="flex items-center">
                     <div class="w-1/2">
@@ -54,7 +65,7 @@
                                         <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
                                         <span>AI Processed</span>
                                     </div>
-                                    <span class="font-semibold"><%= paperless_data.processedDocumentCount %></span>
+                                    <span class="font-semibold"><%= processingStats.processedInScope %></span>
                                 </div>
                             </div>
                             <div class="stat-item mt-4">
@@ -63,12 +74,34 @@
                                         <div class="w-3 h-3 rounded-full bg-gray-200 mr-2"></div>
                                         <span>Unprocessed</span>
                                     </div>
-                                    <span class="font-semibold"><%= paperless_data.documentCount - paperless_data.processedDocumentCount %></span>
+                                    <span class="font-semibold"><%= processingStats.unprocessedInScope %></span>
                                 </div>
                             </div>
+                            <% if (processingStats.excludeTagsActive) { %>
+                                <div class="stat-item mt-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                                            <span>Excluded by tags</span>
+                                        </div>
+                                        <span class="font-semibold"><%= processingStats.excludedCount %></span>
+                                    </div>
+                                </div>
+                            <% } %>
+                            <% if (processingStats.includeTagsActive) { %>
+                                <div class="stat-item mt-4">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center">
+                                            <div class="w-3 h-3 rounded-full bg-amber-400 mr-2"></div>
+                                            <span>Not included</span>
+                                        </div>
+                                        <span class="font-semibold"><%= processingStats.notIncludedCount %></span>
+                                    </div>
+                                </div>
+                            <% } %>
                             <div class="total-stats mt-6 pt-4 border-t">
                                 <div class="text-sm text-gray-600">Total Documents</div>
-                                <div class="text-2xl font-bold"><%= paperless_data.documentCount %></div>
+                                <div class="text-2xl font-bold"><%= processingStats.totalCount %></div>
                             </div>
                         </div>
                     </div>
@@ -248,6 +281,17 @@
     </div>
 </main>
 
-<div id="dashboard-data" class="hidden" data-token-distribution='<%- JSON.stringify(paperless_data.tokenDistribution) %>' data-document-types='<%- JSON.stringify(paperless_data.documentTypes) %>' data-version="<%= version %>" data-document-count="<%= paperless_data.documentCount %>" data-processed-count="<%= paperless_data.processedDocumentCount %>"></div>
+<div id="dashboard-data" class="hidden"
+     data-token-distribution='<%- JSON.stringify(paperless_data.tokenDistribution) %>'
+     data-document-types='<%- JSON.stringify(paperless_data.documentTypes) %>'
+     data-version="<%= version %>"
+     data-document-count="<%= paperless_data.documentCount %>"
+     data-processed-count="<%= paperless_data.processedDocumentCount %>"
+     data-processed-in-scope="<%= processingStats.processedInScope %>"
+     data-unprocessed-in-scope="<%= processingStats.unprocessedInScope %>"
+     data-excluded-count="<%= processingStats.excludedCount %>"
+     data-not-included-count="<%= processingStats.notIncludedCount %>"
+     data-include-tags-active="<%= processingStats.includeTagsActive ? 'true' : 'false' %>"
+     data-exclude-tags-active="<%= processingStats.excludeTagsActive ? 'true' : 'false' %>"></div>
 <script src="js/dashboard-page.js"></script>
 <script src="js/dashboard.js"></script>

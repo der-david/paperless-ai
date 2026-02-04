@@ -14,20 +14,40 @@ class ChartManager {
             return;
         }
 
-        const { documentCount, processedCount } = window.dashboardData;
-        const unprocessedCount = documentCount - processedCount;
+        const {
+            documentCount,
+            processedInScope,
+            unprocessedInScope,
+            excludedCount,
+            notIncludedCount,
+            includeTagsActive,
+            excludeTagsActive
+        } = window.dashboardData;
+
+        const labels = ['AI Processed', 'Unprocessed'];
+        const dataPoints = [processedInScope, unprocessedInScope];
+        const colors = ['#3b82f6', '#e2e8f0'];
+
+        if (excludeTagsActive) {
+            labels.push('Excluded by tags');
+            dataPoints.push(excludedCount);
+            colors.push('#f87171');
+        }
+
+        if (includeTagsActive) {
+            labels.push('Not included');
+            dataPoints.push(notIncludedCount);
+            colors.push('#fbbf24');
+        }
 
         const ctx = chartElement.getContext('2d');
         new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['AI Processed', 'Unprocessed'],
+                labels,
                 datasets: [{
-                    data: [processedCount, unprocessedCount],
-                    backgroundColor: [
-                        '#3b82f6',  // blue-500
-                        '#e2e8f0'   // gray-200
-                    ],
+                    data: dataPoints,
+                    backgroundColor: colors,
                     borderWidth: 0,
                     spacing: 2
                 }]
@@ -44,7 +64,7 @@ class ChartManager {
                         callbacks: {
                             label: function(context) {
                                 const value = context.raw;
-                                const total = processedCount + unprocessedCount;
+                                const total = dataPoints.reduce((sum, item) => sum + item, 0);
                                 const percentage = ((value / total) * 100).toFixed(1);
                                 return `${value} (${percentage}%)`;
                             }

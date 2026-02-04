@@ -1221,6 +1221,144 @@ class PaperlessService {
     return documents;
   }
 
+  async getDocumentProcessingBreakdown(processedDocumentIds = []) {
+    this.initialize();
+    if (!this.client) {
+      console.debug('Client not initialized');
+      return null;
+    }
+
+    const totalCount = await this.getDocumentCount();
+    const processedIdSet = new Set((processedDocumentIds || []).map(id => Number(id)));
+    const filterSettings = this.settings?.processing?.filter;
+    const shouldFilterByTags = filterSettings?.enabled === true;
+
+    if (!shouldFilterByTags) {
+      return {
+        totalCount,
+        processedInScope: processedIdSet.size,
+        unprocessedInScope: Math.max(totalCount - processedIdSet.size, 0),
+        excludedCount: 0,
+        notIncludedCount: 0,
+        includeTagsActive: false,
+        excludeTagsActive: false
+      };
+    }
+
+    const includeTagNames = this.normalizeTagList(filterSettings?.includeTags);
+    const excludeTagNames = this.normalizeTagList(filterSettings?.excludeTags);
+    const includeTagsActive = includeTagNames.length > 0;
+    const excludeTagsActive = excludeTagNames.length > 0;
+
+    if (!includeTagsActive && !excludeTagsActive) {
+      return {
+        totalCount,
+        processedInScope: processedIdSet.size,
+        unprocessedInScope: Math.max(totalCount - processedIdSet.size, 0),
+        excludedCount: 0,
+        notIncludedCount: 0,
+        includeTagsActive: false,
+        excludeTagsActive: false
+      };
+    }
+
+    await this.ensureTagCache();
+
+    const includeTagIds = [];
+    const excludeTagIds = [];
+
+    for (const tagName of includeTagNames) {
+      const tag = await this.findExistingTag(tagName);
+      if (tag) {
+        includeTagIds.push(tag.id);
+      }
+    }
+
+    for (const tagName of excludeTagNames) {
+      const tag = await this.findExistingTag(tagName);
+      if (tag) {
+        excludeTagIds.push(tag.id);
+      }
+    }
+
+    const includeTagIdSet = new Set(includeTagIds);
+    const excludeTagIdSet = new Set(excludeTagIds);
+
+    let excludedCount = 0;
+    let includedCount = 0;
+    let notIncludedCount = 0;
+    let processedInScope = 0;
+
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      try {
+        const response = await this.client.get('/documents/', {
+          params: {
+            page,
+            page_size: 100,
+            fields: 'id,tags'
+          }
+        });
+
+        if (!response?.data?.results || !Array.isArray(response.data.results)) {
+          console.debug(`Invalid API response on page ${page}`);
+          break;
+        }
+
+        for (const doc of response.data.results) {
+          const docTags = Array.isArray(doc.tags) ? doc.tags : [];
+          const hasExclude = excludeTagIdSet.size > 0 && docTags.some(tagId => excludeTagIdSet.has(tagId));
+
+          if (hasExclude) {
+            excludedCount += 1;
+            continue;
+          }
+
+          if (includeTagIdSet.size > 0) {
+            const hasInclude = docTags.some(tagId => includeTagIdSet.has(tagId));
+            if (hasInclude) {
+              includedCount += 1;
+              if (processedIdSet.has(Number(doc.id))) {
+                processedInScope += 1;
+              }
+            } else {
+              notIncludedCount += 1;
+            }
+            continue;
+          }
+
+          includedCount += 1;
+          if (processedIdSet.has(Number(doc.id))) {
+            processedInScope += 1;
+          }
+        }
+
+        hasMore = response.data.next !== null;
+        page += 1;
+      } catch (error) {
+        console.error(`fetching documents page ${page} for breakdown:`, error.message);
+        if (error.response) {
+          console.debug('Response status:', error.response.status);
+        }
+        break;
+      }
+    }
+
+    const unprocessedInScope = Math.max(includedCount - processedInScope, 0);
+
+    return {
+      totalCount,
+      processedInScope,
+      unprocessedInScope,
+      excludedCount,
+      notIncludedCount: includeTagIdSet.size > 0 ? notIncludedCount : 0,
+      includeTagsActive,
+      excludeTagsActive
+    };
+  }
+
   async getCorrespondentNameById(correspondentId) {
     /**
      * Get the Name of a Correspondent by its ID.
