@@ -46,6 +46,19 @@ const isSetup = variant === 'setup';
         </div>
 
         <div class="form-group">
+          <div id="processingJobIntervalSection" class="<%= config.PROCESSING_ENABLE_JOB ? '' : 'hidden' %>">
+            <label for="processingJobInterval">Scan interval (cron format)</label>
+            <input type="text"
+                  id="processingJobInterval"
+                  name="processingJobInterval"
+                  value="<%= config.PROCESSING_JOB_INTERVAL %>"
+                  class="modern-input"
+                  required>
+            <p class="help-text">Default: every 30 minutes</p>
+          </div>
+        </div>
+
+        <div class="form-group">
           <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
             <label class="flex items-start cursor-pointer w-full">
               <input type="checkbox"
@@ -65,19 +78,6 @@ const isSetup = variant === 'setup';
                   name="processingEnableWebhook"
                   data-sync-checkbox="processingEnableWebhook"
                   value="<%= config.PROCESSING_ENABLE_WEBHOOK ? 'true' : 'false' %>">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <div id="processingJobIntervalSection" class="<%= config.PROCESSING_ENABLE_JOB ? '' : 'hidden' %>">
-            <label for="processingJobInterval">Scan interval (cron format)</label>
-            <input type="text"
-                  id="processingJobInterval"
-                  name="processingJobInterval"
-                  value="<%= config.PROCESSING_JOB_INTERVAL %>"
-                  class="modern-input"
-                  required>
-            <p class="help-text">Default: every 30 minutes</p>
           </div>
         </div>
 
@@ -820,6 +820,19 @@ const isSetup = variant === 'setup';
       </div>
       </div>
 
+      <div class="space-y-2 <%= config.PROCESSING_ENABLE_JOB ? '' : 'hidden' %>" id="processingJobIntervalSection">
+      <div class="form-group">
+      <label for="processingJobInterval" class="text-sm font-medium">Scan interval (cron format)</label>
+      <input type="text"
+             id="processingJobInterval"
+             name="processingJobInterval"
+             value="<%= config.PROCESSING_JOB_INTERVAL %>"
+             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             required>
+      <p class="text-sm text-gray-500">Default: every 30 minutes</p>
+      </div>
+      </div>
+
       <div class="space-y-2">
       <label for="processingEnableWebhook" class="text-sm font-medium">Enable webhook processing?</label>
       <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
@@ -842,17 +855,6 @@ const isSetup = variant === 'setup';
                data-sync-checkbox="processingEnableWebhook"
                value="<%= config.PROCESSING_ENABLE_WEBHOOK ? 'true' : 'false' %>">
       </div>
-      </div>
-
-      <div class="space-y-2 <%= config.PROCESSING_ENABLE_JOB ? '' : 'hidden' %>" id="processingJobIntervalSection">
-      <label for="processingJobInterval" class="text-sm font-medium">Scan interval (cron format)</label>
-      <input type="text"
-             id="processingJobInterval"
-             name="processingJobInterval"
-             value="<%= config.PROCESSING_JOB_INTERVAL %>"
-             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-             required>
-      <p class="text-sm text-gray-500">Default: every 30 minutes</p>
       </div>
 
       <div class="space-y-4">
@@ -881,7 +883,7 @@ const isSetup = variant === 'setup';
       </div>
 
       <div id="tagsInputSection" class="<%= config.FILTER_DOCUMENTS ? '' : 'hidden' %> space-y-4">
-      <div class="space-y-2">
+      <div class="form-group space-y-2">
           <label for="tagInput" class="text-sm font-medium">Include tags</label>
           <div class="flex gap-2">
             <input type="text"
@@ -906,7 +908,7 @@ const isSetup = variant === 'setup';
           </div>
           <input type="hidden" id="filterIncludeTags" name="filterIncludeTags" value="<%= Array.isArray(config.FILTER_INCLUDE_TAGS) ? config.FILTER_INCLUDE_TAGS.join(',') : '' %>">
         </div>
-        <div class="space-y-2">
+        <div class="form-group space-y-2">
           <label for="excludeTagInput" class="text-sm font-medium">Exclude tags</label>
           <div class="flex gap-2">
             <input type="text"
@@ -1074,7 +1076,7 @@ const isSetup = variant === 'setup';
       </div>
 
       <div id="promptTagsSection" class="<%= config.AI_USE_PROMPT_TAGS ? '' : 'hidden' %> space-y-4">
-        <div class="space-y-2">
+        <div class="form-group space-y-2">
           <label for="promptTagInput" class="text-sm font-medium">Prompt tags</label>
           <div class="flex gap-2">
             <input type="text"
@@ -1532,32 +1534,34 @@ const isSetup = variant === 'setup';
         </div>
       </div>
 
-      <div id="postProcessingTagsToAddSection" class="<%= config.POST_PROCESSING_ADD_TAGS ? '' : 'hidden' %> space-y-2">
-        <label for="postProcessingTagToAddInput" class="text-sm font-medium">Tags to add</label>
-        <div class="flex gap-2">
-          <input type="text"
-              id="postProcessingTagToAddInput"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter a tag and press Enter">
-          <button type="button"
-                  class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-post-process-tag-to-add-btn">
-            <i class="fas fa-plus mr-2"></i>
-            Add
-          </button>
+      <div id="postProcessingTagsToAddSection" class="<%= config.POST_PROCESSING_ADD_TAGS ? '' : 'hidden' %>">
+        <div class="form-group space-y-2">
+          <label for="postProcessingTagToAddInput" class="text-sm font-medium">Tags to add</label>
+          <div class="flex gap-2">
+            <input type="text"
+                id="postProcessingTagToAddInput"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter a tag and press Enter">
+            <button type="button"
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-post-process-tag-to-add-btn">
+              <i class="fas fa-plus mr-2"></i>
+              Add
+            </button>
+          </div>
+          <div id="postProcessingTagsToAddContainer" class="flex flex-wrap gap-2 mt-2">
+            <% const addTags = Array.isArray(config.POST_PROCESSING_TAGS_TO_ADD) ? config.POST_PROCESSING_TAGS_TO_ADD : (config.POST_PROCESSING_TAGS_TO_ADD ? String(config.POST_PROCESSING_TAGS_TO_ADD).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+            <% if (addTags.length > 0) { %>
+                <% addTags.forEach(tag => { %>
+                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
+                        <span><%= tag %></span>
+                        <button type="button" class="hover:text-blue-600"><i class="fas fa-times"></i></button>
+                    </div>
+                <% }); %>
+            <% } %>
+          </div>
+          <input type="hidden" id="postProcessingTagsToAdd" name="postProcessingTagsToAdd" value="<%= addTags.join(',') %>">
+          <p class="text-sm text-gray-500">These tags will be added to documents after AI processing</p>
         </div>
-        <div id="postProcessingTagsToAddContainer" class="flex flex-wrap gap-2 mt-2">
-          <% const addTags = Array.isArray(config.POST_PROCESSING_TAGS_TO_ADD) ? config.POST_PROCESSING_TAGS_TO_ADD : (config.POST_PROCESSING_TAGS_TO_ADD ? String(config.POST_PROCESSING_TAGS_TO_ADD).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
-          <% if (addTags.length > 0) { %>
-              <% addTags.forEach(tag => { %>
-                  <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
-                      <span><%= tag %></span>
-                      <button type="button" class="hover:text-blue-600"><i class="fas fa-times"></i></button>
-                  </div>
-              <% }); %>
-          <% } %>
-        </div>
-        <input type="hidden" id="postProcessingTagsToAdd" name="postProcessingTagsToAdd" value="<%= addTags.join(',') %>">
-        <p class="text-sm text-gray-500">These tags will be added to documents after AI processing</p>
       </div>
 
       <div class="space-y-2">
@@ -1584,32 +1588,34 @@ const isSetup = variant === 'setup';
         </div>
       </div>
 
-      <div id="postProcessingTagsToRemoveSection" class="<%= config.POST_PROCESSING_REMOVE_TAGS ? '' : 'hidden' %> space-y-2">
-        <label for="postProcessingTagToRemoveInput" class="text-sm font-medium">Tags to remove</label>
-        <div class="flex gap-2">
-          <input type="text"
-              id="postProcessingTagToRemoveInput"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter a tag and press Enter">
-          <button type="button"
-                  class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-post-process-tag-to-remove-btn">
-            <i class="fas fa-minus mr-2"></i>
-            Remove
-          </button>
+      <div id="postProcessingTagsToRemoveSection" class="<%= config.POST_PROCESSING_REMOVE_TAGS ? '' : 'hidden' %>">
+        <div class="form-group space-y-2">
+          <label for="postProcessingTagToRemoveInput" class="text-sm font-medium">Tags to remove</label>
+          <div class="flex gap-2">
+            <input type="text"
+                id="postProcessingTagToRemoveInput"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter a tag and press Enter">
+            <button type="button"
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-post-process-tag-to-remove-btn">
+              <i class="fas fa-minus mr-2"></i>
+              Remove
+            </button>
+          </div>
+          <div id="postProcessingTagsToRemoveContainer" class="flex flex-wrap gap-2 mt-2">
+            <% const removeTags = Array.isArray(config.POST_PROCESSING_TAGS_TO_REMOVE) ? config.POST_PROCESSING_TAGS_TO_REMOVE : (config.POST_PROCESSING_TAGS_TO_REMOVE ? String(config.POST_PROCESSING_TAGS_TO_REMOVE).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
+            <% if (removeTags.length > 0) { %>
+                <% removeTags.forEach(tag => { %>
+                    <div class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
+                        <span><%= tag %></span>
+                        <button type="button" class="hover:text-gray-600"><i class="fas fa-times"></i></button>
+                    </div>
+                <% }); %>
+            <% } %>
+          </div>
+          <input type="hidden" id="postProcessingTagsToRemove" name="postProcessingTagsToRemove" value="<%= removeTags.join(',') %>">
+          <p class="text-sm text-gray-500">These tags will be removed after a document is processed successfully</p>
         </div>
-        <div id="postProcessingTagsToRemoveContainer" class="flex flex-wrap gap-2 mt-2">
-          <% const removeTags = Array.isArray(config.POST_PROCESSING_TAGS_TO_REMOVE) ? config.POST_PROCESSING_TAGS_TO_REMOVE : (config.POST_PROCESSING_TAGS_TO_REMOVE ? String(config.POST_PROCESSING_TAGS_TO_REMOVE).split(',').map(tag => tag.trim()).filter(Boolean) : []); %>
-          <% if (removeTags.length > 0) { %>
-              <% removeTags.forEach(tag => { %>
-                  <div class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
-                      <span><%= tag %></span>
-                      <button type="button" class="hover:text-gray-600"><i class="fas fa-times"></i></button>
-                  </div>
-              <% }); %>
-          <% } %>
-        </div>
-        <input type="hidden" id="postProcessingTagsToRemove" name="postProcessingTagsToRemove" value="<%= removeTags.join(',') %>">
-        <p class="text-sm text-gray-500">These tags will be removed after a document is processed successfully</p>
       </div>
 
     </div>
