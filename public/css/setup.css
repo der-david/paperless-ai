@@ -393,11 +393,6 @@ textarea.disabled {
   resize: vertical;
 }
 
-/* Provider Settings */
-.provider-settings {
-  display: none;
-}
-
 /* Responsive Design */
 @media (max-width: 640px) {
   .material-card {
