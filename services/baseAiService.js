@@ -86,6 +86,16 @@ class BaseAIService {
       try {
         return JSON.parse(sanitized);
       } catch (finalError) {
+        try {
+          const debugPayload = {
+            raw: text,
+            extracted: cleaned,
+            sanitized
+          };
+          console.debug('Invalid JSON response payload:', JSON.stringify(debugPayload, null, 2));
+        } catch (debugError) {
+          console.debug('Invalid JSON response payload (unserializable):', text);
+        }
         console.error('Failed to parse JSON response:', error);
         throw new Error('Invalid JSON response from API');
       }
