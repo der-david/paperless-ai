@@ -15,17 +15,16 @@ class ChartManager {
         }
 
         const {
-            documentCount,
-            processedInScope,
-            unprocessedInScope,
+            processedCount,
+            inScopeCount,
             excludedCount,
             notIncludedCount,
             includeTagsActive,
             excludeTagsActive
         } = window.dashboardData;
 
-        const labels = ['AI Processed', 'Unprocessed'];
-        const dataPoints = [processedInScope, unprocessedInScope];
+        const labels = ['AI Processed', 'In scope'];
+        const dataPoints = [processedCount, inScopeCount];
         const colors = ['#3b82f6', '#e2e8f0'];
 
         if (excludeTagsActive) {

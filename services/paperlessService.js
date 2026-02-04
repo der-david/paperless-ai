@@ -1233,30 +1233,30 @@ class PaperlessService {
     const filterSettings = this.settings?.processing?.filter;
     const shouldFilterByTags = filterSettings?.enabled === true;
 
-    if (!shouldFilterByTags) {
-      return {
-        totalCount,
-        processedInScope: processedIdSet.size,
-        unprocessedInScope: Math.max(totalCount - processedIdSet.size, 0),
-        excludedCount: 0,
-        notIncludedCount: 0,
-        includeTagsActive: false,
-        excludeTagsActive: false
-      };
-    }
-
     const includeTagNames = this.normalizeTagList(filterSettings?.includeTags);
     const excludeTagNames = this.normalizeTagList(filterSettings?.excludeTags);
     const includeTagsActive = includeTagNames.length > 0;
     const excludeTagsActive = excludeTagNames.length > 0;
 
+    if (!shouldFilterByTags) {
+      return {
+        totalCount,
+        processedCount: processedIdSet.size,
+        excludedCount: 0,
+        notIncludedCount: 0,
+        inScopeCount: Math.max(totalCount - processedIdSet.size, 0),
+        includeTagsActive: false,
+        excludeTagsActive: false
+      };
+    }
+
     if (!includeTagsActive && !excludeTagsActive) {
       return {
         totalCount,
-        processedInScope: processedIdSet.size,
-        unprocessedInScope: Math.max(totalCount - processedIdSet.size, 0),
+        processedCount: processedIdSet.size,
         excludedCount: 0,
         notIncludedCount: 0,
+        inScopeCount: Math.max(totalCount - processedIdSet.size, 0),
         includeTagsActive: false,
         excludeTagsActive: false
       };
@@ -1285,9 +1285,8 @@ class PaperlessService {
     const excludeTagIdSet = new Set(excludeTagIds);
 
     let excludedCount = 0;
-    let includedCount = 0;
     let notIncludedCount = 0;
-    let processedInScope = 0;
+    let inScopeCount = 0;
 
     let page = 1;
     let hasMore = true;
@@ -1308,6 +1307,11 @@ class PaperlessService {
         }
 
         for (const doc of response.data.results) {
+          const docId = Number(doc.id);
+          if (processedIdSet.has(docId)) {
+            continue;
+          }
+
           const docTags = Array.isArray(doc.tags) ? doc.tags : [];
           const hasExclude = excludeTagIdSet.size > 0 && docTags.some(tagId => excludeTagIdSet.has(tagId));
 
@@ -1319,20 +1323,14 @@ class PaperlessService {
           if (includeTagIdSet.size > 0) {
             const hasInclude = docTags.some(tagId => includeTagIdSet.has(tagId));
             if (hasInclude) {
-              includedCount += 1;
-              if (processedIdSet.has(Number(doc.id))) {
-                processedInScope += 1;
-              }
+              inScopeCount += 1;
             } else {
               notIncludedCount += 1;
             }
             continue;
           }
 
-          includedCount += 1;
-          if (processedIdSet.has(Number(doc.id))) {
-            processedInScope += 1;
-          }
+          inScopeCount += 1;
         }
 
         hasMore = response.data.next !== null;
@@ -1346,14 +1344,12 @@ class PaperlessService {
       }
     }
 
-    const unprocessedInScope = Math.max(includedCount - processedInScope, 0);
-
     return {
       totalCount,
-      processedInScope,
-      unprocessedInScope,
+      processedCount: processedIdSet.size,
       excludedCount,
       notIncludedCount: includeTagIdSet.size > 0 ? notIncludedCount : 0,
+      inScopeCount,
       includeTagsActive,
       excludeTagsActive
     };

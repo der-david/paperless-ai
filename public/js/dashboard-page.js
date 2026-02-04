@@ -8,8 +8,7 @@ function getDashboardPageData() {
     const documentTypes = JSON.parse(dataElement.dataset.documentTypes || '[]');
     const documentCount = Number(dataElement.dataset.documentCount || 0);
     const processedCount = Number(dataElement.dataset.processedCount || 0);
-    const processedInScope = Number(dataElement.dataset.processedInScope || processedCount || 0);
-    const unprocessedInScope = Number(dataElement.dataset.unprocessedInScope || Math.max(documentCount - processedCount, 0));
+    const inScopeCount = Number(dataElement.dataset.inScopeCount || Math.max(documentCount - processedCount, 0));
     const excludedCount = Number(dataElement.dataset.excludedCount || 0);
     const notIncludedCount = Number(dataElement.dataset.notIncludedCount || 0);
     const includeTagsActive = dataElement.dataset.includeTagsActive === 'true';
@@ -21,8 +20,7 @@ function getDashboardPageData() {
         documentTypes,
         documentCount,
         processedCount,
-        processedInScope,
-        unprocessedInScope,
+        inScopeCount,
         excludedCount,
         notIncludedCount,
         includeTagsActive,
@@ -303,8 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.dashboardData = {
         documentCount: data.documentCount,
         processedCount: data.processedCount,
-        processedInScope: data.processedInScope,
-        unprocessedInScope: data.unprocessedInScope,
+        inScopeCount: data.inScopeCount,
         excludedCount: data.excludedCount,
         notIncludedCount: data.notIncludedCount,
         includeTagsActive: data.includeTagsActive,

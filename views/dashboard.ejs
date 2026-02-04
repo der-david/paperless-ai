@@ -44,10 +44,10 @@
                 <%
                     const processingStats = paperless_data.processingBreakdown || {
                         totalCount: paperless_data.documentCount,
-                        processedInScope: paperless_data.processedDocumentCount,
-                        unprocessedInScope: Math.max(paperless_data.documentCount - paperless_data.processedDocumentCount, 0),
+                        processedCount: paperless_data.processedDocumentCount,
                         excludedCount: 0,
                         notIncludedCount: 0,
+                        inScopeCount: Math.max(paperless_data.documentCount - paperless_data.processedDocumentCount, 0),
                         includeTagsActive: false,
                         excludeTagsActive: false
                     };
@@ -65,16 +65,16 @@
                                         <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
                                         <span>AI Processed</span>
                                     </div>
-                                    <span class="font-semibold"><%= processingStats.processedInScope %></span>
+                                    <span class="font-semibold"><%= processingStats.processedCount %></span>
                                 </div>
                             </div>
                             <div class="stat-item mt-4">
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center">
                                         <div class="w-3 h-3 rounded-full bg-gray-200 mr-2"></div>
-                                        <span>Unprocessed</span>
+                                        <span>In scope</span>
                                     </div>
-                                    <span class="font-semibold"><%= processingStats.unprocessedInScope %></span>
+                                    <span class="font-semibold"><%= processingStats.inScopeCount %></span>
                                 </div>
                             </div>
                             <% if (processingStats.excludeTagsActive) { %>
@@ -286,9 +286,8 @@
      data-document-types='<%- JSON.stringify(paperless_data.documentTypes) %>'
      data-version="<%= version %>"
      data-document-count="<%= paperless_data.documentCount %>"
-     data-processed-count="<%= paperless_data.processedDocumentCount %>"
-     data-processed-in-scope="<%= processingStats.processedInScope %>"
-     data-unprocessed-in-scope="<%= processingStats.unprocessedInScope %>"
+     data-processed-count="<%= processingStats.processedCount %>"
+     data-in-scope-count="<%= processingStats.inScopeCount %>"
      data-excluded-count="<%= processingStats.excludedCount %>"
      data-not-included-count="<%= processingStats.notIncludedCount %>"
      data-include-tags-active="<%= processingStats.includeTagsActive ? 'true' : 'false' %>"
