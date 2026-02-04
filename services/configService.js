@@ -337,12 +337,8 @@ class ConfigService {
     }
   }
 
-  async validateAiProviderConfig(config, { isConfigured = false } = {}) {
-    if (isConfigured) {
-      return true;
-    }
-
-    const aiProvider = config.AI_PROVIDER || ConfigService.DEFAULTS.AI_PROVIDER;
+  async validateAiProviderConfig(config) {
+    const aiProvider = config.AI_PROVIDER;
 
     if (aiProvider === 'openai') {
       return OpenAIService.validateConfig(
@@ -386,11 +382,12 @@ class ConfigService {
       throw new Error('Invalid Paperless configuration');
     }
 
-    const aiValid = await this.validateAiProviderConfig(config, {
-      isConfigured: Boolean(config.CONFIGURED)
-    });
-    if (!aiValid) {
-      throw new Error('Invalid AI provider configuration');
+    const isConfigured = this.parseBoolean(config.CONFIGURED, false);
+    if (!isConfigured) {
+      const aiValid = await this.validateAiProviderConfig(config);
+      if (!aiValid) {
+        throw new Error('Invalid AI provider configuration');
+      }
     }
 
     return true;

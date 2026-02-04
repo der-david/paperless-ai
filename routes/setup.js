@@ -3759,13 +3759,6 @@ router.post('/setup', express.json(), async (req, res) => {
       config.AZURE_API_VERSION = azureApiVersion || config.AZURE_API_VERSION;
     }
 
-    const aiValid = await configService.validateAiProviderConfig(config, { isConfigured: false });
-    if (!aiValid) {
-      return res.status(400).json({
-        error: `${aiProvider} connection failed. Please check the configuration.`
-      });
-    }
-
     // Save configuration
     await configService.saveConfig(config);
     const hashedPassword = await bcrypt.hash(password, 15);
@@ -4136,15 +4129,6 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     }
 
     const finalConfig = { ...mergedConfig, ...updatedConfig };
-
-    if (!isConfigured) {
-      const aiValid = await configService.validateAiProviderConfig(finalConfig, { isConfigured });
-      if (!aiValid) {
-        return res.status(400).json({
-          error: `${finalConfig.AI_PROVIDER} connection failed. Please check the configuration.`
-        });
-      }
-    }
 
     await configService.saveConfig(finalConfig);
     res.json({
