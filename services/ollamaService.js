@@ -605,54 +605,19 @@ class OllamaService extends BaseAIService {
      */
     _parseResponse(response) {
         try {
-            // Find JSON in response using regex
-            const jsonMatch = response.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) {
-                return { tags: [], correspondent: null };
-            }
-
-            let jsonStr = jsonMatch[0];
-            console.log('Extracted JSON String:', jsonStr);
+            return this.parseAndValidateResponse(response);
+        } catch (error) {
+            console.warn('Error parsing JSON from response:', error.message);
+            console.warn('Attempting to sanitize the JSON...');
 
             try {
-                // Attempt to parse the JSON
-                const result = JSON.parse(jsonStr);
-
-                // Validate and return the result
-                return {
-                    tags: Array.isArray(result.tags) ? result.tags : [],
-                    correspondent: result.correspondent || null,
-                    title: result.title || null,
-                    document_date: result.document_date || null,
-                    document_type: result.document_type || null,
-                    language: result.language || null,
-                    custom_fields: result.custom_fields || null
-                };
-
-            } catch (jsonError) {
-                console.warn('Error parsing JSON from response:', jsonError.message);
-                console.warn('Attempting to sanitize the JSON...');
-
-                // Sanitize the JSON
-                jsonStr = this._sanitizeJsonString(jsonStr);
-
-                try {
-                    const sanitizedResult = JSON.parse(jsonStr);
-                    return {
-                        tags: Array.isArray(sanitizedResult.tags) ? sanitizedResult.tags : [],
-                        correspondent: sanitizedResult.correspondent || null,
-                        title: sanitizedResult.title || null,
-                        document_date: sanitizedResult.document_date || null,
-                        language: sanitizedResult.language || null
-                    };
-                } catch (finalError) {
-                    console.error('Final JSON parsing failed after sanitization. This happens when the JSON structure is too complex or invalid. That indicates an issue with the generated JSON string by Ollama. Switch to OpenAI for better results or fine tune your prompt.');
-                    return { tags: [], correspondent: null };
-                }
+                const jsonStr = this._extractJsonString(String(response || ''));
+                const sanitized = this._sanitizeJsonString(jsonStr);
+                return this.parseAndValidateResponse(sanitized);
+            } catch (finalError) {
+                console.error('Final JSON parsing failed after sanitization. This happens when the JSON structure is too complex or invalid. That indicates an issue with the generated JSON string by Ollama. Switch to OpenAI for better results or fine tune your prompt.');
+                return { tags: [], correspondent: null };
             }
-        } catch (error) {
-            console.error('Error parsing Ollama response:', error.message);
-            return { tags: [], correspondent: null };
         }
     }
 

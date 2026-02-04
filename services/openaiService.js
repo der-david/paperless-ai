@@ -4,7 +4,6 @@ const {
   calculateTotalPromptTokens,
   truncateToTokenLimit,
   writePromptToFile,
-  extractSchemaData,
   parseCustomFields,
   buildResponseSchema
 } = require('./serviceUtils');
@@ -351,43 +350,16 @@ class OpenAIService extends BaseAIService {
         totalTokens: usage.total_tokens
       };
 
-      let jsonContent = response.choices[0].message.content;
-      jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
       let parsedResponse;
       try {
-        parsedResponse = JSON.parse(jsonContent);
-        parsedResponse = extractSchemaData(parsedResponse);
+        parsedResponse = this.parseAndValidateResponse(response.choices[0].message.content);
         //write to file and append to the file (txt)
-        fs.appendFile('./logs/response.txt', jsonContent, (err) => {
+        fs.appendFile('./logs/response.txt', response.choices[0].message.content, (err) => {
           if (err) throw err;
         });
       } catch (error) {
         console.error('Failed to parse JSON response:', error);
-        console.debug(jsonContent);
         throw new Error('Invalid JSON response from API');
-      }
-
-
-      // Validate response structure
-      if (typeof parsedResponse !== 'object') {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: not an object');
-      }
-       // tags must be array, can be empty
-      if (!Array.isArray(parsedResponse.tags)) {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: missing tags array');
-      }
-      // document_type can be null or a string from the enum, both are valid
-      if (parsedResponse.document_type !== null && typeof parsedResponse.document_type !== 'string') {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: document_type must be string or null');
-      }
-      // correspondent can be null or string, both are valid
-      if (parsedResponse.correspondent !== null && typeof parsedResponse.correspondent !== 'string') {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: correspondent must be string or null');
       }
 
       return {
@@ -497,32 +469,12 @@ class OpenAIService extends BaseAIService {
         totalTokens: usage.total_tokens
       };
 
-      let jsonContent = response.choices[0].message.content;
-      jsonContent = jsonContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-
       let parsedResponse;
       try {
-        parsedResponse = JSON.parse(jsonContent);
-        parsedResponse = extractSchemaData(parsedResponse);
+        parsedResponse = this.parseAndValidateResponse(response.choices[0].message.content);
       } catch (error) {
         console.error('Failed to parse JSON response:', error);
         throw new Error('Invalid JSON response from API');
-      }
-
-      // Validate response structure
-      if (!parsedResponse || !Array.isArray(parsedResponse.tags)) {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: missing tags array');
-      }
-      // document_type can be null or a string from the enum, both are valid
-      if (parsedResponse.document_type !== null && typeof parsedResponse.document_type !== 'string') {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: document_type must be string or null');
-      }
-      // correspondent can be null or string, both are valid
-      if (parsedResponse.correspondent !== null && typeof parsedResponse.correspondent !== 'string') {
-        console.debug(jsonContent);
-        throw new Error('Invalid response structure: correspondent must be string or null');
       }
 
       return {
