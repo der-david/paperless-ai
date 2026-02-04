@@ -13,6 +13,28 @@ const path = require('path');
 const BaseAIService = require('./baseAiService');
 
 class CustomOpenAIService extends BaseAIService {
+  static async validateConfig(apiUrl, apiKey, model) {
+    const config = {
+      baseURL: apiUrl,
+      apiKey: apiKey,
+      model: model
+    };
+    console.log('Custom AI config:', config);
+    try {
+      const openai = new OpenAI({
+        apiKey: config.apiKey,
+        baseURL: config.baseURL
+      });
+      const completion = await openai.chat.completions.create({
+        messages: [{ role: 'user', content: 'Test' }],
+        model: config.model
+      });
+      return completion.choices && completion.choices.length > 0;
+    } catch (error) {
+      console.error('Custom AI validation error:', error);
+      return false;
+    }
+  }
   constructor({
     paperlessService,
     restrictionPromptService,
@@ -212,7 +234,7 @@ class CustomOpenAIService extends BaseAIService {
         restrictToExistingTags: config.restrictToExisting.tags,
         restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes,
         restrictToExistingCorrespondents: config.restrictToExisting.correspondents,
-        limitFunctions: config.limitFunctions,
+        enableUpdates: config.enableUpdates,
         includeCustomFieldProperties: true,
         customFields,
         customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'

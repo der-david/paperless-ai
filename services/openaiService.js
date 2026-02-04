@@ -13,6 +13,22 @@ const path = require('path');
 const BaseAIService = require('./baseAiService');
 
 class OpenAIService extends BaseAIService {
+  static async validateConfig(apiKey, model = 'gpt-4o-mini') {
+    try {
+      const openai = new OpenAI({ apiKey });
+      const response = await openai.chat.completions.create({
+        model,
+        messages: [{ role: 'user', content: 'Test' }]
+      });
+      const now = new Date();
+      const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
+      console.debug(`[${timestamp}] OpenAI request sent`);
+      return response.choices && response.choices.length > 0;
+    } catch (error) {
+      console.error('OpenAI validation error:', error.message);
+      return false;
+    }
+  }
   constructor({
     paperlessService,
     restrictionPromptService,
@@ -107,7 +123,7 @@ class OpenAIService extends BaseAIService {
         restrictToExistingTags: config.restrictToExisting?.tags,
         restrictToExistingDocumentTypes: config.restrictToExisting?.documentTypes,
         restrictToExistingCorrespondents: config.restrictToExisting?.correspondents,
-        limitFunctions: config.limitFunctions,
+        enableUpdates: config.enableUpdates,
         includeCustomFieldProperties: true,
         customFields,
         customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'

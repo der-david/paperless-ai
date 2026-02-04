@@ -5,7 +5,7 @@ const fs = require('fs').promises;
 const config = require('./config/config');
 const container = require('./services/container');
 const documentModel = require('./models/document');
-const setupService = container.getSetupService();
+const configService = container.getConfigService();
 const setupRoutes = require('./routes/setup');
 
 // Add environment variables for RAG service if not already set
@@ -268,13 +268,13 @@ async function buildUpdateData(analysis, doc) {
   console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
-  if (config.limitFunctions?.activateTagging !== false) {
+  if (config.enableUpdates?.tags !== false) {
     const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.limitFunctions?.activateTagging === false && config.addAIProcessedTag === true) {
+  } else if (config.enableUpdates?.tags === false && config.addAIProcessedTag === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     // get tags from .env file and split them by comma and make an array
     console.debug('Tagging is deactivated but AI processed tag will be added');
@@ -288,12 +288,12 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process title if title generation is activated
-  if (config.limitFunctions?.activateTitle !== false) {
+  if (config.enableUpdates?.title !== false) {
     updateData.title = analysis.document.title || doc.title;
   }
 
   // Only update content if content update is activated and AI provided content
-  if (config.limitFunctions?.activateContent !== false && typeof analysis.document.content === 'string') {
+  if (config.enableUpdates?.content !== false && typeof analysis.document.content === 'string') {
     const trimmedContent = analysis.document.content.trim();
     if (trimmedContent.length > 0) {
       updateData.content = trimmedContent;
@@ -301,14 +301,14 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  if (config.limitFunctions?.activateDocumentDate !== false && analysis.document.document_date) {
+  if (config.enableUpdates?.documentDate !== false && analysis.document.document_date) {
     updateData.created = analysis.document.document_date;
   } else {
     updateData.created = doc.created;
   }
 
   // Only process document type if document type classification is activated
-  if (config.limitFunctions?.activateDocumentType !== false && analysis.document.document_type) {
+  if (config.enableUpdates?.documentType !== false && analysis.document.document_type) {
     try {
       let documentType;
 
@@ -334,7 +334,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process custom fields if custom fields detection is activated
-  if (config.limitFunctions?.activateCustomFields !== false && analysis.document.custom_fields) {
+  if (config.enableUpdates?.customFields !== false && analysis.document.custom_fields) {
     const customFields = analysis.document.custom_fields;
     const processedFields = [];
 
@@ -397,7 +397,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process correspondent if correspondent detection is activated
-  if (config.limitFunctions?.activateCorrespondent !== false && analysis.document.correspondent) {
+  if (config.enableUpdates?.correspondent !== false && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
@@ -408,7 +408,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  if (config.limitFunctions?.activateLanguage !== false && analysis.document.language) {
+  if (config.enableUpdates?.language !== false && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 
@@ -435,7 +435,7 @@ async function saveDocumentChanges(docId, updateData, analysis, originalData) {
 // Main scanning functions
 async function scanInitial() {
   try {
-    const isConfigured = await setupService.isConfigured();
+    const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
       console.error('Setup not completed. Skipping document scan.');
       return;
@@ -617,7 +617,7 @@ app.get('/', async (req, res) => {
  */
 app.get('/health', async (req, res) => {
   try {
-    const isConfigured = await setupService.isConfigured();
+    const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
       return res.status(503).json({
         status: 'not_configured',
@@ -645,7 +645,7 @@ app.use((err, req, res, next) => {
 // Start scanning
 async function startScanning() {
   try {
-    const isConfigured = await setupService.isConfigured();
+    const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
       console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
     }

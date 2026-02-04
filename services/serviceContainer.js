@@ -4,6 +4,7 @@ const DocumentsService = require('./documentsService');
 const ChatService = require('./chatService');
 const RagService = require('./ragService');
 const setupServiceInstance = require('./setupService');
+const configServiceInstance = require('./configService');
 const ExternalApiService = require('./externalApiService');
 const RestrictionPromptService = require('./restrictionPromptService');
 
@@ -25,11 +26,9 @@ class ServiceContainer {
         restrictToExisting: this.config.restrictToExisting,
         addAIProcessedTag: this.config.addAIProcessedTag,
         addAIProcessedTags: this.config.addAIProcessedTags,
-        predefinedMode: this.config.predefinedMode,
-        tags: this.config.tags,
-        paperless: {
-          username: paperlessConfig.username
-        }
+        filterDocuments: this.config.filterDocuments,
+        filterIncludeTags: this.config.filterIncludeTags,
+        filterExcludeTags: this.config.filterExcludeTags
       };
       this.instances.set('paperlessService', new PaperlessService({
         apiUrl: paperlessConfig.apiUrl,
@@ -132,6 +131,13 @@ class ServiceContainer {
       this.instances.set('setupService', setupServiceInstance);
     }
     return this.instances.get('setupService');
+  }
+
+  getConfigService() {
+    if (!this.instances.has('configService')) {
+      this.instances.set('configService', configServiceInstance);
+    }
+    return this.instances.get('configService');
   }
 }
 

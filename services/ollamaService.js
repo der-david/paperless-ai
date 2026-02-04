@@ -17,6 +17,19 @@ const BaseAIService = require('./baseAiService');
  * Service for document analysis using Ollama
  */
 class OllamaService extends BaseAIService {
+    static async validateConfig(apiUrl, model) {
+        try {
+            const response = await axios.post(`${apiUrl}/api/generate`, {
+                model: model || 'llama3.2',
+                prompt: 'Test',
+                stream: false
+            });
+            return response.data && response.data.response;
+        } catch (error) {
+            console.error('Ollama validation error:', error.message);
+            return false;
+        }
+    }
     /**
      * Initialize the Ollama service
      */
@@ -143,7 +156,7 @@ class OllamaService extends BaseAIService {
                 restrictToExistingTags: config.restrictToExisting.tags,
                 restrictToExistingDocumentTypes: config.restrictToExisting.documentTypes,
                 restrictToExistingCorrespondents: config.restrictToExisting.correspondents,
-                limitFunctions: config.limitFunctions,
+                enableUpdates: config.enableUpdates,
                 includeCustomFieldProperties: true,
                 customFields,
                 customFieldsDescription: 'Custom fields extracted from the document, fill only if you are sure!'

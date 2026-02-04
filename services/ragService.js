@@ -2,10 +2,10 @@
 const axios = require('axios');
 
 class RagService {
-  constructor({ aiService, paperlessService } = {}) {
+  constructor({ aiService, paperlessService, baseUrl = 'http://localhost:8000' } = {}) {
     this.aiService = aiService;
     this.paperlessService = paperlessService;
-    this.baseUrl = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
+    this.baseUrl = baseUrl;
   }
 
   setAIService(aiService) {

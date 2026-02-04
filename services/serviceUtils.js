@@ -69,7 +69,7 @@ function estimateTokensForNonOpenAI(text) {
 }
 
 // Calculate tokens for a given text
-async function calculateTokens(text, model = process.env.OPENAI_MODEL || "gpt-4o-mini") {
+async function calculateTokens(text, model = "gpt-4o-mini") {
     try {
         const compatibleModel = getCompatibleModel(model);
 
@@ -94,7 +94,7 @@ async function calculateTokens(text, model = process.env.OPENAI_MODEL || "gpt-4o
 }
 
 // Calculate total tokens for a system prompt and additional prompts
-async function calculateTotalPromptTokens(systemPrompt, additionalPrompts = [], model = process.env.OPENAI_MODEL || "gpt-4o-mini") {
+async function calculateTotalPromptTokens(systemPrompt, additionalPrompts = [], model = "gpt-4o-mini") {
     let totalTokens = 0;
 
     // Count tokens for system prompt
@@ -115,7 +115,7 @@ async function calculateTotalPromptTokens(systemPrompt, additionalPrompts = [], 
 }
 
 // Truncate text to fit within token limit
-async function truncateToTokenLimit(text, maxTokens, model = process.env.OPENAI_MODEL || "gpt-4o-mini") {
+async function truncateToTokenLimit(text, maxTokens, model = "gpt-4o-mini") {
     try {
         const compatibleModel = getCompatibleModel(model);
 
@@ -264,7 +264,7 @@ function buildResponseSchema({
     restrictToExistingTags = false,
     restrictToExistingDocumentTypes = false,
     restrictToExistingCorrespondents = false,
-    limitFunctions = null,
+    enableUpdates = null,
     includeCustomFieldProperties = false,
     customFields = [],
     customFieldsDescription = "Custom fields extracted from the document"
@@ -325,13 +325,13 @@ function buildResponseSchema({
     };
 
     const required = [];
-    if (isEnabled(limitFunctions?.activateTitle)) required.push('title');
-    if (isEnabled(limitFunctions?.activateTagging)) required.push('tags');
-    if (isEnabled(limitFunctions?.activateDocumentType)) required.push('document_type');
-    if (isEnabled(limitFunctions?.activateCorrespondent)) required.push('correspondent');
-    if (isEnabled(limitFunctions?.activateContent, false)) required.push('content');
-    if (isEnabled(limitFunctions?.activateDocumentDate)) required.push('document_date');
-    if (isEnabled(limitFunctions?.activateLanguage)) required.push('language');
+    if (isEnabled(enableUpdates?.title)) required.push('title');
+    if (isEnabled(enableUpdates?.tags)) required.push('tags');
+    if (isEnabled(enableUpdates?.documentType)) required.push('document_type');
+    if (isEnabled(enableUpdates?.correspondent)) required.push('correspondent');
+    if (isEnabled(enableUpdates?.content, false)) required.push('content');
+    if (isEnabled(enableUpdates?.documentDate)) required.push('document_date');
+    if (isEnabled(enableUpdates?.language)) required.push('language');
 
     responseSchema.required = required;
 

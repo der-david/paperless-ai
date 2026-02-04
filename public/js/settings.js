@@ -3,12 +3,12 @@ class FormManager {
     constructor() {
         this.form = document.getElementById('setupForm');
         this.aiProvider = document.getElementById('aiProvider');
-        this.tokenLimit = document.getElementById('tokenLimit');
-        this.responseTokens = document.getElementById('responseTokens');
-        this.showTags = document.getElementById('showTags');
-        this.aiProcessedTag = document.getElementById('aiProcessedTag');
-        this.usePromptTags = document.getElementById('usePromptTags');
-        this.systemPrompt = document.getElementById('systemPrompt');
+        this.tokenLimit = document.getElementById('aiTokenLimit');
+        this.responseTokens = document.getElementById('aiResponseTokens');
+        this.showTags = document.getElementById('filterDocuments');
+        this.aiProcessedTag = document.getElementById('addAiProcessedTag');
+        this.usePromptTags = document.getElementById('aiUsePromptTags');
+        this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.systemPromptBtn = document.getElementById('systemPromptBtn');
         this.disableAutomaticProcessing = document.getElementById('disableAutomaticProcessing');
         this.initialize();
@@ -18,10 +18,10 @@ class FormManager {
         this.toggleProviderSettings();
         this.toggleTagsInput();
         this.handleDisableAutomaticProcessing();
-        this.syncCheckboxHidden('useExistingData', 'useExistingDataValue');
-        this.syncCheckboxHidden('showTags', 'showTagsValue');
-        this.syncCheckboxHidden('aiProcessedTag', 'aiProcessedTagValue');
-        this.syncCheckboxHidden('usePromptTags', 'usePromptTagsValue');
+        this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
+        this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
+        this.syncCheckboxHidden('addAiProcessedTag', 'addAiProcessedTagValue');
+        this.syncCheckboxHidden('aiUsePromptTags', 'aiUsePromptTagsValue');
 
         this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
         this.tokenLimit.addEventListener('input', () => this.validateTokenLimit());
@@ -82,8 +82,8 @@ class FormManager {
         const azureSettings = document.getElementById('azureSettings');
 
         // Get all provider-specific fields
-        const openaiKey = document.getElementById('openaiKey');
-        const ollamaUrl = document.getElementById('ollamaUrl');
+        const openaiKey = document.getElementById('openaiApiKey');
+        const ollamaUrl = document.getElementById('ollamaApiUrl');
         const ollamaModel = document.getElementById('ollamaModel');
         const customBaseUrl = document.getElementById('customBaseUrl');
         const customApiKey = document.getElementById('customApiKey');
@@ -161,7 +161,7 @@ class FormManager {
         if (showTags) {
             tagsInputSection.classList.remove('hidden');
         } else {
-            document.getElementById('tags').value = '';
+            document.getElementById('filterIncludeTags').value = '';
             tagsInputSection.classList.add('hidden');
         }
     }
@@ -276,7 +276,7 @@ class TagsManager {
     }
 
     initializeExistingTags() {
-        const existingTags = this.tagsContainer.querySelectorAll('.bg-blue-100');
+        const existingTags = this.tagsContainer.querySelectorAll('.tag-chip');
         existingTags.forEach(tagElement => {
             const removeButton = tagElement.querySelector('button');
             if (removeButton) {
@@ -302,7 +302,7 @@ class TagsManager {
             });
 
             if (result.isConfirmed) {
-                const tagElement = button.closest('.bg-blue-100');
+                const tagElement = button.closest('.tag-chip');
                 if (tagElement) {
                     tagElement.remove();
                     this.updateHiddenInput();
@@ -341,7 +341,7 @@ class TagsManager {
 
     createTagElement(text) {
         const tag = document.createElement('div');
-        tag.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 animate-fade-in';
+        tag.className = 'bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 animate-fade-in tag-chip';
 
         const tagText = document.createElement('span');
         tagText.textContent = text;
@@ -373,7 +373,7 @@ class TagsManager {
 // Prompt Management
 class PromptManager {
     constructor() {
-        this.systemPrompt = document.getElementById('systemPrompt');
+        this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.exampleButton = document.getElementById('systemPromptBtn');
         this.initialize();
     }
@@ -431,18 +431,19 @@ For the language:
 // Initialize everything when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const formManager = new FormManager();
-    const tagsManager = new TagsManager('tagInput','tagsContainer','tags');
-    const promptTagsManager = new TagsManager('promptTagInput','promptTagsContainer','promptTags');
+    const tagsManager = new TagsManager('tagInput','tagsContainer','filterIncludeTags');
+    const excludeTagsManager = new TagsManager('excludeTagInput','excludeTagsContainer','filterExcludeTags');
+    const promptTagsManager = new TagsManager('promptTagInput','promptTagsContainer','aiPromptTags');
     const promptManager = new PromptManager();
 
     // Initialize textarea newlines
-    const systemPromptTextarea = document.getElementById('systemPrompt');
+    const systemPromptTextarea = document.getElementById('aiSystemPrompt');
     systemPromptTextarea.value = systemPromptTextarea.value.replace(/\\n/g, '\n');
 });
 
 // Form Submission Handler
 document.addEventListener('DOMContentLoaded', (event) => {
-    const systemPromptTextarea = document.getElementById('systemPrompt');
+    const systemPromptTextarea = document.getElementById('aiSystemPrompt');
     systemPromptTextarea.value = systemPromptTextarea.value.replace(/\\n/g, '\n');
 
     // Form submission handler
@@ -458,10 +459,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         try {
 
             const formData = new FormData(setupForm);
-            //remove from formData.systemPrompt all ` chars
+            //remove from formData.aiSystemPrompt all ` chars
             /*
-            if (formData.get('systemPrompt')) {
-                formData.set('systemPrompt', formData.get('systemPrompt').replace(/`/g, ''));
+            if (formData.get('aiSystemPrompt')) {
+                formData.set('aiSystemPrompt', formData.get('aiSystemPrompt').replace(/`/g, ''));
             }
             */
             const response = await fetch('/settings', {
@@ -523,7 +524,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
 class URLValidator {
     constructor() {
-        this.urlInput = document.getElementById('paperlessUrl');
+        this.urlInput = document.getElementById('paperlessApiUrl');
         this.isShowingError = false;
         this.initialize();
     }
@@ -690,7 +691,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const fieldsList = document.getElementById('customFieldsList');
-    const customFieldsJson = document.getElementById('customFieldsJson');
+    const customFieldsJson = document.getElementById('aiCustomFields');
 
     const syncCustomFieldsJson = () => {
         if (!fieldsList || !customFieldsJson) return;

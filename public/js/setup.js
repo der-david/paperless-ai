@@ -12,10 +12,10 @@ class FormManager {
     constructor() {
         this.form = document.getElementById('setupForm');
         this.aiProvider = document.getElementById('aiProvider');
-        this.showTags = document.getElementById('showTags');
-        this.aiProcessedTag = document.getElementById('aiProcessedTag');
-        this.usePromptTags = document.getElementById('usePromptTags');
-        this.systemPrompt = document.getElementById('systemPrompt');
+        this.showTags = document.getElementById('filterDocuments');
+        this.aiProcessedTag = document.getElementById('addAiProcessedTag');
+        this.usePromptTags = document.getElementById('aiUsePromptTags');
+        this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.systemPromptBtn = document.getElementById('systemPromptBtn');
         this.initialize();
     }
@@ -32,10 +32,10 @@ class FormManager {
         this.showTags.addEventListener('change', () => this.toggleTagsInput());
         this.aiProcessedTag.addEventListener('change', () => this.toggleAiTagInput());
         this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
-        this.syncCheckboxHidden('useExistingData', 'useExistingDataValue');
-        this.syncCheckboxHidden('showTags', 'showTagsValue');
-        this.syncCheckboxHidden('aiProcessedTag', 'aiProcessedTagValue');
-        this.syncCheckboxHidden('usePromptTags', 'usePromptTagsValue');
+        this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
+        this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
+        this.syncCheckboxHidden('addAiProcessedTag', 'addAiProcessedTagValue');
+        this.syncCheckboxHidden('aiUsePromptTags', 'aiUsePromptTagsValue');
 
         // Initialize password toggles
         this.initializePasswordToggles();
@@ -58,8 +58,8 @@ class FormManager {
         const azureSettings = document.getElementById('azureSettings');
 
         // Get all required fields
-        const openaiKey = document.getElementById('openaiKey');
-        const ollamaUrl = document.getElementById('ollamaUrl');
+        const openaiKey = document.getElementById('openaiApiKey');
+        const ollamaUrl = document.getElementById('ollamaApiUrl');
         const ollamaModel = document.getElementById('ollamaModel');
         const customBaseUrl = document.getElementById('customBaseUrl');
         const customApiKey = document.getElementById('customApiKey');
@@ -292,15 +292,18 @@ class TabManager {
 
 // Tags Management
 class TagsManager {
-    constructor() {
-        this.tagInput = document.getElementById('tagInput');
-        this.tagsContainer = document.getElementById('tagsContainer');
-        this.tagsHiddenInput = document.getElementById('tags');
-        this.addTagButton = document.querySelector('.add-tag-btn');
+    constructor(tagInputId, tagsContainerId, tagsHiddenInputId, addTagButtonSelector) {
+        this.tagInput = document.getElementById(tagInputId);
+        this.tagsContainer = document.getElementById(tagsContainerId);
+        this.tagsHiddenInput = document.getElementById(tagsHiddenInputId);
+        this.addTagButton = document.querySelector(addTagButtonSelector);
+        if (!this.tagInput || !this.tagsContainer || !this.tagsHiddenInput || !this.addTagButton) {
+            return;
+        }
         this.initialize();
 
         // Initialize existing tags with click handlers
-        document.querySelectorAll('.modern-tag button').forEach(button => {
+        this.tagsContainer.querySelectorAll('.tag-chip button').forEach(button => {
             button.addEventListener('click', async () => {
                 const result = await Swal.fire({
                     title: 'Remove Tag',
@@ -317,7 +320,7 @@ class TagsManager {
                 });
 
                 if (result.isConfirmed) {
-                    button.closest('.modern-tag').remove();
+                    button.closest('.tag-chip').remove();
                     this.updateHiddenInput();
                 }
             });
@@ -336,6 +339,7 @@ class TagsManager {
     }
 
     async addTag() {
+        if (!this.tagInput || !this.tagsContainer) return;
         const tagText = this.tagInput.value.trim();
         const specialChars = /[,;:\n\r\\/]/;
         if (specialChars.test(tagText)) {
@@ -361,7 +365,7 @@ class TagsManager {
 
     createTagElement(text) {
         const tag = document.createElement('div');
-        tag.className = 'modern-tag fade-in';
+        tag.className = 'modern-tag fade-in tag-chip';
 
         const tagText = document.createElement('span');
         tagText.textContent = text;
@@ -408,7 +412,7 @@ class PromptTagsManager {
     constructor() {
         this.tagInput = document.getElementById('promptTagInput');
         this.tagsContainer = document.getElementById('promptTagsContainer');
-        this.tagsHiddenInput = document.getElementById('promptTags');
+        this.tagsHiddenInput = document.getElementById('aiPromptTags');
         this.addTagButton = document.querySelector('.add-prompt-tag-btn');
         this.initialize();
 
@@ -474,7 +478,7 @@ class PromptTagsManager {
 
     createTagElement(text) {
         const tag = document.createElement('div');
-        tag.className = 'modern-tag fade-in';
+        tag.className = 'modern-tag fade-in tag-chip';
 
         const tagText = document.createElement('span');
         tagText.textContent = text;
@@ -519,7 +523,7 @@ class PromptTagsManager {
 // Prompt Management
 class PromptManager {
     constructor() {
-        this.systemPrompt = document.getElementById('systemPrompt');
+        this.systemPrompt = document.getElementById('aiSystemPrompt');
         this.exampleButton = document.getElementById('systemPromptBtn');
         this.initialize();
     }
@@ -701,7 +705,8 @@ document.addEventListener('DOMContentLoaded', () => {
     /* eslint-disable no-unused-vars */
     const tabManager = new TabManager();
     const formManager = new FormManager();
-    const tagsManager = new TagsManager();
+    const tagsManager = new TagsManager('tagInput', 'tagsContainer', 'filterIncludeTags', '.add-tag-btn');
+    const excludeTagsManager = new TagsManager('excludeTagInput', 'excludeTagsContainer', 'filterExcludeTags', '.add-exclude-tag-btn');
     const promptTagsManager = new PromptTagsManager();
     const promptManager = new PromptManager();
     const passwordManager = new PasswordManager();
@@ -710,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Initialize textarea newlines
 document.addEventListener('DOMContentLoaded', (event) => {
-    const systemPromptTextarea = document.getElementById('systemPrompt');
+    const systemPromptTextarea = document.getElementById('aiSystemPrompt');
     systemPromptTextarea.value = systemPromptTextarea.value.replace(/\\n/g, '\n');
 });
 
@@ -741,7 +746,7 @@ function updateCustomFieldsJson() {
         return field;
     });
 
-    document.getElementById('customFieldsJson').value = JSON.stringify({
+    document.getElementById('aiCustomFields').value = JSON.stringify({
         custom_fields: fields
     });
 }
@@ -840,7 +845,7 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
 
             // Check if processing all documents without specific tags
-            const showTags = document.getElementById('showTags').checked;
+            const showTags = document.getElementById('filterDocuments').checked;
             if (!showTags) {
                 const result = await Swal.fire({
                     icon: 'warning',
@@ -859,11 +864,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (!result.isConfirmed) {
                     // User cancelled - set showTags to 'true' and scroll to it
-                    document.getElementById('showTags').checked = true;
+                    document.getElementById('filterDocuments').checked = true;
                     // Trigger the change event to show the tags input section
-                    document.getElementById('showTags').dispatchEvent(new Event('change'));
+                    document.getElementById('filterDocuments').dispatchEvent(new Event('change'));
                     // Scroll to the element
-                    document.getElementById('showTags').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    document.getElementById('filterDocuments').scrollIntoView({ behavior: 'smooth', block: 'center' });
                     return;
                 }
             }

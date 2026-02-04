@@ -5,6 +5,184 @@ const path = require('path');
 const { parse, isValid, parseISO, format } = require('date-fns');
 
 class PaperlessService {
+  static PERMISSIONS = [
+    'account.add_emailaddress',
+    'account.add_emailconfirmation',
+    'account.change_emailaddress',
+    'account.change_emailconfirmation',
+    'account.delete_emailaddress',
+    'account.delete_emailconfirmation',
+    'account.view_emailaddress',
+    'account.view_emailconfirmation',
+    'admin.add_logentry',
+    'admin.change_logentry',
+    'admin.delete_logentry',
+    'admin.view_logentry',
+    'auditlog.add_logentry',
+    'auditlog.change_logentry',
+    'auditlog.delete_logentry',
+    'auditlog.view_logentry',
+    'auth.add_group',
+    'auth.add_permission',
+    'auth.add_user',
+    'auth.change_group',
+    'auth.change_permission',
+    'auth.change_user',
+    'auth.delete_group',
+    'auth.delete_permission',
+    'auth.delete_user',
+    'auth.view_group',
+    'auth.view_permission',
+    'auth.view_user',
+    'authtoken.add_token',
+    'authtoken.add_tokenproxy',
+    'authtoken.change_token',
+    'authtoken.change_tokenproxy',
+    'authtoken.delete_token',
+    'authtoken.delete_tokenproxy',
+    'authtoken.view_token',
+    'authtoken.view_tokenproxy',
+    'contenttypes.add_contenttype',
+    'contenttypes.change_contenttype',
+    'contenttypes.delete_contenttype',
+    'contenttypes.view_contenttype',
+    'django_celery_results.add_chordcounter',
+    'django_celery_results.add_groupresult',
+    'django_celery_results.add_taskresult',
+    'django_celery_results.change_chordcounter',
+    'django_celery_results.change_groupresult',
+    'django_celery_results.change_taskresult',
+    'django_celery_results.delete_chordcounter',
+    'django_celery_results.delete_groupresult',
+    'django_celery_results.delete_taskresult',
+    'django_celery_results.view_chordcounter',
+    'django_celery_results.view_groupresult',
+    'django_celery_results.view_taskresult',
+    'documents.add_correspondent',
+    'documents.add_customfield',
+    'documents.add_customfieldinstance',
+    'documents.add_document',
+    'documents.add_documenttype',
+    'documents.add_log',
+    'documents.add_note',
+    'documents.add_paperlesstask',
+    'documents.add_savedview',
+    'documents.add_savedviewfilterrule',
+    'documents.add_sharelink',
+    'documents.add_storagepath',
+    'documents.add_tag',
+    'documents.add_uisettings',
+    'documents.add_workflow',
+    'documents.add_workflowaction',
+    'documents.add_workflowactionemail',
+    'documents.add_workflowactionwebhook',
+    'documents.add_workflowrun',
+    'documents.add_workflowtrigger',
+    'documents.change_correspondent',
+    'documents.change_customfield',
+    'documents.change_customfieldinstance',
+    'documents.change_document',
+    'documents.change_documenttype',
+    'documents.change_log',
+    'documents.change_note',
+    'documents.change_paperlesstask',
+    'documents.change_savedview',
+    'documents.change_savedviewfilterrule',
+    'documents.change_sharelink',
+    'documents.change_storagepath',
+    'documents.change_tag',
+    'documents.change_uisettings',
+    'documents.change_workflow',
+    'documents.change_workflowaction',
+    'documents.change_workflowactionemail',
+    'documents.change_workflowactionwebhook',
+    'documents.change_workflowrun',
+    'documents.change_workflowtrigger',
+    'documents.delete_correspondent',
+    'documents.delete_customfield',
+    'documents.delete_customfieldinstance',
+    'documents.delete_document',
+    'documents.delete_documenttype',
+    'documents.delete_log',
+    'documents.delete_note',
+    'documents.delete_paperlesstask',
+    'documents.delete_savedview',
+    'documents.delete_savedviewfilterrule',
+    'documents.delete_sharelink',
+    'documents.delete_storagepath',
+    'documents.delete_tag',
+    'documents.delete_uisettings',
+    'documents.delete_workflow',
+    'documents.delete_workflowaction',
+    'documents.delete_workflowactionemail',
+    'documents.delete_workflowactionwebhook',
+    'documents.delete_workflowrun',
+    'documents.delete_workflowtrigger',
+    'documents.view_correspondent',
+    'documents.view_customfield',
+    'documents.view_customfieldinstance',
+    'documents.view_document',
+    'documents.view_documenttype',
+    'documents.view_log',
+    'documents.view_note',
+    'documents.view_paperlesstask',
+    'documents.view_savedview',
+    'documents.view_savedviewfilterrule',
+    'documents.view_sharelink',
+    'documents.view_storagepath',
+    'documents.view_tag',
+    'documents.view_uisettings',
+    'documents.view_workflow',
+    'documents.view_workflowaction',
+    'documents.view_workflowactionemail',
+    'documents.view_workflowactionwebhook',
+    'documents.view_workflowrun',
+    'documents.view_workflowtrigger',
+    'guardian.add_groupobjectpermission',
+    'guardian.add_userobjectpermission',
+    'guardian.change_groupobjectpermission',
+    'guardian.change_userobjectpermission',
+    'guardian.delete_groupobjectpermission',
+    'guardian.delete_userobjectpermission',
+    'guardian.view_groupobjectpermission',
+    'guardian.view_userobjectpermission',
+    'mfa.add_authenticator',
+    'mfa.change_authenticator',
+    'mfa.delete_authenticator',
+    'mfa.view_authenticator',
+    'paperless.add_applicationconfiguration',
+    'paperless.change_applicationconfiguration',
+    'paperless.delete_applicationconfiguration',
+    'paperless.view_applicationconfiguration',
+    'paperless_mail.add_mailaccount',
+    'paperless_mail.add_mailrule',
+    'paperless_mail.add_processedmail',
+    'paperless_mail.change_mailaccount',
+    'paperless_mail.change_mailrule',
+    'paperless_mail.change_processedmail',
+    'paperless_mail.delete_mailaccount',
+    'paperless_mail.delete_mailrule',
+    'paperless_mail.delete_processedmail',
+    'paperless_mail.view_mailaccount',
+    'paperless_mail.view_mailrule',
+    'paperless_mail.view_processedmail',
+    'sessions.add_session',
+    'sessions.change_session',
+    'sessions.delete_session',
+    'sessions.view_session',
+    'socialaccount.add_socialaccount',
+    'socialaccount.add_socialapp',
+    'socialaccount.add_socialtoken',
+    'socialaccount.change_socialaccount',
+    'socialaccount.change_socialapp',
+    'socialaccount.change_socialtoken',
+    'socialaccount.delete_socialaccount',
+    'socialaccount.delete_socialapp',
+    'socialaccount.delete_socialtoken',
+    'socialaccount.view_socialaccount',
+    'socialaccount.view_socialapp',
+    'socialaccount.view_socialtoken'
+  ];
   constructor({ apiUrl, apiToken, settings } = {}) {
     this.client = null;
     this.tagCache = new Map();
@@ -12,8 +190,8 @@ class PaperlessService {
     this.lastTagRefresh = 0;
     this.lastCustomFieldRefresh = 0;
     this.CACHE_LIFETIME = 3000; // 3 Sekunden
-    this.apiUrl = apiUrl || process.env.PAPERLESS_API_URL;
-    this.apiToken = apiToken || process.env.PAPERLESS_API_TOKEN;
+    this.apiUrl = apiUrl;
+    this.apiToken = apiToken;
     this.settings = settings || {};
     this.initialize();
   }
@@ -28,6 +206,95 @@ class PaperlessService {
         }
       });
     }
+  }
+
+  normalizeApiUrl(apiUrl) {
+    if (!apiUrl) return apiUrl;
+    return apiUrl.replace(/\/api\/?$/, '') + '/api';
+  }
+
+  async validateConfig() {
+    this.initialize();
+    if (!this.client) {
+      console.error('validateConfig: Paperless client is not initialized');
+      return false;
+    }
+
+    try {
+      const response = await this.client.get('/schema/', {
+        params: { format: 'json' }
+      });
+      return response.status === 200;
+    } catch (error) {
+      console.error('Paperless validation error:', error.message);
+      return false;
+    }
+  }
+
+  async validatePermissions(permissions = ['*']) {
+    this.initialize();
+    if (!this.client) {
+      return { success: false, message: 'Paperless client is not initialized' };
+    }
+
+    const requestedPermissions = Array.isArray(permissions) ? permissions : [permissions];
+
+    try {
+      const uiSettingsResponse = await this.client.get('/ui_settings/');
+      const uiUser = uiSettingsResponse?.data?.user;
+      const userId = uiUser?.id;
+      if (uiUser?.is_superuser) {
+        return { success: true, message: 'API permissions validated successfully' };
+      }
+      if (!userId) {
+        return { success: false, message: 'Unable to determine current user from /api/ui_settings/' };
+      }
+
+      const userResponse = await this.client.get(`/users/${userId}/`);
+      if (userResponse?.data?.is_superuser) {
+        return { success: true, message: 'API permissions validated successfully' };
+      }
+
+      const userPermissions = Array.isArray(userResponse?.data?.user_permissions) ? userResponse.data.user_permissions : [];
+      const inheritedPermissions = Array.isArray(userResponse?.data?.inherited_permissions) ? userResponse.data.inherited_permissions : [];
+      const permissionSet = new Set([...userPermissions, ...inheritedPermissions]);
+
+      for (const permission of requestedPermissions) {
+        if (permission === '*') {
+          const missingAll = PaperlessService.PERMISSIONS.filter(item => !permissionSet.has(item));
+          if (missingAll.length > 0) {
+            return {
+              success: false,
+              message: `Missing required permission(s) for '*': ${missingAll.join(', ')}`
+            };
+          }
+          continue;
+        }
+
+        const isWildcard = !permission.includes('.') || permission.endsWith('.*');
+        const wildcardPrefix = permission.replace(/\.\*$/, '');
+        const requiredPermissions = isWildcard
+          ? PaperlessService.PERMISSIONS.filter(item => item.startsWith(`${wildcardPrefix}.`))
+          : [permission];
+
+        if (requiredPermissions.length === 0) {
+          return { success: false, message: `Unknown permission pattern '${permission}'` };
+        }
+
+        const missing = requiredPermissions.filter(required => !permissionSet.has(required));
+        if (missing.length > 0) {
+          return {
+            success: false,
+            message: `Missing required permission(s) for '${permission}': ${missing.join(', ')}`
+          };
+        }
+      }
+    } catch (error) {
+      console.error('API permissions validation failed:', error.message);
+      return { success: false, message: 'API permissions validation failed for current user' };
+    }
+
+    return { success: true, message: 'API permissions validated successfully' };
   }
 
   async getThumbnailImage(documentId) {
@@ -117,8 +384,9 @@ class PaperlessService {
     }
 
   async initializeWithCredentials(apiUrl, apiToken) {
+    const normalizedUrl = this.normalizeApiUrl(apiUrl);
     this.client = axios.create({
-      baseURL: apiUrl,
+      baseURL: normalizedUrl,
       headers: {
         'Authorization': `Token ${apiToken}`,
         'Content-Type': 'application/json'
@@ -482,6 +750,55 @@ class PaperlessService {
     return tags;
   }
 
+  async getCorrespondents() {
+    this.initialize();
+    if (!this.client) {
+      console.debug('Client not initialized');
+      return [];
+    }
+
+    let correspondents = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      try {
+        const params = {
+          page,
+          page_size: 100,
+          ordering: 'name'
+        };
+
+        const response = await this.client.get('/correspondents/', { params });
+
+        if (!response?.data?.results || !Array.isArray(response.data.results)) {
+          console.debug(`Invalid API response on page ${page}`);
+          break;
+        }
+
+        correspondents = correspondents.concat(response.data.results);
+        hasMore = response.data.next !== null;
+        page++;
+
+        console.log(
+          `[DEBUG] Fetched page ${page - 1}, got ${response.data.results.length} correspondents. ` +
+          `[DEBUG] Total so far: ${correspondents.length}`
+        );
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`fetching correspondents page ${page}:`, error.message);
+        if (error.response) {
+          console.debug('Response status:', error.response.status);
+          console.debug('Response data:', error.response.data);
+        }
+        break;
+      }
+    }
+
+    return correspondents;
+  }
+
   async getTagCount() {
     this.initialize();
     try {
@@ -654,34 +971,49 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.settings?.predefinedMode === true;
-    let tagIds = [];
+    const shouldFilterByTags = this.settings?.filterDocuments === true;
+    let includeTagIds = [];
+    let excludeTagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      const tagsValue = this.settings?.tags || process.env.TAGS;
-      if (!tagsValue) {
-        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to true but no TAGS are defined');
+      const includeTagsValue = this.settings?.filterIncludeTags;
+      const excludeTagsValue = this.settings?.filterExcludeTags;
+      const includeTagNames = includeTagsValue ? includeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+      const excludeTagNames = excludeTagsValue ? excludeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+
+      if (includeTagNames.length === 0 && excludeTagNames.length === 0) {
+        console.debug('FILTER_DOCUMENTS is set to true but no filter tags are defined');
         return [];
       }
 
-      // Hole die Tag-IDs für die definierten Tags
-      const tagNames = tagsValue.split(',').map(tag => tag.trim());
       await this.ensureTagCache();
 
-      for (const tagName of tagNames) {
+      for (const tagName of includeTagNames) {
         const tag = await this.findExistingTag(tagName);
         if (tag) {
-          tagIds.push(tag.id);
+          includeTagIds.push(tag.id);
         }
       }
 
-      if (tagIds.length === 0) {
-        console.debug('None of the specified tags were found');
+      for (const tagName of excludeTagNames) {
+        const tag = await this.findExistingTag(tagName);
+        if (tag) {
+          excludeTagIds.push(tag.id);
+        }
+      }
+
+      if (includeTagNames.length > 0 && includeTagIds.length === 0) {
+        console.debug('None of the specified include tags were found');
         return [];
       }
 
-      console.debug('Filtering documents for tag IDs:', tagIds);
+      if (includeTagIds.length > 0) {
+        console.debug('Filtering documents for include tag IDs:', includeTagIds);
+      }
+      if (excludeTagIds.length > 0) {
+        console.debug('Filtering documents for exclude tag IDs:', excludeTagIds);
+      }
     }
 
     while (hasMore) {
@@ -693,12 +1025,8 @@ class PaperlessService {
         };
 
         // Füge Tag-Filter hinzu, wenn Tags definiert sind
-        if (shouldFilterByTags && tagIds.length > 0) {
-          // Füge jeden Tag-ID als separaten Parameter hinzu
-          tagIds.forEach(id => {
-            // Verwende tags__id__in für multiple Tag-Filterung
-            params.tags__id__in = tagIds.join(',');
-          });
+        if (shouldFilterByTags && includeTagIds.length > 0) {
+          params.tags__id__in = includeTagIds.join(',');
         }
 
         const response = await this.client.get('/documents/', { params });
@@ -708,7 +1036,15 @@ class PaperlessService {
           break;
         }
 
-        documents = documents.concat(response.data.results);
+        let pageResults = response.data.results;
+        if (shouldFilterByTags && excludeTagIds.length > 0) {
+          pageResults = pageResults.filter(doc => {
+            if (!Array.isArray(doc.tags) || doc.tags.length === 0) return true;
+            return !doc.tags.some(tagId => excludeTagIds.includes(tagId));
+          });
+        }
+
+        documents = documents.concat(pageResults);
         hasMore = response.data.next !== null;
         page++;
 
@@ -774,34 +1110,49 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.settings?.predefinedMode === true;
-    let tagIds = [];
+    const shouldFilterByTags = this.settings?.filterDocuments === true;
+    let includeTagIds = [];
+    let excludeTagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      const tagsValue = this.settings?.tags || process.env.TAGS;
-      if (!tagsValue) {
-        console.debug('PROCESS_PREDEFINED_DOCUMENTS is set to true but no TAGS are defined');
+      const includeTagsValue = this.settings?.filterIncludeTags;
+      const excludeTagsValue = this.settings?.filterExcludeTags;
+      const includeTagNames = includeTagsValue ? includeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+      const excludeTagNames = excludeTagsValue ? excludeTagsValue.split(',').map(tag => tag.trim()).filter(Boolean) : [];
+
+      if (includeTagNames.length === 0 && excludeTagNames.length === 0) {
+        console.debug('FILTER_DOCUMENTS is set to true but no filter tags are defined');
         return [];
       }
 
-      // Hole die Tag-IDs für die definierten Tags
-      const tagNames = tagsValue.split(',').map(tag => tag.trim());
       await this.ensureTagCache();
 
-      for (const tagName of tagNames) {
+      for (const tagName of includeTagNames) {
         const tag = await this.findExistingTag(tagName);
         if (tag) {
-          tagIds.push(tag.id);
+          includeTagIds.push(tag.id);
         }
       }
 
-      if (tagIds.length === 0) {
-        console.debug('None of the specified tags were found');
+      for (const tagName of excludeTagNames) {
+        const tag = await this.findExistingTag(tagName);
+        if (tag) {
+          excludeTagIds.push(tag.id);
+        }
+      }
+
+      if (includeTagNames.length > 0 && includeTagIds.length === 0) {
+        console.debug('None of the specified include tags were found');
         return [];
       }
 
-      console.debug('Filtering documents for tag IDs:', tagIds);
+      if (includeTagIds.length > 0) {
+        console.debug('Filtering documents for include tag IDs:', includeTagIds);
+      }
+      if (excludeTagIds.length > 0) {
+        console.debug('Filtering documents for exclude tag IDs:', excludeTagIds);
+      }
     }
 
     while (hasMore) {
@@ -809,8 +1160,11 @@ class PaperlessService {
         const params = {
           page,
           page_size: 100,
-          fields: 'id'
+          fields: shouldFilterByTags && excludeTagIds.length > 0 ? 'id,tags' : 'id'
         };
+        if (shouldFilterByTags && includeTagIds.length > 0) {
+          params.tags__id__in = includeTagIds.join(',');
+        }
 
         const response = await this.client.get('/documents/', { params });
 
@@ -819,7 +1173,15 @@ class PaperlessService {
           break;
         }
 
-        documents = documents.concat(response.data.results);
+        let pageResults = response.data.results;
+        if (shouldFilterByTags && excludeTagIds.length > 0) {
+          pageResults = pageResults.filter(doc => {
+            if (!Array.isArray(doc.tags) || doc.tags.length === 0) return true;
+            return !doc.tags.some(tagId => excludeTagIds.includes(tagId));
+          });
+        }
+
+        documents = documents.concat(pageResults);
         hasMore = response.data.next !== null;
         page++;
 
@@ -1264,24 +1626,13 @@ async getOrCreateDocumentType(name) {
   async getOwnUserID() {
     this.initialize();
     try {
-        const response = await this.client.get('/users/', {
-            params: {
-                current_user: true,
-                full_perms: true
-            }
-        });
-
-        if (response.data.results && response.data.results.length > 0) {
-            const userInfo = response.data.results;
-            //filter for username by config value
-            const username = this.settings?.paperless?.username || process.env.PAPERLESS_USERNAME;
-            const user = userInfo.find(user => user.username === username);
-            if (user) {
-                console.debug(`Found own user ID: ${user.id}`);
-                return user.id;
-            }
-        }
-        return null;
+      const uiSettingsResponse = await this.client.get('/ui_settings/');
+      const userId = uiSettingsResponse?.data?.user?.id;
+      if (userId) {
+        console.debug(`Found own user ID from ui_settings: ${userId}`);
+        return userId;
+      }
+      return null;
     } catch (error) {
         console.error('fetching own user ID:', error.message);
         return null;

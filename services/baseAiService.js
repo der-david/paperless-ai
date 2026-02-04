@@ -33,6 +33,10 @@ class BaseAIService {
     throw new Error('checkStatus() not implemented');
   }
 
+  static async validateConfig() {
+    throw new Error('validateConfig() not implemented');
+  }
+
   parseAndValidateResponse(input, { requireTags = true } = {}) {
     const parsed = typeof input === 'string' ? this._parseJsonFromText(input) : input;
     const normalized = this._extractSchemaData(parsed);

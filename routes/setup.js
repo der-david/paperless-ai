@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const container = require('../services/container');
-const setupService = container.getSetupService();
+const configService = container.getConfigService();
 const paperlessService = container.getPaperlessService();
+const { parseBoolean, buildRequiredPaperlessPermissions } = require('../services/setupUtils');
+const PaperlessService = require('../services/paperlessService');
 const documentModel = require('../models/document.js');
-const debugService = require('../services/debugService.js');
 const configFile = require('../config/config.js');
 const ChatService = container.getChatService();
 const documentsService = container.getDocumentsService();
@@ -19,46 +20,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 const config = require('../config/config.js');
 require('dotenv').config({ path: '../data/.env' });
 
-const parseBoolean = (value, defaultValue = false) => {
-  if (value === undefined || value === null || value === '') return defaultValue;
-  if (typeof value === 'boolean') return value;
-  const normalized = String(value).toLowerCase();
-  return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
-};
-
-const toEnvBoolean = (value) => (value ? 'true' : 'false');
-
-const coerceConfigBooleans = (config) => {
-  const defaults = {
-    PROCESS_PREDEFINED_DOCUMENTS: false,
-    ADD_AI_PROCESSED_TAG: false,
-    AI_USE_PROMPT_TAGS: false,
-    PROCESS_ONLY_NEW_DOCUMENTS: true,
-    AI_USE_EXISTING_DATA: false,
-    DISABLE_AUTOMATIC_PROCESSING: false,
-    ACTIVATE_TAGGING: true,
-    ACTIVATE_CORRESPONDENT: true,
-    ACTIVATE_DOCUMENT_TYPE: true,
-    ACTIVATE_TITLE: true,
-    ACTIVATE_DOCUMENT_DATE: true,
-    ACTIVATE_LANGUAGE: true,
-    ACTIVATE_CONTENT: false,
-    ACTIVATE_CUSTOM_FIELDS: true,
-    RESTRICT_TO_EXISTING_TAGS: false,
-    RESTRICT_TO_EXISTING_CORRESPONDENTS: false,
-    RESTRICT_TO_EXISTING_DOCUMENT_TYPES: false,
-    EXTERNAL_API_ENABLED: false,
-    PAPERLESS_AI_INITIAL_SETUP: false
-  };
-
-  Object.entries(defaults).forEach(([key, defaultValue]) => {
-    if (Object.prototype.hasOwnProperty.call(config, key) || key in config) {
-      config[key] = parseBoolean(config[key], defaultValue);
-    }
-  });
-
-  return config;
-};
 
 /**
  * @swagger
@@ -212,7 +173,7 @@ router.use(async (req, res, next) => {
 
   // Setup check
   try {
-    const isConfigured = await setupService.isConfigured();
+    const isConfigured = await configService.isConfigured();
 
     const initialSetupEnabled = parseBoolean(process.env.PAPERLESS_AI_INITIAL_SETUP, false);
     if (!isConfigured && !initialSetupEnabled && !req.path.startsWith('/setup')) {
@@ -583,7 +544,7 @@ router.get('/playground', authenticateUI, async (req, res) => {
       documents,
       tagNames,
       correspondentNames,
-      paperlessUrl
+      paperlessApiUrl
     } = await documentsService.getDocumentsWithMetadata();
 
     //limit documents to 16 items
@@ -593,7 +554,7 @@ router.get('/playground', authenticateUI, async (req, res) => {
       documents,
       tagNames,
       correspondentNames,
-      paperlessUrl,
+      paperlessApiUrl,
       version: configFile.PAPERLESS_AI_VERSION || ' ',
       active: 'playground',
       title: 'Paperless-AI Playground'
@@ -1536,7 +1497,7 @@ router.post('/api/reset-documents', authenticateAPI, async (req, res) => {
  */
 router.post('/api/scan/now', authenticateAPI, async (req, res) => {
   try {
-    const isConfigured = await setupService.isConfigured();
+    const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
       console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
       return;
@@ -1663,33 +1624,33 @@ async function buildUpdateData(analysis, doc) {
 
   console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
-  // Only process tags if tagging is activated
-  if (config.limitFunctions?.activateTagging !== false) {
+  // Only process tags if tagging is enabled
+  if (config.enableUpdates?.tags !== false) {
     const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.limitFunctions?.activateTagging === false && config.addAIProcessedTag === true) {
+  } else if (config.enableUpdates?.tags === false && config.addAIProcessedTag === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     // get tags from .env file and split them by comma and make an array
-    console.debug('Tagging is deactivated but AI processed tag will be added');
+    console.debug('Tagging is disabled but AI processed tag will be added');
     const tags = config.addAIProcessedTags.split(',');
     const { tagIds, errors } = await paperlessService.processTags(tags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-    console.debug('Tagging is deactivated');
+    console.debug('Tagging is disabled');
   }
 
-  // Only process title if title generation is activated
-  if (config.limitFunctions?.activateTitle !== false) {
+  // Only process title if title generation is enabled
+  if (config.enableUpdates?.title !== false) {
     updateData.title = analysis.document.title || doc.title;
   }
 
-  // Only update content if content update is activated and AI provided content
-  if (config.limitFunctions?.activateContent !== false && typeof analysis.document.content === 'string') {
+  // Only update content if content update is enabled and AI provided content
+  if (config.enableUpdates?.content !== false && typeof analysis.document.content === 'string') {
     const trimmedContent = analysis.document.content.trim();
     if (trimmedContent.length > 0) {
       updateData.content = trimmedContent;
@@ -1697,14 +1658,14 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  if (config.limitFunctions?.activateDocumentDate !== false && analysis.document.document_date) {
+  if (config.enableUpdates?.documentDate !== false && analysis.document.document_date) {
     updateData.created = analysis.document.document_date;
   } else {
     updateData.created = doc.created;
   }
 
-  // Only process document type if document type classification is activated
-  if (config.limitFunctions?.activateDocumentType !== false && analysis.document.document_type) {
+  // Only process document type if document type classification is enabled
+  if (config.enableUpdates?.documentType !== false && analysis.document.document_type) {
     try {
       let documentType;
 
@@ -1729,8 +1690,8 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  // Only process custom fields if custom fields detection is activated
-  if (config.limitFunctions?.activateCustomFields !== false && analysis.document.custom_fields) {
+  // Only process custom fields if custom fields detection is enabled
+  if (config.enableUpdates?.customFields !== false && analysis.document.custom_fields) {
     const customFields = analysis.document.custom_fields;
     const processedFields = [];
 
@@ -1792,8 +1753,8 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  // Only process correspondent if correspondent detection is activated
-  if (config.limitFunctions?.activateCorrespondent !== false && analysis.document.correspondent) {
+  // Only process correspondent if correspondent detection is enabled
+  if (config.enableUpdates?.correspondent !== false && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
@@ -1804,7 +1765,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  if (config.limitFunctions?.activateLanguage !== false && analysis.document.language) {
+  if (config.enableUpdates?.language !== false && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 
@@ -1911,15 +1872,6 @@ router.post('/api/key-regenerate', authenticateAPI, async (req, res) => {
 });
 
 
-const normalizeArray = (value) => {
-  if (!value) return [];
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    return value.split(',').map(item => item.trim()).filter(Boolean);
-  }
-  return [];
-};
-
 /**
  * @swagger
  * /setup:
@@ -1963,62 +1915,23 @@ const normalizeArray = (value) => {
  */
 router.get('/setup', async (req, res) => {
   try {
-    // Base configuration object - load this FIRST, before any checks
-    let config = {
-      PAPERLESS_API_URL: (process.env.PAPERLESS_API_URL || 'http://localhost:8000').replace(/\/api$/, ''),
-      PAPERLESS_API_TOKEN: process.env.PAPERLESS_API_TOKEN || '',
-      PAPERLESS_USERNAME: process.env.PAPERLESS_USERNAME || '',
-      AI_PROVIDER: process.env.AI_PROVIDER || 'openai',
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
-      OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
-      OLLAMA_API_URL: process.env.OLLAMA_API_URL || 'http://localhost:11434',
-      OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
-      SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
-      AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT || '',
-      PROCESS_PREDEFINED_DOCUMENTS: parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
-      AI_TOKEN_LIMIT: process.env.AI_TOKEN_LIMIT || 128000,
-      AI_RESPONSE_TOKENS: process.env.AI_RESPONSE_TOKENS || 1000,
-      AI_CONTENT_SOURCE_MODE: process.env.AI_CONTENT_SOURCE_MODE || 'content',
-      AI_RAW_DOCUMENT_MODE: process.env.AI_RAW_DOCUMENT_MODE || 'text',
-      TAGS: normalizeArray(process.env.TAGS),
-      ADD_AI_PROCESSED_TAG: parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
-      AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-      AI_USE_PROMPT_TAGS: parseBoolean(process.env.AI_USE_PROMPT_TAGS, false),
-      AI_PROMPT_TAGS: normalizeArray(process.env.AI_PROMPT_TAGS),
-      PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
-      PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
-      AI_USE_EXISTING_DATA: parseBoolean(process.env.AI_USE_EXISTING_DATA, false),
-      DISABLE_AUTOMATIC_PROCESSING: parseBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false),
-      AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
-      AZURE_API_KEY: process.env.AZURE_API_KEY || '',
-      AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME || '',
-      AZURE_API_VERSION: process.env.AZURE_API_VERSION || ''
-    };
+    let config = configService.buildBaseConfig(configFile);
 
     // Check both configuration and users
     const [isEnvConfigured, users] = await Promise.all([
-      setupService.isConfigured(),
+      configService.isConfigured(),
       documentModel.getUsers()
     ]);
 
     // Load saved config if it exists
     if (isEnvConfigured) {
-      const savedConfig = await setupService.loadConfig();
-      if (savedConfig.PAPERLESS_API_URL) {
-        savedConfig.PAPERLESS_API_URL = savedConfig.PAPERLESS_API_URL.replace(/\/api$/, '');
-      }
-
-      savedConfig.TAGS = normalizeArray(savedConfig.TAGS);
-      savedConfig.AI_PROMPT_TAGS = normalizeArray(savedConfig.AI_PROMPT_TAGS);
-
-      config = { ...config, ...savedConfig };
+      const savedConfig = await configService.loadConfig();
+      config = configService.mergeSavedConfig(config, savedConfig);
     }
 
-    config = coerceConfigBooleans(config);
-
     // Debug output
-    console.log('Current config TAGS:', config.TAGS);
+    console.log('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
+    console.log('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
     console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
 
     // Check if system is fully configured
@@ -2210,8 +2123,8 @@ router.get('/manual', authenticateUI, async (req, res) => {
     error: null,
     success: null,
     version,
-    paperlessUrl: process.env.PAPERLESS_API_URL,
-    paperlessToken: process.env.PAPERLESS_API_TOKEN,
+    paperlessApiUrl: process.env.PAPERLESS_API_URL,
+    paperlessApiToken: process.env.PAPERLESS_API_TOKEN,
     config: {},
     active: 'manual'
   });
@@ -2449,7 +2362,7 @@ async function processQueue(customPrompt) {
   isProcessing = true;
 
   try {
-    const isConfigured = await setupService.isConfigured();
+    const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
       console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
       return;
@@ -2762,79 +2675,21 @@ router.get('/settings', authenticateUI, async (req, res) => {
     return prompt.replace(/\\n/g, '\n');
   };
 
-  const normalizeArray = (value) => {
-    if (!value) return [];
-    if (Array.isArray(value)) return value;
-    if (typeof value === 'string') return value.split(',').filter(Boolean).map(item => item.trim());
-    return [];
-  };
-
   let showErrorCheckSettings = false;
-  const isConfigured = await setupService.isConfigured();
+  const isConfigured = await configService.isConfigured();
   if (!isConfigured && parseBoolean(process.env.PAPERLESS_AI_INITIAL_SETUP, false)) {
     showErrorCheckSettings = true;
   }
-  let config = {
-    PAPERLESS_API_URL: (process.env.PAPERLESS_API_URL || 'http://localhost:8000').replace(/\/api$/, ''),
-    PAPERLESS_API_TOKEN: process.env.PAPERLESS_API_TOKEN || '',
-    PAPERLESS_USERNAME: process.env.PAPERLESS_USERNAME || '',
-    AI_PROVIDER: process.env.AI_PROVIDER || 'openai',
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
-    OPENAI_MODEL: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
-    OLLAMA_API_URL: process.env.OLLAMA_API_URL || 'http://localhost:11434',
-    OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
-    SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
-    AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT || '',
-    PROCESS_PREDEFINED_DOCUMENTS: parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
-
-    AI_TOKEN_LIMIT: process.env.AI_TOKEN_LIMIT || 128000,
-    AI_RESPONSE_TOKENS: process.env.AI_RESPONSE_TOKENS || 1000,
-    AI_CONTENT_SOURCE_MODE: process.env.AI_CONTENT_SOURCE_MODE || 'content',
-    AI_RAW_DOCUMENT_MODE: process.env.AI_RAW_DOCUMENT_MODE || 'text',
-    TAGS: normalizeArray(process.env.TAGS),
-    ADD_AI_PROCESSED_TAG: parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
-    AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-    AI_USE_PROMPT_TAGS: parseBoolean(process.env.AI_USE_PROMPT_TAGS, false),
-    AI_PROMPT_TAGS: normalizeArray(process.env.AI_PROMPT_TAGS),
-    AI_CUSTOM_FIELDS: process.env.AI_CUSTOM_FIELDS || '{"custom_fields":[]}',
-    PAPERLESS_AI_VERSION: configFile.PAPERLESS_AI_VERSION || ' ',
-    PROCESS_ONLY_NEW_DOCUMENTS: parseBoolean(process.env.PROCESS_ONLY_NEW_DOCUMENTS, true),
-    AI_USE_EXISTING_DATA: parseBoolean(process.env.AI_USE_EXISTING_DATA, false),
-    CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
-    CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
-    CUSTOM_MODEL: process.env.CUSTOM_MODEL || '',
-    AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
-    AZURE_API_KEY: process.env.AZURE_API_KEY || '',
-    AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME || '',
-    AZURE_API_VERSION: process.env.AZURE_API_VERSION || '',
-    RESTRICT_TO_EXISTING_TAGS: parseBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, false),
-    RESTRICT_TO_EXISTING_CORRESPONDENTS: parseBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, false),
-    RESTRICT_TO_EXISTING_DOCUMENT_TYPES: parseBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, false),
-    EXTERNAL_API_ENABLED: parseBoolean(process.env.EXTERNAL_API_ENABLED, false),
-    EXTERNAL_API_URL: process.env.EXTERNAL_API_URL || '',
-    EXTERNAL_API_METHOD: process.env.EXTERNAL_API_METHOD || 'GET',
-    EXTERNAL_API_HEADERS: process.env.EXTERNAL_API_HEADERS || '{}',
-    EXTERNAL_API_BODY: process.env.EXTERNAL_API_BODY || '{}',
-    EXTERNAL_API_TIMEOUT: process.env.EXTERNAL_API_TIMEOUT || '5000',
-    EXTERNAL_API_TRANSFORM: process.env.EXTERNAL_API_TRANSFORM || ''
-  };
+  let config = configService.buildBaseConfig(configFile);
 
   if (isConfigured) {
-    const savedConfig = await setupService.loadConfig();
-    if (savedConfig.PAPERLESS_API_URL) {
-      savedConfig.PAPERLESS_API_URL = savedConfig.PAPERLESS_API_URL.replace(/\/api$/, '');
-    }
-
-    savedConfig.TAGS = normalizeArray(savedConfig.TAGS);
-    savedConfig.AI_PROMPT_TAGS = normalizeArray(savedConfig.AI_PROMPT_TAGS);
-
-    config = { ...config, ...savedConfig };
+    const savedConfig = await configService.loadConfig();
+    config = configService.mergeSavedConfig(config, savedConfig);
   }
-  config = coerceConfigBooleans(config);
 
   // Debug-output
-  console.log('Current config TAGS:', config.TAGS);
+  console.log('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
+  console.log('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
   console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
   const version = configFile.PAPERLESS_AI_VERSION || ' ';
   config.ai = configFile.ai;
@@ -2955,7 +2810,7 @@ router.get('/debug', authenticateUI, async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/debug/tags', authenticateAPI, async (req, res) => {
-  const tags = await debugService.getTags();
+  const tags = await paperlessService.getTags();
   res.json(tags);
 });
 
@@ -2999,7 +2854,7 @@ router.get('/debug/tags', authenticateAPI, async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/debug/documents', authenticateAPI, async (req, res) => {
-  const documents = await debugService.getDocuments();
+  const documents = await paperlessService.getDocuments();
   res.json(documents);
 });
 
@@ -3043,7 +2898,7 @@ router.get('/debug/documents', authenticateAPI, async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/debug/correspondents', authenticateAPI, async (req, res) => {
-  const correspondents = await debugService.getCorrespondents();
+  const correspondents = await paperlessService.getCorrespondents();
   res.json(correspondents);
 });
 
@@ -3333,7 +3188,7 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
  *                 type: number
  *                 description: ID of the document to update in Paperless-ngx
  *                 example: 123
- *               tags:
+ *               filterIncludeTags:
  *                 type: array
  *                 description: List of tags to apply (can be tag IDs or names)
  *                 items:
@@ -3537,30 +3392,26 @@ router.get('/health', async (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - paperlessUrl
- *               - paperlessToken
+ *               - paperlessApiUrl
+ *               - paperlessApiToken
  *               - aiProvider
  *               - username
  *               - password
  *             properties:
- *               paperlessUrl:
+ *               paperlessApiUrl:
  *                 type: string
  *                 description: URL of the Paperless-ngx instance
  *                 example: "https://paperless.example.com"
- *               paperlessToken:
+ *               paperlessApiToken:
  *                 type: string
  *                 description: API token for Paperless-ngx access
  *                 example: "abc123def456"
- *               paperlessUsername:
- *                 type: string
- *                 description: Username for Paperless-ngx (alternative to token authentication)
- *                 example: "admin"
  *               aiProvider:
  *                 type: string
  *                 description: Selected AI provider for document analysis
  *                 enum: ["openai", "ollama", "custom", "azure"]
  *                 example: "openai"
- *               openaiKey:
+ *               openaiApiKey:
  *                 type: string
  *                 description: API key for OpenAI (required when aiProvider is 'openai')
  *                 example: "sk-abc123def456"
@@ -3572,7 +3423,7 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: Gizmo ID for a custom GPT (optional)
  *                 example: "g-697d35206a2481a4bda4c4c01ddfbcd3"
- *               ollamaUrl:
+ *               ollamaApiUrl:
  *                 type: string
  *                 description: URL for Ollama API (required when aiProvider is 'ollama')
  *                 example: "http://localhost:11434"
@@ -3596,37 +3447,41 @@ router.get('/health', async (req, res) => {
  *                 type: number
  *                 description: Interval in minutes for scanning new documents
  *                 example: 15
- *               systemPrompt:
+ *               aiSystemPrompt:
  *                 type: string
  *                 description: Custom system prompt for document analysis
  *                 example: "Extract key information from the following document..."
- *               showTags:
+ *               filterDocuments:
  *                 type: boolean
- *                 description: Whether to show tags in the UI
+ *                 description: Enable tag-based filtering for documents
  *                 example: true
- *               tokenLimit:
+ *               aiTokenLimit:
  *                 type: integer
  *                 description: The maximum number of tokens the AI can handle
  *                 example: 128000
- *               responseTokens:
+ *               aiResponseTokens:
  *                 type: integer
  *                 description: The approx. amount of tokens required for the response
  *                 example: 1000
- *               contentSourceMode:
+ *               aiContentSourceMode:
  *                 type: string
  *                 description: Which document data is sent to the AI for analysis
  *                 enum: ["content", "raw_document", "both"]
  *                 example: "content"
- *               rawDocumentMode:
+ *               aiRawDocumentMode:
  *                 type: string
  *                 description: How raw document data is sent to the AI
  *                 enum: ["text", "file", "image"]
  *                 example: "text"
- *               tags:
+ *               filterIncludeTags:
  *                 type: string
- *                 description: Comma-separated list of tags to use for filtering
+ *                 description: Comma-separated list of tags to include
  *                 example: "Invoice,Receipt,Contract"
- *               aiProcessedTag:
+ *               filterExcludeTags:
+ *                 type: string
+ *                 description: Comma-separated list of tags to exclude (takes precedence)
+ *                 example: "no-AI,ignore"
+ *               addAiProcessedTag:
  *                 type: boolean
  *                 description: Whether to add a tag for AI-processed documents
  *                 example: true
@@ -3634,11 +3489,11 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: Tag name to use for AI-processed documents
  *                 example: "AI-Processed"
- *               usePromptTags:
+ *               aiUsePromptTags:
  *                 type: boolean
  *                 description: Whether to use tags in prompts
  *                 example: true
- *               promptTags:
+ *               aiPromptTags:
  *                 type: string
  *                 description: Comma-separated list of tags to use in prompts
  *                 example: "Invoice,Receipt"
@@ -3650,39 +3505,39 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: Admin password for Paperless-AI
  *                 example: "securepassword"
- *               useExistingData:
+ *               aiUseExistingData:
  *                 type: boolean
  *                 description: Whether to use existing data from a previous setup
  *                 example: false
- *               activateTagging:
+ *               tags:
  *                 type: boolean
  *                 description: Enable AI-based tag suggestions
  *                 example: true
- *               activateCorrespondent:
+ *               correspondent:
  *                 type: boolean
  *                 description: Enable AI-based correspondent suggestions
  *                 example: true
- *               activateDocumentType:
+ *               documentType:
  *                 type: boolean
  *                 description: Enable AI-based document type suggestions
  *                 example: true
- *               activateTitle:
+ *               title:
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
- *               activateDocumentDate:
+ *               documentDate:
  *                 type: boolean
  *                 description: Enable AI-based document date extraction
  *                 example: true
- *               activateLanguage:
+ *               language:
  *                 type: boolean
  *                 description: Enable AI-based language detection
  *                 example: true
- *               activateContent:
+ *               content:
  *                 type: boolean
  *                 description: Enable AI-based document content updates
  *                 example: false
- *               activateCustomFields:
+ *               customFields:
  *                 type: boolean
  *                 description: Enable AI-based custom field extraction
  *                 example: false
@@ -3733,43 +3588,46 @@ router.get('/health', async (req, res) => {
 router.post('/setup', express.json(), async (req, res) => {
   try {
     const {
-      paperlessUrl,
-      paperlessToken,
-      paperlessUsername,
+      paperlessApiUrl,
+      paperlessApiToken,
       aiProvider,
-      openaiKey,
+      openaiApiKey,
       openaiModel,
       openaiGizmoId,
-      ollamaUrl,
+      ollamaApiUrl,
       ollamaModel,
       scanInterval,
-      systemPrompt,
-      showTags,
-      tokenLimit,
-      responseTokens,
-      contentSourceMode,
-      rawDocumentMode,
-      tags,
-      aiProcessedTag,
-      aiTagName,
-      usePromptTags,
-      promptTags,
+      aiSystemPrompt,
+      filterDocuments,
+      aiTokenLimit,
+      aiResponseTokens,
+      aiContentSourceMode,
+      aiRawDocumentMode,
+      filterIncludeTags,
+      filterExcludeTags,
+      addAiProcessedTag,
+      aiProcessedTagName,
+      aiUsePromptTags,
+      aiPromptTags,
       username,
       password,
-      useExistingData,
+      aiUseExistingData,
       customApiKey,
       customBaseUrl,
       customModel,
-      activateTagging,
-      activateCorrespondent,
-      activateDocumentType,
-      activateTitle,
-      activateDocumentDate,
-      activateLanguage,
-      activateContent,
-      activateCustomFields,
+      tags,
+      correspondent,
+      documentType,
+      title,
+      documentDate,
+      language,
+      content,
       customFields,
+      aiCustomFields,
       disableAutomaticProcessing,
+      restrictToExistingTags,
+      restrictToExistingCorrespondents,
+      restrictToExistingDocumentTypes,
       azureEndpoint,
       azureApiKey,
       azureDeploymentName,
@@ -3777,34 +3635,20 @@ router.post('/setup', express.json(), async (req, res) => {
     } = req.body;
 
     const allowedContentSourceModes = new Set(['content', 'raw_document', 'both']);
-    if (contentSourceMode && !allowedContentSourceModes.has(contentSourceMode)) {
+    if (aiContentSourceMode && !allowedContentSourceModes.has(aiContentSourceMode)) {
       return res.status(400).json({
         error: 'Invalid content source mode. Must be one of: content, raw_document, both.'
       });
     }
     const allowedRawDocumentModes = new Set(['text', 'file', 'image']);
-    if (rawDocumentMode && !allowedRawDocumentModes.has(rawDocumentMode)) {
+    if (aiRawDocumentMode && !allowedRawDocumentModes.has(aiRawDocumentMode)) {
       return res.status(400).json({
         error: 'Invalid raw document mode. Must be one of: text, file, image.'
       });
     }
 
-    const showTagsBool = parseBoolean(showTags, false);
-    const aiProcessedTagBool = parseBoolean(aiProcessedTag, false);
-    const usePromptTagsBool = parseBoolean(usePromptTags, false);
-    const useExistingDataBool = parseBoolean(useExistingData, false);
-    const activateTaggingBool = parseBoolean(activateTagging, true);
-    const activateCorrespondentBool = parseBoolean(activateCorrespondent, true);
-    const activateDocumentTypeBool = parseBoolean(activateDocumentType, true);
-    const activateTitleBool = parseBoolean(activateTitle, true);
-    const activateDocumentDateBool = parseBoolean(activateDocumentDate, true);
-    const activateLanguageBool = parseBoolean(activateLanguage, true);
-    const activateContentBool = parseBoolean(activateContent, false);
-    const activateCustomFieldsBool = parseBoolean(activateCustomFields, true);
-    const disableAutomaticProcessingBool = parseBoolean(disableAutomaticProcessing, false);
-
     // Log setup request with sensitive data redacted
-    const sensitiveKeys = ['paperlessToken', 'openaiKey', 'customApiKey', 'password', 'confirmPassword'];
+    const sensitiveKeys = ['paperlessApiToken', 'openaiApiKey', 'customApiKey', 'password', 'confirmPassword'];
     const redactedBody = Object.fromEntries(
       Object.entries(req.body).map(([key, value]) => [
       key,
@@ -3815,8 +3659,8 @@ router.post('/setup', express.json(), async (req, res) => {
 
 
     // Initialize paperlessService with the new credentials
-    const paperlessApiUrl = paperlessUrl + '/api';
-    const initSuccess = await paperlessService.initializeWithCredentials(paperlessApiUrl, paperlessToken);
+    const paperlessApiEndpoint = paperlessApiUrl + '/api';
+    const initSuccess = await paperlessService.initializeWithCredentials(paperlessApiEndpoint, paperlessApiToken);
 
     if (!initSuccess) {
       return res.status(400).json({
@@ -3825,74 +3669,57 @@ router.post('/setup', express.json(), async (req, res) => {
     }
 
     // Validate Paperless credentials
-    const isPaperlessValid = await setupService.validatePaperlessConfig(paperlessUrl, paperlessToken);
+    const isPaperlessValid = await paperlessService.validateConfig();
     if (!isPaperlessValid) {
       return res.status(400).json({
         error: 'Paperless-ngx connection failed. Please check URL and Token.'
       });
     }
 
-    const isPermissionValid = await setupService.validateApiPermissions(paperlessUrl, paperlessToken);
+    const requiredPermissions = buildRequiredPaperlessPermissions({
+      enableUpdates: {
+        tags,
+        correspondent,
+        documentType,
+        title,
+        documentDate,
+        language,
+        content,
+        customFields
+      },
+      restrictToExisting: {
+        tags: restrictToExistingTags,
+        correspondents: restrictToExistingCorrespondents,
+        documentTypes: restrictToExistingDocumentTypes
+      },
+      addAiProcessedTag
+    });
+    const isPermissionValid = await paperlessService.validatePermissions(requiredPermissions);
     if (!isPermissionValid.success) {
       return res.status(400).json({
         error: 'Paperless-ngx API permissions are insufficient. Error: ' + isPermissionValid.message
       });
     }
 
-    const normalizeArray = (value) => {
-      if (!value) return [];
-      if (Array.isArray(value)) return value;
-      if (typeof value === 'string') return value.split(',').filter(Boolean).map(item => item.trim());
-      return [];
-    };
-
     // Process custom fields if enabled
     let processedCustomFields = [];
-    if (customFields && activateCustomFieldsBool) {
-      try {
-        const parsedFields = typeof customFields === 'string'
-          ? JSON.parse(customFields)
-          : customFields;
-        const rawFields = Array.isArray(parsedFields?.custom_fields) ? parsedFields.custom_fields : [];
+    if (aiCustomFields && parseBoolean(customFields, true)) {
+      const inputFields = configService.parseCustomFieldsInput(aiCustomFields);
+      for (const field of inputFields) {
+        try {
+          const createdField = await paperlessService.createCustomFieldSafely(
+            field.name,
+            field.data_type,
+            field.extra_data?.default_currency
+          );
 
-        for (const field of rawFields) {
-          const fieldName = field?.name || field?.value;
-          const dataType = field?.data_type || field?.type;
-          if (!fieldName || !dataType || dataType === 'documentlink') {
-            continue;
+          if (createdField) {
+            processedCustomFields.push(field);
+            console.info(`Created/found custom field: ${field.name}`);
           }
-
-          const extraData = field.extra_data && typeof field.extra_data === 'object'
-            ? { ...field.extra_data }
-            : {};
-
-          if (field.currency && !extraData.default_currency) {
-            extraData.default_currency = field.currency;
-          }
-
-          try {
-            const createdField = await paperlessService.createCustomFieldSafely(
-              fieldName,
-              dataType,
-              extraData.default_currency
-            );
-
-            if (createdField) {
-              processedCustomFields.push({
-                name: fieldName,
-                data_type: dataType,
-                enabled: field.enabled !== undefined ? Boolean(field.enabled) : true,
-                description: field.description || '',
-                extra_data: extraData
-              });
-              console.info(`Created/found custom field: ${fieldName}`);
-            }
-          } catch (fieldError) {
-            console.warn(`Error creating custom field ${fieldName}:`, fieldError);
-          }
+        } catch (fieldError) {
+          console.warn(`Error creating custom field ${field.name}:`, fieldError);
         }
-      } catch (error) {
-        console.error('Error processing custom fields:', error);
       }
     }
 
@@ -3900,95 +3727,47 @@ router.post('/setup', express.json(), async (req, res) => {
     const apiToken = process.env.API_KEY || require('crypto').randomBytes(64).toString('hex');
     const jwtToken = process.env.JWT_SECRET || require('crypto').randomBytes(64).toString('hex');
 
-    const processedPrompt = systemPrompt
-      ? systemPrompt.replace(/\r\n/g, '\n').replace(/\n/g, '\\n').replace(/=/g, '')
+    const processedPrompt = aiSystemPrompt
+      ? aiSystemPrompt.replace(/\r\n/g, '\n').replace(/\n/g, '\\n').replace(/=/g, '')
       : '';
 
     // Prepare base config
-    const config = {
-      PAPERLESS_API_URL: paperlessApiUrl,
-      PAPERLESS_API_TOKEN: paperlessToken,
-      PAPERLESS_USERNAME: paperlessUsername,
-      AI_PROVIDER: aiProvider,
-      SCAN_INTERVAL: scanInterval || '*/30 * * * *',
-      AI_SYSTEM_PROMPT: processedPrompt,
-      PROCESS_PREDEFINED_DOCUMENTS: toEnvBoolean(showTagsBool),
-      AI_TOKEN_LIMIT: tokenLimit || 128000,
-      AI_RESPONSE_TOKENS: responseTokens || 1000,
-      AI_CONTENT_SOURCE_MODE: contentSourceMode || 'content',
-      AI_RAW_DOCUMENT_MODE: rawDocumentMode || 'text',
-      TAGS: normalizeArray(tags),
-      ADD_AI_PROCESSED_TAG: toEnvBoolean(aiProcessedTagBool),
-      AI_PROCESSED_TAG_NAME: aiTagName || 'ai-processed',
-      AI_USE_PROMPT_TAGS: toEnvBoolean(usePromptTagsBool),
-      AI_PROMPT_TAGS: normalizeArray(promptTags),
-      AI_USE_EXISTING_DATA: toEnvBoolean(useExistingDataBool),
-      API_KEY: apiToken,
-      JWT_SECRET: jwtToken,
-      CUSTOM_API_KEY: customApiKey || '',
-      CUSTOM_BASE_URL: customBaseUrl || '',
-      CUSTOM_MODEL: customModel || '',
-      OPENAI_GIZMO_ID: openaiGizmoId || '',
-      PAPERLESS_AI_INITIAL_SETUP: toEnvBoolean(true),
-      ACTIVATE_TAGGING: toEnvBoolean(activateTaggingBool),
-      ACTIVATE_CORRESPONDENT: toEnvBoolean(activateCorrespondentBool),
-      ACTIVATE_DOCUMENT_TYPE: toEnvBoolean(activateDocumentTypeBool),
-      ACTIVATE_TITLE: toEnvBoolean(activateTitleBool),
-      ACTIVATE_DOCUMENT_DATE: toEnvBoolean(activateDocumentDateBool),
-      ACTIVATE_LANGUAGE: toEnvBoolean(activateLanguageBool),
-      ACTIVATE_CONTENT: toEnvBoolean(activateContentBool),
-      ACTIVATE_CUSTOM_FIELDS: toEnvBoolean(activateCustomFieldsBool),
-      AI_CUSTOM_FIELDS: processedCustomFields.length > 0
-        ? JSON.stringify({ custom_fields: processedCustomFields })
-        : '{"custom_fields":[]}',
-      DISABLE_AUTOMATIC_PROCESSING: toEnvBoolean(disableAutomaticProcessingBool),
-      AZURE_ENDPOINT: azureEndpoint || '',
-      AZURE_API_KEY: azureApiKey || '',
-      AZURE_DEPLOYMENT_NAME: azureDeploymentName || '',
-      AZURE_API_VERSION: azureApiVersion || ''
-    };
+    const config = configService.buildSetupConfigFromRequest({
+      body: req.body,
+      processedPrompt,
+      apiToken,
+      jwtToken,
+      processedCustomFields
+    });
 
     // Validate AI provider config
     if (aiProvider === 'openai') {
-      const isOpenAIValid = await setupService.validateOpenAIConfig(openaiKey, config);
-      if (!isOpenAIValid) {
-        return res.status(400).json({
-          error: 'OpenAI API Key is not valid. Please check the key.'
-        });
-      }
-      config.OPENAI_API_KEY = openaiKey;
+      config.OPENAI_API_KEY = openaiApiKey;
       config.OPENAI_MODEL = openaiModel || 'gpt-4o-mini';
       config.OPENAI_GIZMO_ID = openaiGizmoId || '';
     } else if (aiProvider === 'ollama') {
-      const isOllamaValid = await setupService.validateOllamaConfig(ollamaUrl, ollamaModel);
-      if (!isOllamaValid) {
-        return res.status(400).json({
-          error: 'Ollama connection failed. Please check URL and Model.'
-        });
-      }
-      config.OLLAMA_API_URL = ollamaUrl || 'http://localhost:11434';
+      config.OLLAMA_API_URL = ollamaApiUrl || 'http://localhost:11434';
       config.OLLAMA_MODEL = ollamaModel || 'llama3.2';
     } else if (aiProvider === 'custom') {
-      const isCustomValid = await setupService.validateCustomConfig(customBaseUrl, customApiKey, customModel);
-      if (!isCustomValid) {
-        return res.status(400).json({
-          error: 'Custom connection failed. Please check URL, API Key and Model.'
-        });
-      }
       config.CUSTOM_BASE_URL = customBaseUrl;
       config.CUSTOM_API_KEY = customApiKey;
       config.CUSTOM_MODEL = customModel;
     } else if (aiProvider === 'azure') {
-      const isAzureValid = await setupService.validateAzureConfig(azureApiKey, azureEndpoint, azureDeploymentName, azureApiVersion, config);
-      if (!isAzureValid) {
-        return res.status(400).json({
-          error: 'Azure connection failed. Please check URL, API Key, Deployment Name and API Version.'
-        });
-      }
+      config.AZURE_ENDPOINT = azureEndpoint || config.AZURE_ENDPOINT;
+      config.AZURE_API_KEY = azureApiKey || config.AZURE_API_KEY;
+      config.AZURE_DEPLOYMENT_NAME = azureDeploymentName || config.AZURE_DEPLOYMENT_NAME;
+      config.AZURE_API_VERSION = azureApiVersion || config.AZURE_API_VERSION;
+    }
+
+    const aiValid = await configService.validateAiProviderConfig(config, { isConfigured: false });
+    if (!aiValid) {
+      return res.status(400).json({
+        error: `${aiProvider} connection failed. Please check the configuration.`
+      });
     }
 
     // Save configuration
-    await setupService.saveConfig(config);
+    await configService.saveConfig(config);
     const hashedPassword = await bcrypt.hash(password, 15);
     await documentModel.addUser(username, hashedPassword);
 
@@ -4035,24 +3814,20 @@ router.post('/setup', express.json(), async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               paperlessUrl:
+ *               paperlessApiUrl:
  *                 type: string
  *                 description: URL of the Paperless-ngx instance
  *                 example: "https://paperless.example.com"
- *               paperlessToken:
+ *               paperlessApiToken:
  *                 type: string
  *                 description: API token for Paperless-ngx access
  *                 example: "abc123def456"
- *               paperlessUsername:
- *                 type: string
- *                 description: Username for Paperless-ngx (alternative to token authentication)
- *                 example: "admin"
  *               aiProvider:
  *                 type: string
  *                 description: Selected AI provider for document analysis
  *                 enum: ["openai", "ollama", "custom", "azure"]
  *                 example: "openai"
- *               openaiKey:
+ *               openaiApiKey:
  *                 type: string
  *                 description: API key for OpenAI (required when aiProvider is 'openai')
  *                 example: "sk-abc123def456"
@@ -4060,7 +3835,7 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: OpenAI model to use for analysis
  *                 example: "gpt-4"
- *               ollamaUrl:
+ *               ollamaApiUrl:
  *                 type: string
  *                 description: URL for Ollama API (required when aiProvider is 'ollama')
  *                 example: "http://localhost:11434"
@@ -4084,28 +3859,28 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: number
  *                 description: Interval in minutes for scanning new documents
  *                 example: 15
- *               systemPrompt:
+ *               aiSystemPrompt:
  *                 type: string
  *                 description: Custom system prompt for document analysis
  *                 example: "Extract key information from the following document..."
- *               showTags:
+ *               filterDocuments:
  *                 type: boolean
  *                 description: Whether to show tags in the UI
  *                 example: true
- *               tokenLimit:
+ *               aiTokenLimit:
  *                 type: integer
  *                 description: The maximum number of tokens th AI can handle
  *                 example: 128000
- *               responseTokens:
+ *               aiResponseTokens:
  *                 type: integer
  *                 description: The approx. amount of tokens required for the response
  *                 example: 1000
- *               contentSourceMode:
+ *               aiContentSourceMode:
  *                 type: string
  *                 description: Which document data is sent to the AI for analysis
  *                 enum: ["content", "raw_document", "both"]
  *                 example: "content"
- *               rawDocumentMode:
+ *               aiRawDocumentMode:
  *                 type: string
  *                 description: How raw document data is sent to the AI
  *                 enum: ["text", "file", "image"]
@@ -4114,7 +3889,7 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: Comma-separated list of tags to use for filtering
  *                 example: "Invoice,Receipt,Contract"
- *               aiProcessedTag:
+ *               addAiProcessedTag:
  *                 type: boolean
  *                 description: Whether to add a tag for AI-processed documents
  *                 example: true
@@ -4122,47 +3897,47 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: Tag name to use for AI-processed documents
  *                 example: "AI-Processed"
- *               usePromptTags:
+ *               aiUsePromptTags:
  *                 type: boolean
  *                 description: Whether to use tags in prompts
  *                 example: true
- *               promptTags:
+ *               aiPromptTags:
  *                 type: string
  *                 description: Comma-separated list of tags to use in prompts
  *                 example: "Invoice,Receipt"
- *               useExistingData:
+ *               aiUseExistingData:
  *                 type: boolean
  *                 description: Whether to use existing data from a previous setup
  *                 example: false
- *               activateTagging:
+ *               tags:
  *                 type: boolean
  *                 description: Enable AI-based tag suggestions
  *                 example: true
- *               activateCorrespondent:
+ *               correspondent:
  *                 type: boolean
  *                 description: Enable AI-based correspondent suggestions
  *                 example: true
- *               activateDocumentType:
+ *               documentType:
  *                 type: boolean
  *                 description: Enable AI-based document type suggestions
  *                 example: true
- *               activateTitle:
+ *               title:
  *                 type: boolean
  *                 description: Enable AI-based title suggestions
  *                 example: true
- *               activateDocumentDate:
+ *               documentDate:
  *                 type: boolean
  *                 description: Enable AI-based document date extraction
  *                 example: true
- *               activateLanguage:
+ *               language:
  *                 type: boolean
  *                 description: Enable AI-based language detection
  *                 example: true
- *               activateContent:
+ *               content:
  *                 type: boolean
  *                 description: Enable AI-based document content updates
  *                 example: false
- *               activateCustomFields:
+ *               customFields:
  *                 type: boolean
  *                 description: Enable AI-based custom field extraction
  *                 example: false
@@ -4221,41 +3996,44 @@ router.post('/setup', express.json(), async (req, res) => {
 router.post('/settings', [express.json(), authenticateAPI], async (req, res) => {
   try {
     const {
-      paperlessUrl,
-      paperlessToken,
+      paperlessApiUrl,
+      paperlessApiToken,
       aiProvider,
-      openaiKey,
+      openaiApiKey,
       openaiModel,
       openaiGizmoId,
-      ollamaUrl,
+      ollamaApiUrl,
       ollamaModel,
       scanInterval,
-      systemPrompt,
-      showTags,
-      tokenLimit,
-      responseTokens,
-      contentSourceMode,
-      rawDocumentMode,
-      tags,
-      aiProcessedTag,
-      aiTagName,
-      usePromptTags,
-      promptTags,
-      paperlessUsername,
-      useExistingData,
+      aiSystemPrompt,
+      filterDocuments,
+      aiTokenLimit,
+      aiResponseTokens,
+      aiContentSourceMode,
+      aiRawDocumentMode,
+      filterIncludeTags,
+      filterExcludeTags,
+      addAiProcessedTag,
+      aiProcessedTagName,
+      aiUsePromptTags,
+      aiPromptTags,
+      aiUseExistingData,
       customApiKey,
       customBaseUrl,
       customModel,
-      activateTagging,
-      activateCorrespondent,
-      activateDocumentType,
-      activateTitle,
-      activateDocumentDate,
-      activateLanguage,
-      activateContent,
-      activateCustomFields,
-      customFields,  // Added parameter
+      tags,
+      correspondent,
+      documentType,
+      title,
+      documentDate,
+      language,
+      content,
+      customFields,
+      aiCustomFields,
       disableAutomaticProcessing,
+      restrictToExistingTags,
+      restrictToExistingCorrespondents,
+      restrictToExistingDocumentTypes,
       azureEndpoint,
       azureApiKey,
       azureDeploymentName,
@@ -4263,270 +4041,112 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     } = req.body;
 
     //replace equal char in system prompt
-    const processedPrompt = systemPrompt
-      ? systemPrompt.replace(/\r\n/g, '\n').replace(/=/g, '')
+    const processedPrompt = aiSystemPrompt
+      ? aiSystemPrompt.replace(/\r\n/g, '\n').replace(/=/g, '')
       : '';
 
-    const showTagsBool = parseBoolean(showTags, false);
-    const aiProcessedTagBool = parseBoolean(aiProcessedTag, false);
-    const usePromptTagsBool = parseBoolean(usePromptTags, false);
-    const useExistingDataBool = parseBoolean(useExistingData, false);
-    const activateTaggingBool = parseBoolean(activateTagging, true);
-    const activateCorrespondentBool = parseBoolean(activateCorrespondent, true);
-    const activateDocumentTypeBool = parseBoolean(activateDocumentType, true);
-    const activateTitleBool = parseBoolean(activateTitle, true);
-    const activateDocumentDateBool = parseBoolean(activateDocumentDate, true);
-    const activateLanguageBool = parseBoolean(activateLanguage, true);
-    const activateContentBool = parseBoolean(activateContent, false);
-    const activateCustomFieldsBool = parseBoolean(activateCustomFields, true);
-    const disableAutomaticProcessingBool = parseBoolean(disableAutomaticProcessing, false);
-
     const allowedContentSourceModes = new Set(['content', 'raw_document', 'both']);
-    if (contentSourceMode && !allowedContentSourceModes.has(contentSourceMode)) {
+    if (aiContentSourceMode && !allowedContentSourceModes.has(aiContentSourceMode)) {
       return res.status(400).json({
         error: 'Invalid content source mode. Must be one of: content, raw_document, both.'
       });
     }
     const allowedRawDocumentModes = new Set(['text', 'file', 'image']);
-    if (rawDocumentMode && !allowedRawDocumentModes.has(rawDocumentMode)) {
+    if (aiRawDocumentMode && !allowedRawDocumentModes.has(aiRawDocumentMode)) {
       return res.status(400).json({
         error: 'Invalid raw document mode. Must be one of: text, file, image.'
       });
     }
 
-    const currentConfig = {
-      PAPERLESS_API_URL: process.env.PAPERLESS_API_URL || '',
-      PAPERLESS_API_TOKEN: process.env.PAPERLESS_API_TOKEN || '',
-      PAPERLESS_USERNAME: process.env.PAPERLESS_USERNAME || '',
-      AI_PROVIDER: process.env.AI_PROVIDER || '',
-      OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
-      OPENAI_MODEL: process.env.OPENAI_MODEL || '',
-      OPENAI_GIZMO_ID: process.env.OPENAI_GIZMO_ID || '',
-      AI_CONTENT_SOURCE_MODE: process.env.AI_CONTENT_SOURCE_MODE || 'content',
-      AI_RAW_DOCUMENT_MODE: process.env.AI_RAW_DOCUMENT_MODE || 'text',
-      OLLAMA_API_URL: process.env.OLLAMA_API_URL || '',
-      OLLAMA_MODEL: process.env.OLLAMA_MODEL || '',
-      SCAN_INTERVAL: process.env.SCAN_INTERVAL || '*/30 * * * *',
-      AI_SYSTEM_PROMPT: process.env.AI_SYSTEM_PROMPT || '',
-      PROCESS_PREDEFINED_DOCUMENTS: toEnvBoolean(parseBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false)),
-      AI_TOKEN_LIMIT: process.env.AI_TOKEN_LIMIT || 128000,
-      AI_RESPONSE_TOKENS: process.env.AI_RESPONSE_TOKENS || 1000,
-      TAGS: process.env.TAGS || '',
-      ADD_AI_PROCESSED_TAG: toEnvBoolean(parseBoolean(process.env.ADD_AI_PROCESSED_TAG, false)),
-      AI_PROCESSED_TAG_NAME: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
-      AI_USE_PROMPT_TAGS: toEnvBoolean(parseBoolean(process.env.AI_USE_PROMPT_TAGS, false)),
-      AI_PROMPT_TAGS: process.env.AI_PROMPT_TAGS || '',
-      AI_USE_EXISTING_DATA: toEnvBoolean(parseBoolean(process.env.AI_USE_EXISTING_DATA, false)),
-      API_KEY: process.env.API_KEY || '',
-      CUSTOM_API_KEY: process.env.CUSTOM_API_KEY || '',
-      CUSTOM_BASE_URL: process.env.CUSTOM_BASE_URL || '',
-      CUSTOM_MODEL: process.env.CUSTOM_MODEL || '',
-      ACTIVATE_TAGGING: toEnvBoolean(parseBoolean(process.env.ACTIVATE_TAGGING, true)),
-      ACTIVATE_CORRESPONDENT: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CORRESPONDENT, true)),
-      ACTIVATE_DOCUMENT_TYPE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, true)),
-      ACTIVATE_TITLE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_TITLE, true)),
-      ACTIVATE_DOCUMENT_DATE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_DOCUMENT_DATE, true)),
-      ACTIVATE_LANGUAGE: toEnvBoolean(parseBoolean(process.env.ACTIVATE_LANGUAGE, true)),
-      ACTIVATE_CONTENT: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CONTENT, false)),
-      ACTIVATE_CUSTOM_FIELDS: toEnvBoolean(parseBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, true)),
-      AI_CUSTOM_FIELDS: process.env.AI_CUSTOM_FIELDS || '{"custom_fields":[]}',  // Added default
-      DISABLE_AUTOMATIC_PROCESSING: toEnvBoolean(parseBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false)),
-      AZURE_ENDPOINT: process.env.AZURE_ENDPOINT|| '',
-      AZURE_API_KEY: process.env.AZURE_API_KEY || '',
-      AZURE_DEPLOYMENT_NAME: process.env.AZURE_DEPLOYMENT_NAME || '',
-      AZURE_API_VERSION: process.env.AZURE_API_VERSION || '',
-      RESTRICT_TO_EXISTING_TAGS: toEnvBoolean(parseBoolean(process.env.RESTRICT_TO_EXISTING_TAGS, false)),
-      RESTRICT_TO_EXISTING_CORRESPONDENTS: toEnvBoolean(parseBoolean(process.env.RESTRICT_TO_EXISTING_CORRESPONDENTS, false)),
-      RESTRICT_TO_EXISTING_DOCUMENT_TYPES: toEnvBoolean(parseBoolean(process.env.RESTRICT_TO_EXISTING_DOCUMENT_TYPES, false)),
-      EXTERNAL_API_ENABLED: toEnvBoolean(parseBoolean(process.env.EXTERNAL_API_ENABLED, false)),
-      EXTERNAL_API_URL: process.env.EXTERNAL_API_URL || '',
-      EXTERNAL_API_METHOD: process.env.EXTERNAL_API_METHOD || 'GET',
-      EXTERNAL_API_HEADERS: process.env.EXTERNAL_API_HEADERS || '{}',
-      EXTERNAL_API_BODY: process.env.EXTERNAL_API_BODY || '{}',
-      EXTERNAL_API_TIMEOUT: process.env.EXTERNAL_API_TIMEOUT || '5000',
-      EXTERNAL_API_TRANSFORM: process.env.EXTERNAL_API_TRANSFORM || ''
-    };
+    const baseConfig = configService.buildBaseConfig(configFile);
+    const savedConfig = await configService.loadConfig();
+    const currentConfig = configService.mergeSavedConfig(baseConfig, savedConfig);
 
-    // Process custom fields
-    let processedCustomFields = [];
-    if (customFields) {
-      try {
-        const parsedFields = typeof customFields === 'string'
-          ? JSON.parse(customFields)
-          : customFields;
-
-        const rawFields = Array.isArray(parsedFields?.custom_fields) ? parsedFields.custom_fields : [];
-        processedCustomFields = rawFields
-          .map((field) => {
-            const fieldName = field?.name || field?.value;
-            const dataType = field?.data_type || field?.type;
-            if (!fieldName || !dataType || dataType === 'documentlink') return null;
-
-            const extraData = field.extra_data && typeof field.extra_data === 'object'
-              ? { ...field.extra_data }
-              : {};
-
-            if (field.currency && !extraData.default_currency) {
-              extraData.default_currency = field.currency;
-            }
-
-            return {
-              name: fieldName,
-              data_type: dataType,
-              enabled: field.enabled !== undefined ? Boolean(field.enabled) : true,
-              description: field.description || '',
-              extra_data: extraData
-            };
-          })
-          .filter(Boolean);
-      } catch (error) {
-        console.error('Error processing custom fields:', error);
-        processedCustomFields = [];
-      }
-    }
-
-    const normalizeArray = (value) => {
-      if (!value) return [];
-      if (Array.isArray(value)) return value;
-      if (typeof value === 'string') return value.split(',').filter(Boolean).map(item => item.trim());
-      return [];
-    };
+    const processedCustomFields = configService.parseCustomFieldsInput(aiCustomFields);
 
     // Extract tag and correspondent restriction settings with defaults
-    const restrictToExistingTags = parseBoolean(req.body.restrictToExistingTags, false);
-    const restrictToExistingCorrespondents = parseBoolean(req.body.restrictToExistingCorrespondents, false);
-    const restrictToExistingDocumentTypes = parseBoolean(req.body.restrictToExistingDocumentTypes, false);
+    const isConfigured = await configService.isConfigured();
 
-    // Extract external API settings with defaults
-    const externalApiEnabled = parseBoolean(req.body.externalApiEnabled, false);
-    const externalApiUrl = req.body.externalApiUrl || '';
-    const externalApiMethod = req.body.externalApiMethod || 'GET';
-    const externalApiHeaders = req.body.externalApiHeaders || '{}';
-    const externalApiBody = req.body.externalApiBody || '{}';
-    const externalApiTimeout = req.body.externalApiTimeout || '5000';
-    const externalApiTransform = req.body.externalApiTransform || '';
-
-    if (paperlessUrl !== currentConfig.PAPERLESS_API_URL?.replace('/api', '') ||
-        paperlessToken !== currentConfig.PAPERLESS_API_TOKEN) {
-      const isPaperlessValid = await setupService.validatePaperlessConfig(paperlessUrl, paperlessToken);
+    if (paperlessApiUrl !== currentConfig.PAPERLESS_API_URL?.replace('/api', '') ||
+        paperlessApiToken !== currentConfig.PAPERLESS_API_TOKEN) {
+      const tempPaperlessService = new PaperlessService({
+        apiUrl: `${paperlessApiUrl}/api`,
+        apiToken: paperlessApiToken
+      });
+      const isPaperlessValid = await tempPaperlessService.validateConfig();
       if (!isPaperlessValid) {
         return res.status(400).json({
           error: 'Paperless-ngx connection failed. Please check URL and Token.'
         });
       }
+      const requiredPermissions = buildRequiredPaperlessPermissions({
+        enableUpdates: {
+          tags,
+          correspondent,
+          documentType,
+          title,
+          documentDate,
+          language,
+          content,
+          customFields
+        },
+        restrictToExisting: {
+          tags: restrictToExistingTags,
+          correspondents: restrictToExistingCorrespondents,
+          documentTypes: restrictToExistingDocumentTypes
+        },
+        addAiProcessedTag
+      });
+      const isPermissionValid = await tempPaperlessService.validatePermissions(requiredPermissions);
+      if (!isPermissionValid.success) {
+        return res.status(400).json({
+          error: 'Paperless-ngx API permissions are insufficient. Error: ' + isPermissionValid.message
+        });
+      }
     }
-
-    const updatedConfig = {};
-
-    if (paperlessUrl) updatedConfig.PAPERLESS_API_URL = paperlessUrl + '/api';
-    if (paperlessToken) updatedConfig.PAPERLESS_API_TOKEN = paperlessToken;
-    if (paperlessUsername) updatedConfig.PAPERLESS_USERNAME = paperlessUsername;
+    const { updatedConfig, mergedConfig } = configService.buildSettingsUpdateFromRequest({
+      body: req.body,
+      currentConfig,
+      processedPrompt,
+      processedCustomFields
+    });
 
     // Handle AI provider configuration
     if (aiProvider) {
       updatedConfig.AI_PROVIDER = aiProvider;
 
-      if (aiProvider === 'openai' && openaiKey) {
-        const isOpenAIValid = await setupService.validateOpenAIConfig(openaiKey, config);
-        if (!isOpenAIValid) {
-          return res.status(400).json({
-            error: 'OpenAI API Key is not valid. Please check the key.'
-          });
-        }
-        updatedConfig.OPENAI_API_KEY = openaiKey;
+      if (aiProvider === 'openai' && openaiApiKey) {
+        updatedConfig.OPENAI_API_KEY = openaiApiKey;
         if (openaiModel) updatedConfig.OPENAI_MODEL = openaiModel;
         if (openaiGizmoId !== undefined) updatedConfig.OPENAI_GIZMO_ID = openaiGizmoId;
       }
-      else if (aiProvider === 'ollama' && (ollamaUrl || ollamaModel)) {
-        const isOllamaValid = await setupService.validateOllamaConfig(
-          ollamaUrl || currentConfig.OLLAMA_API_URL,
-          ollamaModel || currentConfig.OLLAMA_MODEL
-        );
-        if (!isOllamaValid) {
-          return res.status(400).json({
-            error: 'Ollama connection failed. Please check URL and Model.'
-          });
-        }
-        if (ollamaUrl) updatedConfig.OLLAMA_API_URL = ollamaUrl;
+      else if (aiProvider === 'ollama' && (ollamaApiUrl || ollamaModel)) {
+        if (ollamaApiUrl) updatedConfig.OLLAMA_API_URL = ollamaApiUrl;
         if (ollamaModel) updatedConfig.OLLAMA_MODEL = ollamaModel;
       } else if (aiProvider === 'azure') {
-        const isAzureValid = await setupService.validateAzureConfig(azureApiKey, azureEndpoint, azureDeploymentName, azureApiVersion, config);
-        if (!isAzureValid) {
-          return res.status(400).json({
-            error: 'Azure connection failed. Please check URL, API Key, Deployment Name and API Version.'
-          });
-        }
-        if(azureEndpoint) updatedConfig.AZURE_ENDPOINT = azureEndpoint;
-        if(azureApiKey) updatedConfig.AZURE_API_KEY = azureApiKey;
-        if(azureDeploymentName) updatedConfig.AZURE_DEPLOYMENT_NAME = azureDeploymentName;
-        if(azureApiVersion) updatedConfig.AZURE_API_VERSION = azureApiVersion;
+        if (azureEndpoint) updatedConfig.AZURE_ENDPOINT = azureEndpoint;
+        if (azureApiKey) updatedConfig.AZURE_API_KEY = azureApiKey;
+        if (azureDeploymentName) updatedConfig.AZURE_DEPLOYMENT_NAME = azureDeploymentName;
+        if (azureApiVersion) updatedConfig.AZURE_API_VERSION = azureApiVersion;
+      } else if (aiProvider === 'custom') {
+        if (customBaseUrl) updatedConfig.CUSTOM_BASE_URL = customBaseUrl;
+        if (customApiKey) updatedConfig.CUSTOM_API_KEY = customApiKey;
+        if (customModel) updatedConfig.CUSTOM_MODEL = customModel;
       }
     }
 
-    // Update general settings
-    if (scanInterval) updatedConfig.SCAN_INTERVAL = scanInterval;
-    if (systemPrompt) updatedConfig.AI_SYSTEM_PROMPT = processedPrompt.replace(/\r\n/g, '\n').replace(/\n/g, '\\n');
-    if (showTags !== undefined) updatedConfig.PROCESS_PREDEFINED_DOCUMENTS = toEnvBoolean(showTagsBool);
-    if (tokenLimit) updatedConfig.AI_TOKEN_LIMIT = tokenLimit;
-    if (responseTokens) updatedConfig.AI_RESPONSE_TOKENS = responseTokens;
-    if (contentSourceMode) updatedConfig.AI_CONTENT_SOURCE_MODE = contentSourceMode;
-    if (rawDocumentMode) updatedConfig.AI_RAW_DOCUMENT_MODE = rawDocumentMode;
-    if (tags !== undefined) updatedConfig.TAGS = normalizeArray(tags);
-    if (aiProcessedTag !== undefined) updatedConfig.ADD_AI_PROCESSED_TAG = toEnvBoolean(aiProcessedTagBool);
-    if (aiTagName) updatedConfig.AI_PROCESSED_TAG_NAME = aiTagName;
-    if (usePromptTags !== undefined) updatedConfig.AI_USE_PROMPT_TAGS = toEnvBoolean(usePromptTagsBool);
-    if (promptTags) updatedConfig.AI_PROMPT_TAGS = normalizeArray(promptTags);
-    if (useExistingData !== undefined) updatedConfig.AI_USE_EXISTING_DATA = toEnvBoolean(useExistingDataBool);
-    if (customApiKey) updatedConfig.CUSTOM_API_KEY = customApiKey;
-    if (customBaseUrl) updatedConfig.CUSTOM_BASE_URL = customBaseUrl;
-    if (customModel) updatedConfig.CUSTOM_MODEL = customModel;
-    if (disableAutomaticProcessing !== undefined) updatedConfig.DISABLE_AUTOMATIC_PROCESSING = toEnvBoolean(disableAutomaticProcessingBool);
+    const finalConfig = { ...mergedConfig, ...updatedConfig };
 
-    // Update custom fields
-    if (processedCustomFields.length > 0 || customFields) {
-      updatedConfig.AI_CUSTOM_FIELDS = JSON.stringify({
-        custom_fields: processedCustomFields
-      });
+    if (!isConfigured) {
+      const aiValid = await configService.validateAiProviderConfig(finalConfig, { isConfigured });
+      if (!aiValid) {
+        return res.status(400).json({
+          error: `${finalConfig.AI_PROVIDER} connection failed. Please check the configuration.`
+        });
+      }
     }
 
-      // Handle limit functions
-      updatedConfig.ACTIVATE_TAGGING = toEnvBoolean(activateTaggingBool);
-      updatedConfig.ACTIVATE_CORRESPONDENT = toEnvBoolean(activateCorrespondentBool);
-      updatedConfig.ACTIVATE_DOCUMENT_TYPE = toEnvBoolean(activateDocumentTypeBool);
-      updatedConfig.ACTIVATE_TITLE = toEnvBoolean(activateTitleBool);
-      updatedConfig.ACTIVATE_DOCUMENT_DATE = toEnvBoolean(activateDocumentDateBool);
-      updatedConfig.ACTIVATE_LANGUAGE = toEnvBoolean(activateLanguageBool);
-      updatedConfig.ACTIVATE_CONTENT = toEnvBoolean(activateContentBool);
-      updatedConfig.ACTIVATE_CUSTOM_FIELDS = toEnvBoolean(activateCustomFieldsBool);
-
-      // Handle tag and correspondent restrictions
-      updatedConfig.RESTRICT_TO_EXISTING_TAGS = toEnvBoolean(restrictToExistingTags);
-      updatedConfig.RESTRICT_TO_EXISTING_CORRESPONDENTS = toEnvBoolean(restrictToExistingCorrespondents);
-      updatedConfig.RESTRICT_TO_EXISTING_DOCUMENT_TYPES = toEnvBoolean(restrictToExistingDocumentTypes);
-
-      // Handle external API integration
-      updatedConfig.EXTERNAL_API_ENABLED = toEnvBoolean(externalApiEnabled);
-      updatedConfig.EXTERNAL_API_URL = externalApiUrl || '';
-      updatedConfig.EXTERNAL_API_METHOD = externalApiMethod || 'GET';
-      updatedConfig.EXTERNAL_API_HEADERS = externalApiHeaders || '{}';
-      updatedConfig.EXTERNAL_API_BODY = externalApiBody || '{}';
-      updatedConfig.EXTERNAL_API_TIMEOUT = externalApiTimeout || '5000';
-      updatedConfig.EXTERNAL_API_TRANSFORM = externalApiTransform || '';
-
-    // Handle API key
-    let apiToken = process.env.API_KEY;
-    if (!apiToken) {
-      console.log('Generating new API key');
-      apiToken = require('crypto').randomBytes(64).toString('hex');
-      updatedConfig.API_KEY = apiToken;
-    }
-
-    const mergedConfig = {
-      ...currentConfig,
-      ...updatedConfig
-    };
-
-    await setupService.saveConfig(mergedConfig);
+    await configService.saveConfig(finalConfig);
     res.json({
       success: true,
       message: 'Configuration saved successfully.',
@@ -4647,9 +4267,9 @@ router.get('/dashboard/doc/:id', authenticateAPI, async (req, res) => {
   }
   try {
     // Redirect to paperless-ngx and show detail page of the document (for example https://paperless.example.com/documents/887/details)
-    const paperlessUrl = process.env.PAPERLESS_API_URL;
-    const paperlessUrlWithoutApi = paperlessUrl.replace('/api', '');
-    const redirectUrl = `${paperlessUrlWithoutApi}/documents/${docId}/details`;
+    const paperlessApiUrl = process.env.PAPERLESS_API_URL;
+    const paperlessApiUrlWithoutApi = paperlessApiUrl.replace('/api', '');
+    const redirectUrl = `${paperlessApiUrlWithoutApi}/documents/${docId}/details`;
     console.log('Redirecting to Paperless-ngx URL:', redirectUrl);
     res.redirect(redirectUrl);
   } catch (error) {

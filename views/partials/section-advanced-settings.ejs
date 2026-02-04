@@ -28,32 +28,32 @@ const isSetup = variant === 'setup';
       <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
         <label class="flex items-start cursor-pointer w-full">
           <input type="checkbox"
-                 id="showTags"
+                 id="filterDocuments"
                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                 <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+                 <%= config.FILTER_DOCUMENTS ? 'checked' : '' %>>
           <div class="ml-3">
             <div class="flex items-center font-medium">
               <i class="fas fa-filter text-blue-500 mr-2"></i>
-              Process only specific pre tagged documents
+              Filter documents by tags
             </div>
-            <p class="text-sm text-gray-500 mt-1">Limit processing to documents with selected tags</p>
+            <p class="text-sm text-gray-500 mt-1">Include or exclude documents based on their tags</p>
           </div>
         </label>
         <input type="hidden"
-               id="showTagsValue"
-               name="showTags"
-               value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
+               id="filterDocumentsValue"
+               name="filterDocuments"
+               value="<%= config.FILTER_DOCUMENTS ? 'true' : 'false' %>">
       </div>
     </div>
 
-    <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %>">
+    <div id="tagsInputSection" class="<%= config.FILTER_DOCUMENTS ? '' : 'hidden' %>">
       <div class="form-group">
-        <label for="tagInput">Tags</label>
+        <label for="tagInput">Include tags</label>
         <div class="tag-input-container">
           <input type="text"
               id="tagInput"
               class="modern-input"
-              placeholder="Enter a tag and press Enter">
+              placeholder="Enter a tag to include and press Enter">
           <button type="button"
                   class="material-button add-tag-btn">
             <i class="fas fa-plus"></i>
@@ -61,16 +61,41 @@ const isSetup = variant === 'setup';
           </button>
         </div>
         <div id="tagsContainer" class="tags-container">
-          <% if (config.TAGS && Array.isArray(config.TAGS) && config.TAGS.length > 0) { %>
-              <% config.TAGS.forEach(tag => { %>
-                  <div class="modern-tag fade-in">
+          <% if (config.FILTER_INCLUDE_TAGS && Array.isArray(config.FILTER_INCLUDE_TAGS) && config.FILTER_INCLUDE_TAGS.length > 0) { %>
+              <% config.FILTER_INCLUDE_TAGS.forEach(tag => { %>
+                  <div class="modern-tag fade-in tag-chip">
                       <span><%= tag %></span>
                       <button type="button"><i class="fas fa-times"></i></button>
                   </div>
               <% }); %>
           <% } %>
         </div>
-        <input type="hidden" id="tags" name="tags" value="<%= Array.isArray(config.TAGS) ? config.TAGS.join(',') : '' %>">
+        <input type="hidden" id="filterIncludeTags" name="filterIncludeTags" value="<%= Array.isArray(config.FILTER_INCLUDE_TAGS) ? config.FILTER_INCLUDE_TAGS.join(',') : '' %>">
+      </div>
+      <div class="form-group">
+        <label for="excludeTagInput">Exclude tags</label>
+        <div class="tag-input-container">
+          <input type="text"
+              id="excludeTagInput"
+              class="modern-input"
+              placeholder="Enter a tag to exclude and press Enter">
+          <button type="button"
+                  class="material-button add-exclude-tag-btn">
+            <i class="fas fa-minus"></i>
+            Exclude
+          </button>
+        </div>
+        <div id="excludeTagsContainer" class="tags-container">
+          <% if (config.FILTER_EXCLUDE_TAGS && Array.isArray(config.FILTER_EXCLUDE_TAGS) && config.FILTER_EXCLUDE_TAGS.length > 0) { %>
+              <% config.FILTER_EXCLUDE_TAGS.forEach(tag => { %>
+                  <div class="modern-tag fade-in tag-chip">
+                      <span><%= tag %></span>
+                      <button type="button"><i class="fas fa-times"></i></button>
+                  </div>
+              <% }); %>
+          <% } %>
+        </div>
+        <input type="hidden" id="filterExcludeTags" name="filterExcludeTags" value="<%= Array.isArray(config.FILTER_EXCLUDE_TAGS) ? config.FILTER_EXCLUDE_TAGS.join(',') : '' %>">
       </div>
     </div>
 
@@ -78,20 +103,20 @@ const isSetup = variant === 'setup';
       <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
         <label class="flex items-start cursor-pointer w-full">
           <input type="checkbox"
-                 id="useExistingData"
+                 id="aiUseExistingData"
                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
           <div class="ml-3">
             <div class="flex items-center font-medium">
               <i class="fas fa-database text-blue-500 mr-2"></i>
-              Use existing Correspondents and Tags
+              Use existing correspondents and tags
             </div>
             <p class="text-sm text-gray-500 mt-1">Prefer existing metadata before creating new entries</p>
           </div>
         </label>
         <input type="hidden"
-               id="useExistingDataValue"
-               name="useExistingData"
+               id="aiUseExistingDataValue"
+               name="aiUseExistingData"
                value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
       </div>
     </div>
@@ -101,7 +126,7 @@ const isSetup = variant === 'setup';
       <div class="space-y-2">
         <h3 class="text-lg font-medium flex items-center gap-2 text-primary">
           <i class="fas fa-filter"></i>
-          AI Restrictions
+          AI restrictions
         </h3>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -255,7 +280,7 @@ const isSetup = variant === 'setup';
       <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
         <label class="flex items-start cursor-pointer w-full">
           <input type="checkbox"
-                 id="aiProcessedTag"
+                 id="addAiProcessedTag"
                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
           <div class="ml-3">
@@ -267,18 +292,18 @@ const isSetup = variant === 'setup';
           </div>
         </label>
         <input type="hidden"
-               id="aiProcessedTagValue"
-               name="aiProcessedTag"
+               id="addAiProcessedTagValue"
+               name="addAiProcessedTag"
                value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
       </div>
     </div>
 
     <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %>">
       <div class="form-group">
-        <label for="aiTagName">AI-processed tag name</label>
+        <label for="aiProcessedTagName">AI-processed tag name</label>
         <input type="text"
-            id="aiTagName"
-            name="aiTagName"
+            id="aiProcessedTagName"
+            name="aiProcessedTagName"
             value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
             class="modern-input"
             placeholder="ai-processed">
@@ -291,7 +316,7 @@ const isSetup = variant === 'setup';
       <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
         <label class="flex items-start cursor-pointer w-full">
           <input type="checkbox"
-                 id="usePromptTags"
+                 id="aiUsePromptTags"
                  class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                  <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
           <div class="ml-3">
@@ -303,8 +328,8 @@ const isSetup = variant === 'setup';
           </div>
         </label>
         <input type="hidden"
-               id="usePromptTagsValue"
-               name="usePromptTags"
+               id="aiUsePromptTagsValue"
+               name="aiUsePromptTags"
                value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
       </div>
     </div>
@@ -333,7 +358,7 @@ const isSetup = variant === 'setup';
               <% }); %>
           <% } %>
         </div>
-        <input type="hidden" id="promptTags" name="promptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
+        <input type="hidden" id="aiPromptTags" name="aiPromptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
         <p class="help-text">These tags will be exclusively used in the AI prompt</p>
       </div>
     </div>
@@ -371,10 +396,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateDocumentType"
-                name="activateDocumentType"
+                id="documentType"
+                name="documentType"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_DOCUMENT_TYPE ? 'checked' : '' %>>
+                <%= config.ENABLE_DOCUMENT_TYPE ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-file-alt text-blue-500 mr-2"></i>
@@ -388,10 +413,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateTitle"
-                name="activateTitle"
+                id="title"
+                name="title"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_TITLE ? 'checked' : '' %>>
+                <%= config.ENABLE_TITLE ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-heading text-blue-500 mr-2"></i>
@@ -405,10 +430,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateDocumentDate"
-                name="activateDocumentDate"
+                id="documentDate"
+                name="documentDate"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_DOCUMENT_DATE ? 'checked' : '' %>>
+                <%= config.ENABLE_DOCUMENT_DATE ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
@@ -422,10 +447,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateLanguage"
-                name="activateLanguage"
+                id="language"
+                name="language"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_LANGUAGE ? 'checked' : '' %>>
+                <%= config.ENABLE_LANGUAGE ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-language text-blue-500 mr-2"></i>
@@ -439,10 +464,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateTagging"
-                name="activateTagging"
+                id="tags"
+                name="tags"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_TAGGING ? 'checked' : '' %>>
+                <%= config.ENABLE_TAGS ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-tags text-blue-500 mr-2"></i>
@@ -456,10 +481,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateCorrespondent"
-                name="activateCorrespondent"
+                id="correspondent"
+                name="correspondent"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_CORRESPONDENT ? 'checked' : '' %>>
+                <%= config.ENABLE_CORRESPONDENT ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-user text-blue-500 mr-2"></i>
@@ -473,10 +498,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateContent"
-                name="activateContent"
+                id="content"
+                name="content"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_CONTENT ? 'checked' : '' %>>
+                <%= config.ENABLE_CONTENT ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-align-left text-blue-500 mr-2"></i>
@@ -490,10 +515,10 @@ const isSetup = variant === 'setup';
         <div class="modern-card flex-1 p-4 rounded-lg border border-gray-200 hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-start cursor-pointer w-full">
             <input type="checkbox"
-                id="activateCustomFields"
-                name="activateCustomFields"
+                id="customFields"
+                name="customFields"
                 class="mt-1 w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                <%= config.ACTIVATE_CUSTOM_FIELDS ? 'checked' : '' %>>
+                <%= config.ENABLE_CUSTOM_FIELDS ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center font-medium">
                 <i class="fas fa-filter text-blue-500 mr-2"></i>
@@ -590,18 +615,18 @@ const isSetup = variant === 'setup';
         </div>
 
         <input type="hidden"
-            id="customFieldsJson"
-            name="customFields"
+            id="aiCustomFields"
+            name="aiCustomFields"
             value="<%= config.AI_CUSTOM_FIELDS || '{"custom_fields":[]}' %>">
       </div>
     </section>
 
     <hr/>
     <div class="form-group">
-      <label for="systemPrompt">Prompt description</label>
+      <label for="aiSystemPrompt">Prompt description</label>
       <div class="prompt-container">
-        <textarea id="systemPrompt"
-                 name="systemPrompt"
+        <textarea id="aiSystemPrompt"
+                 name="aiSystemPrompt"
                  rows="8"
                  class="modern-input"
                  placeholder="Describe how the AI should analyze your documents..."><%= config.AI_SYSTEM_PROMPT %></textarea>
@@ -646,50 +671,75 @@ const isSetup = variant === 'setup';
       <div class="space-y-2">
         <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-center p-4 cursor-pointer w-full">
-            <input type="checkbox"
-                   id="showTags"
-                   class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                   <%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'checked' : '' %>>
+          <input type="checkbox"
+                 id="filterDocuments"
+                 class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                 <%= config.FILTER_DOCUMENTS ? 'checked' : '' %>>
             <div class="ml-3">
               <div class="flex items-center text-gray-900 font-medium">
                 <i class="fas fa-filter mr-2 text-blue-500"></i>
-                Process only specific pre tagged documents
+                Filter documents by tags
               </div>
-              <p class="text-sm text-gray-500 mt-1">Limit processing to documents with selected tags</p>
+              <p class="text-sm text-gray-500 mt-1">Include or exclude documents based on their tags</p>
             </div>
           </label>
           <input type="hidden"
-                 id="showTagsValue"
-                 name="showTags"
-                 value="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? 'true' : 'false' %>">
+                 id="filterDocumentsValue"
+                 name="filterDocuments"
+                 value="<%= config.FILTER_DOCUMENTS ? 'true' : 'false' %>">
         </div>
       </div>
 
-      <div id="tagsInputSection" class="<%= config.PROCESS_PREDEFINED_DOCUMENTS ? '' : 'hidden' %> space-y-4">
+      <div id="tagsInputSection" class="<%= config.FILTER_DOCUMENTS ? '' : 'hidden' %> space-y-4">
         <div class="space-y-2">
-          <label for="tagInput" class="text-sm font-medium">Tags</label>
+          <label for="tagInput" class="text-sm font-medium">Include tags</label>
           <div class="flex gap-2">
             <input type="text"
                 id="tagInput"
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter a tag and press Enter">
+                placeholder="Enter a tag to include and press Enter">
             <button type="button"
-                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-tag-btn">
               <i class="fas fa-plus mr-2"></i>
               Add
             </button>
           </div>
           <div id="tagsContainer" class="flex flex-wrap gap-2 mt-2">
-            <% if (config.TAGS && Array.isArray(config.TAGS) && config.TAGS.length > 0) { %>
-                <% config.TAGS.forEach(tag => { %>
-                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2">
+            <% if (config.FILTER_INCLUDE_TAGS && Array.isArray(config.FILTER_INCLUDE_TAGS) && config.FILTER_INCLUDE_TAGS.length > 0) { %>
+                <% config.FILTER_INCLUDE_TAGS.forEach(tag => { %>
+                    <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
                         <span><%= tag %></span>
                         <button type="button" class="hover:text-blue-600"><i class="fas fa-times"></i></button>
                     </div>
                 <% }); %>
             <% } %>
           </div>
-          <input type="hidden" id="tags" name="tags" value="<%= Array.isArray(config.TAGS) ? config.TAGS.join(',') : '' %>">
+          <input type="hidden" id="filterIncludeTags" name="filterIncludeTags" value="<%= Array.isArray(config.FILTER_INCLUDE_TAGS) ? config.FILTER_INCLUDE_TAGS.join(',') : '' %>">
+        </div>
+        <div class="space-y-2">
+          <label for="excludeTagInput" class="text-sm font-medium">Exclude tags</label>
+          <div class="flex gap-2">
+            <input type="text"
+                id="excludeTagInput"
+                class="flex-1 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Enter a tag to exclude and press Enter">
+            <button type="button"
+                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 add-exclude-tag-btn">
+              <i class="fas fa-minus mr-2"></i>
+              Exclude
+            </button>
+          </div>
+          <div id="excludeTagsContainer" class="flex flex-wrap gap-2 mt-2">
+            <% if (config.FILTER_EXCLUDE_TAGS && Array.isArray(config.FILTER_EXCLUDE_TAGS) && config.FILTER_EXCLUDE_TAGS.length > 0) { %>
+                <% config.FILTER_EXCLUDE_TAGS.forEach(tag => { %>
+                    <div class="bg-gray-100 text-gray-800 px-3 py-1 rounded-full flex items-center gap-2 tag-chip">
+                        <span><%= tag %></span>
+                        <button type="button" class="hover:text-gray-600"><i class="fas fa-times"></i></button>
+                    </div>
+                <% }); %>
+            <% } %>
+          </div>
+          <input type="hidden" id="filterExcludeTags" name="filterExcludeTags" value="<%= Array.isArray(config.FILTER_EXCLUDE_TAGS) ? config.FILTER_EXCLUDE_TAGS.join(',') : '' %>">
         </div>
       </div>
     </div>
@@ -699,7 +749,7 @@ const isSetup = variant === 'setup';
         <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-center p-4 cursor-pointer w-full">
             <input type="checkbox"
-                id="useExistingData"
+                id="aiUseExistingData"
                 class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                 <%= config.AI_USE_EXISTING_DATA ? 'checked' : '' %>>
             <div class="ml-3">
@@ -711,8 +761,8 @@ const isSetup = variant === 'setup';
             </div>
           </label>
           <input type="hidden"
-              id="useExistingDataValue"
-              name="useExistingData"
+              id="aiUseExistingDataValue"
+              name="aiUseExistingData"
               value="<%= config.AI_USE_EXISTING_DATA ? 'true' : 'false' %>">
         </div>
       </div>
@@ -877,7 +927,7 @@ const isSetup = variant === 'setup';
         <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-center p-4 cursor-pointer w-full">
             <input type="checkbox"
-                   id="aiProcessedTag"
+                   id="addAiProcessedTag"
                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                    <%= config.ADD_AI_PROCESSED_TAG ? 'checked' : '' %>>
             <div class="ml-3">
@@ -889,17 +939,17 @@ const isSetup = variant === 'setup';
             </div>
           </label>
           <input type="hidden"
-                 id="aiProcessedTagValue"
-                 name="aiProcessedTag"
+                 id="addAiProcessedTagValue"
+                 name="addAiProcessedTag"
                  value="<%= config.ADD_AI_PROCESSED_TAG ? 'true' : 'false' %>">
         </div>
       </div>
 
       <div id="aiTagNameSection" class="<%= config.ADD_AI_PROCESSED_TAG ? '' : 'hidden' %> space-y-2">
-        <label for="aiTagName" class="text-sm font-medium">AI-processed tag name</label>
+        <label for="aiProcessedTagName" class="text-sm font-medium">AI-processed tag name</label>
         <input type="text"
-            id="aiTagName"
-            name="aiTagName"
+            id="aiProcessedTagName"
+            name="aiProcessedTagName"
             value="<%= config.AI_PROCESSED_TAG_NAME || 'ai-processed' %>"
             class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="ai-processed">
@@ -912,7 +962,7 @@ const isSetup = variant === 'setup';
         <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
           <label class="flex items-center p-4 cursor-pointer w-full">
             <input type="checkbox"
-                   id="usePromptTags"
+                   id="aiUsePromptTags"
                    class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                    <%= config.AI_USE_PROMPT_TAGS ? 'checked' : '' %>>
             <div class="ml-3">
@@ -924,8 +974,8 @@ const isSetup = variant === 'setup';
             </div>
           </label>
           <input type="hidden"
-                 id="usePromptTagsValue"
-                 name="usePromptTags"
+                 id="aiUsePromptTagsValue"
+                 name="aiUsePromptTags"
                  value="<%= config.AI_USE_PROMPT_TAGS ? 'true' : 'false' %>">
         </div>
       </div>
@@ -954,7 +1004,7 @@ const isSetup = variant === 'setup';
                 <% }); %>
             <% } %>
           </div>
-          <input type="hidden" id="promptTags" name="promptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
+          <input type="hidden" id="aiPromptTags" name="aiPromptTags" value="<%= Array.isArray(config.AI_PROMPT_TAGS) ? config.AI_PROMPT_TAGS.join(',') : '' %>">
           <p class="text-sm text-gray-500">These tags will be exclusively used in the AI prompt</p>
         </div>
       </div>
@@ -995,12 +1045,12 @@ const isSetup = variant === 'setup';
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateDocumentType" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="documentType" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateDocumentType"
-                    name="activateDocumentType"
+                    id="documentType"
+                    name="documentType"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_DOCUMENT_TYPE ? 'checked' : '' %>>
+                    <%= config.ENABLE_DOCUMENT_TYPE ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-file-alt mr-2 text-blue-500"></i>
@@ -1012,12 +1062,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateTitle" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="title" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateTitle"
-                    name="activateTitle"
+                    id="title"
+                    name="title"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_TITLE ? 'checked' : '' %>>
+                    <%= config.ENABLE_TITLE ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-heading mr-2 text-blue-500"></i>
@@ -1029,12 +1079,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateDocumentDate" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="documentDate" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateDocumentDate"
-                    name="activateDocumentDate"
+                    id="documentDate"
+                    name="documentDate"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_DOCUMENT_DATE ? 'checked' : '' %>>
+                    <%= config.ENABLE_DOCUMENT_DATE ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-calendar-alt mr-2 text-blue-500"></i>
@@ -1046,12 +1096,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateLanguage" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="language" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateLanguage"
-                    name="activateLanguage"
+                    id="language"
+                    name="language"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_LANGUAGE ? 'checked' : '' %>>
+                    <%= config.ENABLE_LANGUAGE ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-language mr-2 text-blue-500"></i>
@@ -1063,12 +1113,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateTagging" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="tags" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateTagging"
-                    name="activateTagging"
+                    id="tags"
+                    name="tags"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_TAGGING ? 'checked' : '' %>>
+                    <%= config.ENABLE_TAGS ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-tags mr-2 text-blue-500"></i>
@@ -1080,12 +1130,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateCorrespondent" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="correspondent" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateCorrespondent"
-                    name="activateCorrespondent"
+                    id="correspondent"
+                    name="correspondent"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_CORRESPONDENT ? 'checked' : '' %>>
+                    <%= config.ENABLE_CORRESPONDENT ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-user mr-2 text-blue-500"></i>
@@ -1097,12 +1147,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateContent" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="content" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateContent"
-                    name="activateContent"
+                    id="content"
+                    name="content"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_CONTENT ? 'checked' : '' %>>
+                    <%= config.ENABLE_CONTENT ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-align-left mr-2 text-blue-500"></i>
@@ -1114,12 +1164,12 @@ const isSetup = variant === 'setup';
             </div>
 
             <div class="border border-gray-200 shadow-sm rounded-lg hover:border-blue-500 transition-colors duration-200">
-              <label for="activateCustomFields" class="flex items-center p-4 cursor-pointer w-full">
+              <label for="customFields" class="flex items-center p-4 cursor-pointer w-full">
                 <input type="checkbox"
-                    id="activateCustomFields"
-                    name="activateCustomFields"
+                    id="customFields"
+                    name="customFields"
                     class="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-                    <%= config.ACTIVATE_CUSTOM_FIELDS ? 'checked' : '' %>>
+                    <%= config.ENABLE_CUSTOM_FIELDS ? 'checked' : '' %>>
                 <div class="ml-3">
                   <div class="flex items-center text-gray-900 font-medium">
                     <i class="fas fa-filter mr-2 text-blue-500"></i>
@@ -1266,18 +1316,18 @@ const isSetup = variant === 'setup';
         </div>
 
         <input type="hidden"
-               id="customFieldsJson"
-               name="customFields"
+               id="aiCustomFields"
+               name="aiCustomFields"
                value="<%= config.AI_CUSTOM_FIELDS || '{\"custom_fields\":[]}' %>">
       </div>
     </section>
 
     <div class="border-t pt-4 space-y-4">
       <div class="space-y-2">
-        <label for="systemPrompt" class="text-sm font-medium">Prompt description</label>
+        <label for="aiSystemPrompt" class="text-sm font-medium">Prompt description</label>
         <div class="space-y-2">
-          <textarea id="systemPrompt"
-                    name="systemPrompt"
+          <textarea id="aiSystemPrompt"
+                    name="aiSystemPrompt"
                     rows="6"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Describe how the AI should analyze your documents..."><%= config.AI_SYSTEM_PROMPT %></textarea>

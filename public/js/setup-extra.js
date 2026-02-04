@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', (event) => {
-    const systemPromptTextarea = document.getElementById('systemPrompt');
+    const systemPromptTextarea = document.getElementById('aiSystemPrompt');
     systemPromptTextarea.value = systemPromptTextarea.value.replace(/\\n/g, '\n');
 });
 
@@ -144,7 +144,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Paperless-NGX API Connection',
             text: 'Enter the API URL of your Paperless-NGX instance. This is required for the AI to access and process your documents.',
             attachTo: {
-                element: '#paperlessUrl',
+                element: '#paperlessApiUrl',
                 on: 'right'
             },
             buttons: [
@@ -160,23 +160,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'API Token',
             text: 'Provide a valid API Token for authentication. This ensures Paperless-AI can interact securely with Paperless-NGX.',
             attachTo: {
-                element: '#paperlessToken',
-                on: 'right'
-            },
-            buttons: [
-                {
-                    text: 'Next',
-                    action: () => tour.next()
-                }
-            ],
-            beforeShow: () => switchToTab('connection-tab')
-        },
-        {
-            id: 'paperless-username',
-            title: 'Paperless-ngx Username',
-            text: 'Specify the username used in Paperless-NGX for API authentication.',
-            attachTo: {
-                element: '#paperlessUsername',
+                element: '#paperlessApiToken',
                 on: 'right'
             },
             buttons: [
@@ -208,7 +192,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Use Existing Data',
             text: 'Enable this option to reuse existing Paperless-NGX correspondents and tags for document classification. <br> <b>Note:</b> This will improve AI accuracy and reduce manual corrections. BUT if you have a vast amount of data, it may overload the Token limit.',
             attachTo: {
-                element: '#useExistingData',
+                element: '#aiUseExistingData',
                 on: 'right'
             },
             buttons: [
@@ -240,7 +224,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Process only specific tagged documents',
             text: 'Enable this to process only documents with specific tags. This is useful for targeted automation. For example, all documents tagged "invoices" will be processed by AI.',
             attachTo: {
-                element: '#showTags',
+                element: '#filterDocuments',
                 on: 'right'
             },
             buttons: [
@@ -256,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI-Processed Tag',
             text: 'Enable this to mark AI-processed documents with a specific tag (e.g., "ai-processed"). This helps differentiate AI-analyzed files.',
             attachTo: {
-                element: '#aiProcessedTag',
+                element: '#addAiProcessedTag',
                 on: 'right'
             },
             buttons: [
@@ -288,7 +272,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI Tag Assignment',
             text: 'Enable this feature to allow AI to automatically assign relevant tags to documents based on content analysis.',
             attachTo: {
-                element: '#activateTagging',
+                element: '#tags',
                 on: 'right'
             },
             buttons: [
@@ -304,7 +288,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI Correspondent Detection',
             text: 'When enabled, AI will attempt to extract the senders name and link it to an existing Paperless-NGX correspondent.',
             attachTo: {
-                element: '#activateCorrespondent',
+                element: '#correspondent',
                 on: 'right'
             },
             buttons: [
@@ -320,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Document Type Classification',
             text: 'This feature allows AI to classify documents automatically, e.g., invoices, contracts, receipts.',
             attachTo: {
-                element: '#activateDocumentType',
+                element: '#documentType',
                 on: 'right'
             },
             buttons: [
@@ -336,7 +320,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Title Generation',
             text: 'AI can generate meaningful titles for documents based on their content.',
             attachTo: {
-                element: '#activateTitle',
+                element: '#title',
                 on: 'right'
             },
             buttons: [
@@ -352,7 +336,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Custom Fields',
             text: 'AI will try to extract additional metadata fields from documents based on your configuration. </br><b>NOTE:</b> This requires careful setup and testing. Vague or incorrect fields may lead to inaccurate results.',
             attachTo: {
-                element: '#activateCustomFields',
+                element: '#customFields',
                 on: 'right'
             },
             buttons: [
@@ -384,7 +368,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI System Prompt',
             text: 'Provide a system prompt that defines how AI should analyze and categorize your documents.',
             attachTo: {
-                element: '#systemPrompt',
+                element: '#aiSystemPrompt',
                 on: 'right'
             },
             buttons: [
@@ -398,7 +382,7 @@ document.addEventListener("DOMContentLoaded", function() {
         {
             id: 'save-config',
             title: 'Save Configuration',
-            text: 'Click "Save Configuration" to apply all your settings and activate Paperless-AI automation.',
+            text: 'Click "Save Configuration" to apply all your settings and enable Paperless-AI automation.',
             attachTo: {
                 element: '.submit-btn',
                 on: 'top'

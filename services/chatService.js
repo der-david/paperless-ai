@@ -26,18 +26,18 @@ class ChatService {
     this.chats = new Map(); // Stores chat histories: documentId -> messages[]
     this.tempDir = path.join(os.tmpdir(), 'paperless-chat');
     this.paperlessService = paperlessService;
-    this.aiProvider = aiProvider || process.env.AI_PROVIDER;
-    this.openaiApiKey = openaiApiKey || process.env.OPENAI_API_KEY;
-    this.openaiModel = openaiModel || process.env.OPENAI_MODEL;
-    this.customApiKey = customApiKey || process.env.CUSTOM_API_KEY;
-    this.customApiUrl = customApiUrl || process.env.CUSTOM_BASE_URL;
-    this.customModel = customModel || process.env.CUSTOM_MODEL;
-    this.azureApiKey = azureApiKey || process.env.AZURE_API_KEY;
-    this.azureEndpoint = azureEndpoint || process.env.AZURE_ENDPOINT;
-    this.azureDeploymentName = azureDeploymentName || process.env.AZURE_DEPLOYMENT_NAME;
-    this.azureApiVersion = azureApiVersion || process.env.AZURE_API_VERSION;
-    this.ollamaApiUrl = ollamaApiUrl || process.env.OLLAMA_API_URL;
-    this.ollamaModel = ollamaModel || process.env.OLLAMA_MODEL;
+    this.aiProvider = aiProvider;
+    this.openaiApiKey = openaiApiKey;
+    this.openaiModel = openaiModel;
+    this.customApiKey = customApiKey;
+    this.customApiUrl = customApiUrl;
+    this.customModel = customModel;
+    this.azureApiKey = azureApiKey;
+    this.azureEndpoint = azureEndpoint;
+    this.azureDeploymentName = azureDeploymentName;
+    this.azureApiVersion = azureApiVersion;
+    this.ollamaApiUrl = ollamaApiUrl;
+    this.ollamaModel = ollamaModel;
 
     // Create temporary directory if it doesn't exist
     if (!fs.existsSync(this.tempDir)) {
@@ -146,7 +146,7 @@ class ChatService {
       res.setHeader('Connection', 'keep-alive');
 
       let fullResponse = '';
-      const aiProvider = this.aiProvider || process.env.AI_PROVIDER;
+      const aiProvider = this.aiProvider;
 
       if (aiProvider === 'openai') {
         // Make sure OpenAIService is initialized

@@ -12,16 +12,16 @@ const parseEnvBoolean = (value, defaultValue = true) => {
   return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'on';
 };
 
-// Initialize limit functions with defaults
-const limitFunctions = {
-  activateTagging: parseEnvBoolean(process.env.ACTIVATE_TAGGING, true),
-  activateCorrespondent: parseEnvBoolean(process.env.ACTIVATE_CORRESPONDENT, true),
-  activateDocumentType: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_TYPE, true),
-  activateTitle: parseEnvBoolean(process.env.ACTIVATE_TITLE, true),
-  activateDocumentDate: parseEnvBoolean(process.env.ACTIVATE_DOCUMENT_DATE, true),
-  activateLanguage: parseEnvBoolean(process.env.ACTIVATE_LANGUAGE, true),
-  activateContent: parseEnvBoolean(process.env.ACTIVATE_CONTENT, false),
-  activateCustomFields: parseEnvBoolean(process.env.ACTIVATE_CUSTOM_FIELDS, true)
+// Initialize update enablement flags with defaults
+const enableUpdates = {
+  tags: parseEnvBoolean(process.env.ENABLE_TAGS, true),
+  correspondent: parseEnvBoolean(process.env.ENABLE_CORRESPONDENT, true),
+  documentType: parseEnvBoolean(process.env.ENABLE_DOCUMENT_TYPE, true),
+  title: parseEnvBoolean(process.env.ENABLE_TITLE, true),
+  documentDate: parseEnvBoolean(process.env.ENABLE_DOCUMENT_DATE, true),
+  language: parseEnvBoolean(process.env.ENABLE_LANGUAGE, true),
+  content: parseEnvBoolean(process.env.ENABLE_CONTENT, false),
+  customFields: parseEnvBoolean(process.env.ENABLE_CUSTOM_FIELDS, true)
 };
 
 // Initialize AI restrictions with defaults
@@ -59,7 +59,7 @@ const ai = {
   systemPrompt: process.env.AI_SYSTEM_PROMPT || '',
   usePromptTags: parseEnvBoolean(process.env.AI_USE_PROMPT_TAGS, false),
   promptTags: process.env.AI_PROMPT_TAGS || '',
-  limitFunctions,
+  enableUpdates,
   restrictToExisting,
   specialPromptPreDefinedTags: `You are a document analysis AI. You will analyze the document.
   You take the main information to associate tags with the document.
@@ -96,7 +96,7 @@ const ai = {
 console.log('Loaded environment variables:', {
   PAPERLESS_API_URL: process.env.PAPERLESS_API_URL,
   PAPERLESS_API_TOKEN: '******',
-  LIMIT_FUNCTIONS: limitFunctions,
+  ENABLE_UPDATES: enableUpdates,
   AI_RESTRICTIONS: restrictToExisting,
   EXTERNAL_API: externalApiConfig.enabled ? 'enabled' : 'disabled'
 });
@@ -105,15 +105,14 @@ module.exports = {
   PAPERLESS_AI_VERSION: '3.0.9',
   CONFIGURED: false,
   disableAutomaticProcessing: parseEnvBoolean(process.env.DISABLE_AUTOMATIC_PROCESSING, false),
-  predefinedMode: parseEnvBoolean(process.env.PROCESS_PREDEFINED_DOCUMENTS, false),
+  filterDocuments: parseEnvBoolean(process.env.FILTER_DOCUMENTS, false),
   addAIProcessedTag: parseEnvBoolean(process.env.ADD_AI_PROCESSED_TAG, false),
   addAIProcessedTags: process.env.AI_PROCESSED_TAG_NAME || 'ai-processed',
   // External API config
   externalApiConfig: externalApiConfig,
   paperless: {
     apiUrl: process.env.PAPERLESS_API_URL,
-    apiToken: process.env.PAPERLESS_API_TOKEN,
-    username: process.env.PAPERLESS_USERNAME || ''
+    apiToken: process.env.PAPERLESS_API_TOKEN
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY,
@@ -138,10 +137,11 @@ module.exports = {
   },
   aiProvider: process.env.AI_PROVIDER || 'openai',
   scanInterval: process.env.SCAN_INTERVAL || '*/30 * * * *',
-  tags: process.env.TAGS || '',
+  filterIncludeTags: process.env.FILTER_INCLUDE_TAGS || 'inbox',
+  filterExcludeTags: process.env.FILTER_EXCLUDE_TAGS || 'no-AI',
   ai,
   // AI restrictions config
   restrictToExisting,
-  // Add limit functions to config
-  limitFunctions,
+  // Add update enablement flags to config
+  enableUpdates,
 };
