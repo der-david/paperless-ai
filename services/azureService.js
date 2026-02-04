@@ -109,6 +109,7 @@ class AzureOpenAIService extends BaseAIService {
       }
 
       let systemPrompt = '';
+      const resolvedSystemPrompt = (config.systemPrompt || '').replace('%PROMPT_TAGS%', config.promptTags || '');
       let promptTags = '';
       const model = this.deploymentName;
 
@@ -126,11 +127,11 @@ class AzureOpenAIService extends BaseAIService {
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
         Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
-        ` + config.systemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
+        ` + resolvedSystemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
         promptTags = '';
       } else {
         config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
-        systemPrompt += config.systemPrompt + '\n\n' + config.mustHavePrompt;
+        systemPrompt += resolvedSystemPrompt + '\n\n' + config.mustHavePrompt;
         promptTags = '';
       }
 
@@ -152,7 +153,7 @@ class AzureOpenAIService extends BaseAIService {
         promptTags = config.promptTags;
         systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
-        ` + config.specialPromptPreDefinedTags;
+        ` + resolvedSystemPrompt;
       }
 
       if (customPrompt) {

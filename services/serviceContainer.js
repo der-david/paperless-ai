@@ -19,18 +19,24 @@ class ServiceContainer {
     return this.config;
   }
 
+  refreshConfig(config) {
+    this.config = config || {};
+    this.aiServiceFactory = null;
+    for (const key of this.instances.keys()) {
+      if (key === 'configService' || key === 'setupService') {
+        continue;
+      }
+      this.instances.delete(key);
+    }
+  }
+
   getPaperlessService() {
     if (!this.instances.has('paperlessService')) {
       const paperlessConfig = this.config.paperless || {};
       const paperlessSettings = {
         restrictToExisting: this.config.restrictToExisting,
-        postProcessAddTags: this.config.postProcessAddTags,
-        postProcessTagsToAdd: this.config.postProcessTagsToAdd,
-        postProcessRemoveTags: this.config.postProcessRemoveTags,
-        postProcessTagsToRemove: this.config.postProcessTagsToRemove,
-        filterDocuments: this.config.filterDocuments,
-        filterIncludeTags: this.config.filterIncludeTags,
-        filterExcludeTags: this.config.filterExcludeTags
+        postProcessing: this.config.postProcessing,
+        processing: this.config.processing
       };
       this.instances.set('paperlessService', new PaperlessService({
         apiUrl: paperlessConfig.apiUrl,
@@ -50,7 +56,7 @@ class ServiceContainer {
 
   getExternalApiService() {
     if (!this.instances.has('externalApiService')) {
-      const externalConfig = this.config.externalApiConfig || {};
+      const externalConfig = this.config.externalApi || {};
       const service = new ExternalApiService({
         enabled: externalConfig.enabled,
         url: externalConfig.url,

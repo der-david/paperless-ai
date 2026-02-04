@@ -106,6 +106,7 @@ class CustomOpenAIService extends BaseAIService {
       }
 
       let systemPrompt = '';
+      const resolvedSystemPrompt = (config.systemPrompt || '').replace('%PROMPT_TAGS%', config.promptTags || '');
       let promptTags = '';
       const model = this.model;
 
@@ -123,11 +124,11 @@ class CustomOpenAIService extends BaseAIService {
         Pre-existing tags: ${existingTagsList}\n\n
         Pre-existing correspondents: ${existingCorrespondentList}\n\n
         Pre-existing document types: ${existingDocumentTypesList.join(', ')}\n\n
-        ` + config.systemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
+        ` + resolvedSystemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
         promptTags = '';
       } else {
         config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', promptCustomFieldsStr);
-        systemPrompt += config.systemPrompt + '\n\n' + config.mustHavePrompt;
+        systemPrompt += resolvedSystemPrompt + '\n\n' + config.mustHavePrompt;
         promptTags = '';
       }
 
@@ -149,7 +150,7 @@ class CustomOpenAIService extends BaseAIService {
         promptTags = config.promptTags;
         systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
-        ` + config.specialPromptPreDefinedTags;
+        ` + resolvedSystemPrompt;
       }
 
       // Custom prompt override if provided

@@ -2125,6 +2125,15 @@
                     "description": "OpenAI model to use for analysis",
                     "example": "gpt-4"
                   },
+                  "openaiSystemPromptRole": {
+                    "type": "string",
+                    "description": "Role to use for the system prompt (OpenAI)",
+                    "enum": [
+                      "system",
+                      "developer"
+                    ],
+                    "example": "system"
+                  },
                   "ollamaApiUrl": {
                     "type": "string",
                     "description": "URL for Ollama API (required when aiProvider is 'ollama')",
@@ -2150,15 +2159,20 @@
                     "description": "Model name for custom LLM provider",
                     "example": "custom-model"
                   },
-                  "scanInterval": {
+                  "processingJobInterval": {
                     "type": "number",
                     "description": "Interval in minutes for scanning new documents",
                     "example": 15
                   },
-                  "enableAutomaticProcessing": {
+                  "processingEnableJob": {
                     "type": "boolean",
                     "description": "Enable automatic document processing",
                     "example": false
+                  },
+                  "processingEnableWebhook": {
+                    "type": "boolean",
+                    "description": "Enable webhook processing",
+                    "example": true
                   },
                   "aiSystemPrompt": {
                     "type": "string",
@@ -2200,22 +2214,22 @@
                     "description": "Comma-separated list of tags to exclude (takes precedence)",
                     "example": "no-AI,ignore"
                   },
-                  "postProcessAddTags": {
+                  "postProcessingAddTags": {
                     "type": "boolean",
                     "description": "Whether to add a tag for AI-processed documents",
                     "example": true
                   },
-                  "postProcessTagsToAdd": {
+                  "postProcessingTagsToAdd": {
                     "type": "string",
                     "description": "Comma-separated list of tags to add after AI processing",
                     "example": "ai-processed,reviewed"
                   },
-                  "postProcessRemoveTags": {
+                  "postProcessingRemoveTags": {
                     "type": "boolean",
                     "description": "Whether to remove tags after processing",
                     "example": false
                   },
-                  "postProcessTagsToRemove": {
+                  "postProcessingTagsToRemove": {
                     "type": "string",
                     "description": "Comma-separated list of tags to remove after processing",
                     "example": "inbox,no-ai"
@@ -3054,6 +3068,15 @@
                     "description": "OpenAI model to use for analysis",
                     "example": "gpt-4"
                   },
+                  "openaiSystemPromptRole": {
+                    "type": "string",
+                    "description": "Role to use for the system prompt (OpenAI)",
+                    "enum": [
+                      "system",
+                      "developer"
+                    ],
+                    "example": "system"
+                  },
                   "ollamaApiUrl": {
                     "type": "string",
                     "description": "URL for Ollama API (required when aiProvider is 'ollama')",
@@ -3079,7 +3102,7 @@
                     "description": "Model name for custom LLM provider",
                     "example": "custom-model"
                   },
-                  "scanInterval": {
+                  "processingJobInterval": {
                     "type": "number",
                     "description": "Interval in minutes for scanning new documents",
                     "example": 15
@@ -3134,22 +3157,22 @@
                     "description": "Comma-separated list of tags to exclude (takes precedence)",
                     "example": "no-AI,ignore"
                   },
-                  "postProcessAddTags": {
+                  "postProcessingAddTags": {
                     "type": "boolean",
                     "description": "Whether to add a tag for AI-processed documents",
                     "example": true
                   },
-                  "postProcessTagsToAdd": {
+                  "postProcessingTagsToAdd": {
                     "type": "string",
                     "description": "Comma-separated list of tags to add after AI processing",
                     "example": "ai-processed,reviewed"
                   },
-                  "postProcessRemoveTags": {
+                  "postProcessingRemoveTags": {
                     "type": "boolean",
                     "description": "Whether to remove tags after processing",
                     "example": false
                   },
-                  "postProcessTagsToRemove": {
+                  "postProcessingTagsToRemove": {
                     "type": "string",
                     "description": "Comma-separated list of tags to remove after processing",
                     "example": "inbox,no-ai"
@@ -3204,10 +3227,15 @@
                     "description": "JSON string defining custom fields to extract",
                     "example": "{\"invoice_number\":{\"type\":\"string\"},\"total_amount\":{\"type\":\"number\"}}"
                   },
-                  "enableAutomaticProcessing": {
+                  "processingEnableJob": {
                     "type": "boolean",
                     "description": "Enable automatic document processing",
                     "example": false
+                  },
+                  "processingEnableWebhook": {
+                    "type": "boolean",
+                    "description": "Enable webhook processing",
+                    "example": true
                   }
                 }
               }

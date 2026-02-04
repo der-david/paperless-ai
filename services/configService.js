@@ -1,5 +1,7 @@
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const path = require('path');
+const dotenv = require('dotenv');
 const OpenAIService = require('./openaiService');
 const CustomOpenAIService = require('./customService');
 const AzureOpenAIService = require('./azureService');
@@ -8,34 +10,40 @@ const PaperlessService = require('./paperlessService');
 
 class ConfigService {
   static DEFAULTS = {
+    PAPERLESS_AI_VERSION: '3.0.9',
+    API_KEY: '',
+    JWT_SECRET: '',
     PAPERLESS_API_URL: 'http://localhost:8000',
     PAPERLESS_API_TOKEN: '',
     AI_PROVIDER: 'openai',
     OPENAI_API_KEY: '',
     OPENAI_MODEL: 'gpt-4o-mini',
     OPENAI_GIZMO_ID: '',
+    OPENAI_SYSTEM_PROMPT_ROLE: 'system',
     OLLAMA_API_URL: 'http://localhost:11434',
     OLLAMA_MODEL: 'llama3.2',
-    SCAN_INTERVAL: '*/30 * * * *',
-    AI_SYSTEM_PROMPT: '',
-    FILTER_DOCUMENTS: false,
-    FILTER_INCLUDE_TAGS: ['inbox'],
-    FILTER_EXCLUDE_TAGS: ['no-AI'],
+    CUSTOM_API_KEY: '',
+    CUSTOM_BASE_URL: '',
+    CUSTOM_MODEL: '',
+    AZURE_ENDPOINT: '',
+    AZURE_API_KEY: '',
+    AZURE_DEPLOYMENT_NAME: '',
+    AZURE_API_VERSION: '',
     AI_TOKEN_LIMIT: 128000,
     AI_RESPONSE_TOKENS: 1000,
+    AI_CONTENT_MAX_LENGTH: null,
     AI_CONTENT_SOURCE_MODE: 'content',
     AI_RAW_DOCUMENT_MODE: 'text',
-    POST_PROCESS_ADD_TAGS: false,
-    POST_PROCESS_TAGS_TO_ADD: ['ai-processed'],
-    POST_PROCESS_REMOVE_TAGS: false,
-    POST_PROCESS_TAGS_TO_REMOVE: [],
     AI_USE_PROMPT_TAGS: false,
     AI_PROMPT_TAGS: [],
-    AI_CUSTOM_FIELDS: '{"custom_fields":[]}',
-    PAPERLESS_AI_VERSION: ' ',
+    PROCESSING_ENABLE_JOB: false,
+    PROCESSING_ENABLE_WEBHOOK: true,
     PROCESS_ONLY_NEW_DOCUMENTS: true,
+    PROCESSING_JOB_INTERVAL: '*/30 * * * *',
+    FILTER_DOCUMENTS: true,
+    FILTER_INCLUDE_TAGS: ['inbox'],
+    FILTER_EXCLUDE_TAGS: ['no-AI'],
     AI_USE_EXISTING_DATA: false,
-    ENABLE_AUTOMATIC_PROCESSING: false,
     ENABLE_TAGS: true,
     ENABLE_CORRESPONDENT: true,
     ENABLE_DOCUMENT_TYPE: true,
@@ -44,13 +52,37 @@ class ConfigService {
     ENABLE_LANGUAGE: true,
     ENABLE_CONTENT: false,
     ENABLE_CUSTOM_FIELDS: true,
-    CUSTOM_API_KEY: '',
-    CUSTOM_BASE_URL: '',
-    CUSTOM_MODEL: '',
-    AZURE_ENDPOINT: '',
-    AZURE_API_KEY: '',
-    AZURE_DEPLOYMENT_NAME: '',
-    AZURE_API_VERSION: '',
+    AI_SYSTEM_PROMPT: `You are a document analysis AI. You will analyze the document.
+You take the main information to associate tags with the document.
+You will also find the correspondent of the document (Sender not receiver). Also you find a meaningful and short title for the document.
+You are given a list of tags: %PROMPT_TAGS%
+Only use the tags from the list and try to find the best fitting tags.
+You do not ask for additional information, you only use the information given in the document.
+
+Return the result EXCLUSIVELY as a JSON object. The Tags and Title MUST be in the language that is used in the document.:
+{
+  "title": "xxxxx",
+  "content": "xxxxx",
+  "correspondent": "xxxxxxxx",
+  "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
+  "document_date": "YYYY-MM-DD",
+  "language": "en/de/es/..."
+}`,
+    AI_MUST_HAVE_PROMPT: `Return the result EXCLUSIVELY as a JSON object. The Tags, Title and Document_Type MUST be in the language that is used in the document.:
+IMPORTANT: The custom_fields are optional and can be left out if not needed, only try to fill out the values if you find a matching information in the document.
+Do not change the value of field_name, only fill out the values. If the field is about money only add the number without currency and always use a . for decimal places.
+When selecting a document_type, ONLY choose from the provided restricted list if available: %RESTRICTED_DOCUMENT_TYPES%
+{
+  "title": "xxxxx",
+  "content": "xxxxx",
+  "correspondent": "xxxxxxxx",
+  "tags": ["Tag1", "Tag2", "Tag3", "Tag4"],
+  "document_type": "Invoice/Contract/...",
+  "document_date": "YYYY-MM-DD",
+  "language": "en/de/es/...",
+  %CUSTOMFIELDS%
+}`,
+    AI_CUSTOM_FIELDS: '{"custom_fields":[]}',
     RESTRICT_TO_EXISTING_TAGS: false,
     RESTRICT_TO_EXISTING_CORRESPONDENTS: false,
     RESTRICT_TO_EXISTING_DOCUMENT_TYPES: false,
@@ -61,13 +93,17 @@ class ConfigService {
     EXTERNAL_API_BODY: '{}',
     EXTERNAL_API_TIMEOUT: 5000,
     EXTERNAL_API_TRANSFORM: '',
-    API_KEY: '',
-    JWT_SECRET: ''
+    POST_PROCESSING_ADD_TAGS: false,
+    POST_PROCESSING_TAGS_TO_ADD: ['ai-processed'],
+    POST_PROCESSING_REMOVE_TAGS: false,
+    POST_PROCESSING_TAGS_TO_REMOVE: []
   };
 
   constructor({ envPath } = {}) {
     this.envPath = envPath || path.join(process.cwd(), 'data', '.env');
     this.configured = null;
+    this.runtimeConfig = null;
+    this.flatConfig = null;
   }
 
   parseBoolean(value, defaultValue = false) {
@@ -104,6 +140,11 @@ class ConfigService {
       return undefined;
     }
 
+    if (defaultValue === null) {
+      const parsed = Number(value);
+      return Number.isNaN(parsed) ? undefined : parsed;
+    }
+
     if (Array.isArray(defaultValue)) {
       return this.normalizeArray(value);
     }
@@ -136,33 +177,91 @@ class ConfigService {
     return config;
   }
 
+  isValidOverride(key, value, defaultValue) {
+    const typedValue = this.coerceValueToDefaultType(value, defaultValue);
+    if (typedValue === undefined) {
+      return undefined;
+    }
+
+    if (key === 'AI_PROVIDER') {
+      const allowed = new Set(['openai', 'ollama', 'custom', 'azure']);
+      return allowed.has(String(typedValue)) ? typedValue : undefined;
+    }
+    if (key === 'AI_CONTENT_SOURCE_MODE') {
+      const allowed = new Set(['content', 'raw_document', 'both']);
+      return allowed.has(String(typedValue)) ? typedValue : undefined;
+    }
+    if (key === 'AI_RAW_DOCUMENT_MODE') {
+      const allowed = new Set(['text', 'file', 'image']);
+      return allowed.has(String(typedValue)) ? typedValue : undefined;
+    }
+
+    return typedValue;
+  }
+
+  toEnvValue(value) {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'boolean') return this.toEnvBoolean(value);
+    if (Array.isArray(value)) return value.join(',');
+    return String(value);
+  }
+
+  readEnvFileSync() {
+    try {
+      const envContent = fsSync.readFileSync(this.envPath, 'utf8');
+      return dotenv.parse(envContent);
+    } catch (error) {
+      return {};
+    }
+  }
+
+  applyOverrides(target, source) {
+    Object.entries(ConfigService.DEFAULTS).forEach(([key, defaultValue]) => {
+      if (!Object.prototype.hasOwnProperty.call(source, key)) {
+        return;
+      }
+      const validated = this.isValidOverride(key, source[key], defaultValue);
+      if (validated !== undefined) {
+        target[key] = validated;
+      }
+    });
+  }
+
+  getMergedConfigSync({ applyToEnv = true } = {}) {
+    const mergedConfig = { ...ConfigService.DEFAULTS };
+
+    const fileConfig = this.readEnvFileSync();
+    this.applyOverrides(mergedConfig, fileConfig);
+    this.applyOverrides(mergedConfig, process.env);
+
+    if (applyToEnv) {
+      const envMap = {};
+      Object.entries(mergedConfig).forEach(([key, value]) => {
+        envMap[key] = this.toEnvValue(value);
+      });
+      dotenv.populate(process.env, envMap, { override: true });
+    }
+
+    this.flatConfig = mergedConfig;
+    return mergedConfig;
+  }
+
   async loadConfig() {
     try {
       const envContent = await fs.readFile(this.envPath, 'utf8');
-      const config = {};
-      envContent.split('\n').forEach(line => {
-        const [key, value] = line.split('=');
-        if (key && value) {
-          config[key.trim()] = value.trim();
-        }
-      });
-      return config;
+      return dotenv.parse(envContent);
     } catch (error) {
       console.error('Error loading config:', error.message);
       return null;
     }
   }
 
-  buildBaseConfig(configFile) {
-    const baseConfig = {};
-    Object.entries(ConfigService.DEFAULTS).forEach(([key, defaultValue]) => {
-      baseConfig[key] = this.coerceValueWithDefault(process.env[key], defaultValue);
-    });
-
-    baseConfig.PAPERLESS_API_URL = (baseConfig.PAPERLESS_API_URL || ConfigService.DEFAULTS.PAPERLESS_API_URL).replace(/\/api$/, '');
-    baseConfig.PAPERLESS_AI_VERSION = configFile?.PAPERLESS_AI_VERSION || ConfigService.DEFAULTS.PAPERLESS_AI_VERSION;
-
-    return this.coerceConfigValues(baseConfig);
+  buildBaseConfig() {
+    const baseConfig = this.getMergedConfigSync();
+    if (baseConfig.PAPERLESS_API_URL) {
+      baseConfig.PAPERLESS_API_URL = baseConfig.PAPERLESS_API_URL.replace(/\/api\/?$/, '');
+    }
+    return this.coerceConfigValues({ ...baseConfig });
   }
 
   mergeSavedConfig(baseConfig, savedConfig) {
@@ -177,29 +276,130 @@ class ConfigService {
     return this.coerceConfigValues({ ...baseConfig, ...savedConfig });
   }
 
+  buildRuntimeConfig(flatConfig = null) {
+    const config = flatConfig || this.getMergedConfigSync();
+
+    const enableUpdates = {
+      tags: config.ENABLE_TAGS,
+      correspondent: config.ENABLE_CORRESPONDENT,
+      documentType: config.ENABLE_DOCUMENT_TYPE,
+      title: config.ENABLE_TITLE,
+      documentDate: config.ENABLE_DOCUMENT_DATE,
+      language: config.ENABLE_LANGUAGE,
+      content: config.ENABLE_CONTENT,
+      customFields: config.ENABLE_CUSTOM_FIELDS
+    };
+
+    const restrictToExisting = {
+      tags: config.RESTRICT_TO_EXISTING_TAGS,
+      correspondents: config.RESTRICT_TO_EXISTING_CORRESPONDENTS,
+      documentTypes: config.RESTRICT_TO_EXISTING_DOCUMENT_TYPES
+    };
+
+    const externalApi = {
+      enabled: config.EXTERNAL_API_ENABLED,
+      url: config.EXTERNAL_API_URL,
+      method: config.EXTERNAL_API_METHOD,
+      headers: config.EXTERNAL_API_HEADERS,
+      body: config.EXTERNAL_API_BODY,
+      timeout: config.EXTERNAL_API_TIMEOUT,
+      transformationTemplate: config.EXTERNAL_API_TRANSFORM
+    };
+
+    const ai = {
+      tokenLimit: config.AI_TOKEN_LIMIT,
+      responseTokens: config.AI_RESPONSE_TOKENS,
+      contentMaxLength: config.AI_CONTENT_MAX_LENGTH,
+      contentSourceMode: config.AI_CONTENT_SOURCE_MODE,
+      rawDocumentMode: config.AI_RAW_DOCUMENT_MODE,
+      customFields: config.AI_CUSTOM_FIELDS,
+      useExistingData: config.AI_USE_EXISTING_DATA,
+      systemPrompt: config.AI_SYSTEM_PROMPT,
+      systemPromptRole: config.OPENAI_SYSTEM_PROMPT_ROLE,
+      mustHavePrompt: config.AI_MUST_HAVE_PROMPT,
+      usePromptTags: config.AI_USE_PROMPT_TAGS,
+      promptTags: config.AI_PROMPT_TAGS
+    };
+
+    return {
+      version: config.PAPERLESS_AI_VERSION,
+      configured: config.CONFIGURED,
+      processing: {
+        enableJob: config.PROCESSING_ENABLE_JOB,
+        enableWebhook: config.PROCESSING_ENABLE_WEBHOOK,
+        jobInterval: config.PROCESSING_JOB_INTERVAL,
+        filter: {
+          enabled: config.FILTER_DOCUMENTS,
+          includeTags: config.FILTER_INCLUDE_TAGS,
+          excludeTags: config.FILTER_EXCLUDE_TAGS
+        }
+      },
+      postProcessing: {
+        addTags: config.POST_PROCESSING_ADD_TAGS,
+        tagsToAdd: config.POST_PROCESSING_TAGS_TO_ADD,
+        removeTags: config.POST_PROCESSING_REMOVE_TAGS,
+        tagsToRemove: config.POST_PROCESSING_TAGS_TO_REMOVE
+      },
+      externalApi,
+      paperless: {
+        apiUrl: config.PAPERLESS_API_URL,
+        apiToken: config.PAPERLESS_API_TOKEN
+      },
+      openai: {
+        apiKey: config.OPENAI_API_KEY,
+        model: config.OPENAI_MODEL,
+        systemPromptRole: config.OPENAI_SYSTEM_PROMPT_ROLE,
+        gizmoId: config.OPENAI_GIZMO_ID
+      },
+      ollama: {
+        apiUrl: config.OLLAMA_API_URL,
+        model: config.OLLAMA_MODEL
+      },
+      custom: {
+        apiUrl: config.CUSTOM_BASE_URL,
+        apiKey: config.CUSTOM_API_KEY,
+        model: config.CUSTOM_MODEL
+      },
+      azure: {
+        apiKey: config.AZURE_API_KEY,
+        endpoint: config.AZURE_ENDPOINT,
+        deploymentName: config.AZURE_DEPLOYMENT_NAME,
+        apiVersion: config.AZURE_API_VERSION
+      },
+      aiProvider: config.AI_PROVIDER,
+      ai,
+      restrictToExisting,
+      enableUpdates
+    };
+  }
+
+  getRuntimeConfig({ refresh = false } = {}) {
+    if (!this.runtimeConfig || refresh) {
+      const flatConfig = this.getMergedConfigSync();
+      this.runtimeConfig = this.buildRuntimeConfig(flatConfig);
+    }
+    return this.runtimeConfig;
+  }
+
   buildSetupConfigFromRequest({ body, processedPrompt, apiToken, jwtToken, processedCustomFields = [] }) {
-    const config = {};
-
-    Object.entries(ConfigService.DEFAULTS).forEach(([key, defaultValue]) => {
-      const payloadKey = this.toCamelCase(key);
-      if (Object.prototype.hasOwnProperty.call(body, payloadKey)) {
-        config[key] = this.coerceValueWithDefault(body[payloadKey], defaultValue);
-      } else {
-        config[key] = defaultValue;
-      }
+    const config = { ...this.getMergedConfigSync({ applyToEnv: false }) };
+    const payloadMap = {};
+    Object.entries(body || {}).forEach(([key, value]) => {
+      payloadMap[this.toSnakeCase(key)] = value;
     });
+    this.applyOverrides(config, payloadMap);
 
-    const paperlessApiBaseUrl = (body.paperlessApiUrl || ConfigService.DEFAULTS.PAPERLESS_API_URL).replace(/\/api\/?$/, '');
+    const paperlessApiBaseUrl = (body.paperlessApiUrl || config.PAPERLESS_API_URL || ConfigService.DEFAULTS.PAPERLESS_API_URL)
+      .replace(/\/api\/?$/, '');
     config.PAPERLESS_API_URL = `${paperlessApiBaseUrl}/api`;
-    config.PAPERLESS_API_TOKEN = body.paperlessApiToken ?? ConfigService.DEFAULTS.PAPERLESS_API_TOKEN;
-    config.AI_PROVIDER = body.aiProvider || ConfigService.DEFAULTS.AI_PROVIDER;
-    config.SCAN_INTERVAL = body.scanInterval || ConfigService.DEFAULTS.SCAN_INTERVAL;
+    if (Object.prototype.hasOwnProperty.call(body, 'paperlessApiToken')) {
+      config.PAPERLESS_API_TOKEN = body.paperlessApiToken ?? config.PAPERLESS_API_TOKEN;
+    }
     if (processedPrompt !== undefined) {
       config.AI_SYSTEM_PROMPT = processedPrompt;
     }
     config.API_KEY = apiToken || config.API_KEY;
     config.JWT_SECRET = jwtToken || config.JWT_SECRET;
-    config.OPENAI_GIZMO_ID = body.openaiGizmoId || ConfigService.DEFAULTS.OPENAI_GIZMO_ID;
     config.PAPERLESS_AI_INITIAL_SETUP = true;
 
     if (processedCustomFields.length > 0 || body.aiCustomFields) {
@@ -390,7 +590,7 @@ class ConfigService {
 
       const envContent = Object.entries(config)
         .map(([key, value]) => {
-          if (key === "AI_SYSTEM_PROMPT") {
+          if (key === "AI_SYSTEM_PROMPT" || key === "AI_MUST_HAVE_PROMPT") {
             return `${key}="${value}"`;
           }
           return `${key}=${value}`;
@@ -399,9 +599,13 @@ class ConfigService {
 
       await fs.writeFile(this.envPath, envContent);
 
+      const envMap = {};
       Object.entries(config).forEach(([key, value]) => {
-        process.env[key] = value;
+        envMap[key] = this.toEnvValue(value);
       });
+      dotenv.populate(process.env, envMap, { override: true });
+      this.runtimeConfig = null;
+      this.flatConfig = null;
     } catch (error) {
       console.error('Error saving config:', error.message);
       throw error;

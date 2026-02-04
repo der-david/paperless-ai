@@ -1,4 +1,4 @@
-const config = require('../config/config');
 const ServiceContainer = require('./serviceContainer');
+const configService = require('./configService');
 
-module.exports = new ServiceContainer(config);
+module.exports = new ServiceContainer(configService.getRuntimeConfig());

@@ -5,9 +5,12 @@ const parseBoolean = (value, defaultValue = false) => configService.parseBoolean
 const buildRequiredPaperlessPermissions = ({
   enableUpdates = {},
   restrictToExisting = {},
-  postProcessAddTags
+  postProcessingAddTags,
+  postProcessingRemoveTags
 } = {}) => {
-  const needsTagging = parseBoolean(enableUpdates.tags, true) || parseBoolean(postProcessAddTags, false);
+  const needsTagging = parseBoolean(enableUpdates.tags, true) ||
+    parseBoolean(postProcessingAddTags, false) ||
+    parseBoolean(postProcessingRemoveTags, false);
   const needsCorrespondent = parseBoolean(enableUpdates.correspondent, true);
   const needsDocumentType = parseBoolean(enableUpdates.documentType, true);
   const needsCustomFields = parseBoolean(enableUpdates.customFields, true);

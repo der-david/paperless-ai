@@ -182,6 +182,8 @@ const providerSettingsClass = isSetup ? 'provider-settings' : 'space-y-4';
       <input type="number"
              id="aiTokenLimit"
              name="aiTokenLimit"
+             min="1"
+             step="1"
              value="<%= config.AI_TOKEN_LIMIT %>"
              class="<%= inputClass %>"
              placeholder="Enter token limit of model">
@@ -192,6 +194,8 @@ const providerSettingsClass = isSetup ? 'provider-settings' : 'space-y-4';
       <input type="number"
              id="aiResponseTokens"
              name="aiResponseTokens"
+             min="0"
+             step="1"
              value="<%= config.AI_RESPONSE_TOKENS %>"
              class="<%= inputClass %>"
              placeholder="Enter approximate token amount for the response">

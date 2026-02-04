@@ -12,7 +12,11 @@ class AIServiceFactory {
   }
 
   _createService(provider) {
-    const aiSettings = this.config.ai || {};
+    const aiSettings = {
+      ...(this.config.ai || {}),
+      enableUpdates: this.config.enableUpdates,
+      restrictToExisting: this.config.restrictToExisting
+    };
 
     switch (provider) {
       case 'ollama':

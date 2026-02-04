@@ -208,7 +208,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'Scan Interval',
             text: 'Define the cron schedule for scanning new documents. Adjust this based on your automation needs.',
             attachTo: {
-                element: '#scanInterval',
+                element: '#processingJobInterval',
                 on: 'right'
             },
             buttons: [
@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", function() {
             title: 'AI-Processed Tag',
             text: 'Enable this to mark AI-processed documents with a specific tag (e.g., "ai-processed"). This helps differentiate AI-analyzed files.',
             attachTo: {
-                element: '#postProcessAddTags',
+                element: '#postProcessingAddTags',
                 on: 'right'
             },
             buttons: [
@@ -252,11 +252,11 @@ document.addEventListener("DOMContentLoaded", function() {
             beforeShow: () => switchToTab('advanced-tab')
         },
         {
-            id: 'enableAutomaticProcessing',
+            id: 'processingEnableJob',
             title: 'Enable Automatic Processing',
             text: 'Choose whether the AI should run automatically or only when triggered manually. This can be useful for testing and control.',
             attachTo: {
-                element: '#enableAutomaticProcessing',
+                element: '#processingEnableJob',
                 on: 'right'
             },
             buttons: [

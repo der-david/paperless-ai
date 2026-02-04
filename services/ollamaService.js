@@ -300,6 +300,8 @@ class OllamaService extends BaseAIService {
 
         const customFieldsStr = this._generateCustomFieldsTemplate();
 
+        const resolvedSystemPrompt = (config.systemPrompt || '').replace('%PROMPT_TAGS%', config.promptTags || '');
+
         // Get system prompt based on configuration
         if (config.useExistingData && !config.restrictToExisting.tags && !config.restrictToExisting.correspondents) {
             // Format existing tags
@@ -336,11 +338,11 @@ class OllamaService extends BaseAIService {
             Pre-existing tags: ${existingTagsList}\n\n
             Pre-existing correspondents: ${existingCorrespondentList}\n\n
             Pre-existing document types: ${existingDocumentTypesList}\n\n
-            ` + config.systemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
+            ` + resolvedSystemPrompt + '\n\n' + config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
             promptTags = '';
         } else {
             config.mustHavePrompt = config.mustHavePrompt.replace('%CUSTOMFIELDS%', customFieldsStr);
-            systemPrompt = config.systemPrompt + '\n\n' + config.mustHavePrompt;
+            systemPrompt = resolvedSystemPrompt + '\n\n' + config.mustHavePrompt;
             if (config.restrictToExisting.tags) {
                 systemPrompt = `You can ONLY use these tags: ${existingTagsList}\n\n` + systemPrompt;
             }
@@ -388,7 +390,7 @@ class OllamaService extends BaseAIService {
             promptTags = config.promptTags;
             systemPrompt += `
             Take these tags and try to match one or more to the document content.\n\n
-            ` + config.specialPromptPreDefinedTags;
+            ` + resolvedSystemPrompt;
         }
 
         return `${systemPrompt}

@@ -62,7 +62,9 @@ class OpenAIService extends BaseAIService {
       const now = new Date();
       const timestamp = now.toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' });
 
-      const envSystemPrompt = (config.systemPrompt || '').replace(/\\n/g, '\n');
+      const envSystemPrompt = (config.systemPrompt || '')
+        .replace(/\\n/g, '\n')
+        .replace('%PROMPT_TAGS%', config.promptTags || '');
       let systemPrompt = '';
       let promptTags = '';
       const baseModel = this.model || 'gpt-4o-mini';
@@ -174,7 +176,7 @@ class OpenAIService extends BaseAIService {
         promptTags = config.promptTags;
         systemPrompt += `
         Take these tags and try to match one or more to the document content.\n\n
-        ` + config.specialPromptPreDefinedTags;
+        ` + envSystemPrompt;
       }
 
       if (customPrompt) {

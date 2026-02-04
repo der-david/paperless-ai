@@ -6,7 +6,6 @@ const paperlessService = container.getPaperlessService();
 const { parseBoolean, buildRequiredPaperlessPermissions } = require('../services/setupUtils');
 const PaperlessService = require('../services/paperlessService');
 const documentModel = require('../models/document.js');
-const configFile = require('../config/config.js');
 const ChatService = container.getChatService();
 const documentsService = container.getDocumentsService();
 const RAGService = container.getRagService();
@@ -17,8 +16,7 @@ const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const { authenticateJWT, authenticateAPIKey, authenticateAPI, authenticateUI } = require('./auth.js');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const config = require('../config/config.js');
-require('dotenv').config({ path: '../data/.env' });
+const getRuntimeConfig = () => configService.getRuntimeConfig();
 
 
 /**
@@ -555,7 +553,7 @@ router.get('/playground', authenticateUI, async (req, res) => {
       tagNames,
       correspondentNames,
       paperlessApiUrl,
-      version: configFile.PAPERLESS_AI_VERSION || ' ',
+      version: getRuntimeConfig().version || ' ',
       active: 'playground',
       title: 'Paperless-AI Playground'
     });
@@ -704,7 +702,7 @@ router.get('/chat', authenticateUI, async (req, res) => {
   try {
       const {open} = req.query;
       const documents = await paperlessService.getDocuments();
-      const version = configFile.PAPERLESS_AI_VERSION || ' ';
+      const version = getRuntimeConfig().version || ' ';
       res.render('chat', { documents, open, version, active: 'chat', title: 'Paperless-AI Chat' });
   } catch (error) {
     console.error('loading documents:', error);
@@ -1047,7 +1045,7 @@ router.get('/history', authenticateUI, async (req, res) => {
       .filter(Boolean).sort();
 
     res.render('history', {
-      version: configFile.PAPERLESS_AI_VERSION,
+      version: getRuntimeConfig().version,
       filters: {
         allTags: allTags,
         allCorrespondents: allCorrespondents
@@ -1552,6 +1550,7 @@ router.post('/api/scan/now', authenticateAPI, async (req, res) => {
 });
 
 async function processDocument(doc, existingTags, existingCorrespondentList, existingDocumentTypesList, ownUserId, customPrompt = null) {
+  const config = getRuntimeConfig();
   const isProcessed = await documentModel.isDocumentProcessed(doc.id);
   if (isProcessed) return null;
   await documentModel.setProcessingStatus(doc.id, doc.title, 'processing');
@@ -1584,7 +1583,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   let externalApiData = null;
 
   // Get external API data if enabled
-  if (config.externalApiConfig.enabled === true) {
+  if (config.externalApi.enabled === true) {
     try {
       const externalApiService = container.getExternalApiService();
       const externalData = await externalApiService.fetchData();
@@ -1614,6 +1613,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
 }
 
 async function buildUpdateData(analysis, doc) {
+  const config = getRuntimeConfig();
   const updateData = {};
 
   // Create options object with restriction settings
@@ -1631,10 +1631,10 @@ async function buildUpdateData(analysis, doc) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.enableUpdates?.tags === false && config.addAIProcessedTag === true) {
+  } else if (config.enableUpdates?.tags === false && config.postProcessing.addTags === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     console.debug('Tagging is disabled but AI processed tag will be added');
-    const processedTags = Array.isArray(config.addAIProcessedTags) ? config.addAIProcessedTags : [];
+    const processedTags = Array.isArray(config.postProcessing.tagsToAdd) ? config.postProcessing.tagsToAdd : [];
     const { tagIds, errors } = await paperlessService.processTags(processedTags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
@@ -1772,15 +1772,16 @@ async function buildUpdateData(analysis, doc) {
 }
 
 async function saveDocumentChanges(docId, updateData, analysis, originalData) {
+  const config = getRuntimeConfig();
   const { tags: originalTags, correspondent: originalCorrespondent, title: originalTitle } = originalData;
 
   await documentModel.saveOriginalData(docId, originalTags, originalCorrespondent, originalTitle);
   await paperlessService.updateDocument(docId, updateData);
 
-  if (config.postProcessRemoveTags === true &&
-      config.postProcessTagsToRemove &&
-      (Array.isArray(config.postProcessTagsToRemove) ? config.postProcessTagsToRemove.length > 0 : String(config.postProcessTagsToRemove).trim() !== '')) {
-    await paperlessService.removeTagsFromDocument(docId, config.postProcessTagsToRemove);
+  if (config.postProcessing.removeTags === true &&
+      config.postProcessing.tagsToRemove &&
+      (Array.isArray(config.postProcessing.tagsToRemove) ? config.postProcessing.tagsToRemove.length > 0 : String(config.postProcessing.tagsToRemove).trim() !== '')) {
+    await paperlessService.removeTagsFromDocument(docId, config.postProcessing.tagsToRemove);
   }
 
   await Promise.all([
@@ -1849,24 +1850,13 @@ async function saveDocumentChanges(docId, updateData, analysis, originalData) {
  */
 router.post('/api/key-regenerate', authenticateAPI, async (req, res) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const dotenv = require('dotenv');
     const crypto = require('crypto');
-    const envPath = path.join(__dirname, '../data/', '.env');
-    const envConfig = dotenv.parse(fs.readFileSync(envPath));
     // Generiere ein neues API-Token
     const apiKey = crypto.randomBytes(32).toString('hex');
-    envConfig.API_KEY = apiKey;
-
-    // Schreibe die aktualisierte .env-Datei
-    const envContent = Object.entries(envConfig)
-      .map(([key, value]) => `${key}=${value}`)
-      .join('\n');
-    fs.writeFileSync(envPath, envContent);
-
-    // Setze die Umgebungsvariable für den aktuellen Prozess
-    process.env.API_KEY = apiKey;
+    const currentConfig = configService.getMergedConfigSync();
+    currentConfig.API_KEY = apiKey;
+    await configService.saveConfig(currentConfig);
+    container.refreshConfig(configService.getRuntimeConfig({ refresh: true }));
 
     // Sende die Antwort zurück
     res.json({ success: apiKey });
@@ -1921,7 +1911,8 @@ router.post('/api/key-regenerate', authenticateAPI, async (req, res) => {
  */
 router.get('/setup', async (req, res) => {
   try {
-    let config = configService.buildBaseConfig(configFile);
+    let config = configService.buildBaseConfig();
+    const runtimeConfig = getRuntimeConfig();
 
     // Check both configuration and users
     const [isEnvConfigured, users] = await Promise.all([
@@ -1959,7 +1950,7 @@ router.get('/setup', async (req, res) => {
     }
 
     // Render setup page with config and appropriate message
-    config.ai = configFile.ai;
+    config.ai = runtimeConfig.ai;
     res.render('setup', {
       config,
       success: successMessage,
@@ -2123,7 +2114,7 @@ router.get('/manual/preview/:id', authenticateAPI, async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/manual', authenticateUI, async (req, res) => {
-  const version = configFile.PAPERLESS_AI_VERSION || ' ';
+  const version = getRuntimeConfig().version || ' ';
   res.render('manual', {
     title: 'Paperless-AI Manual',
     error: null,
@@ -2508,6 +2499,10 @@ async function processQueue(customPrompt) {
  */
 router.post('/api/webhook/document', [express.json(), authenticateAPI], async (req, res) => {
   try {
+    const config = getRuntimeConfig();
+    if (config.processing.enableWebhook !== true) {
+      return res.status(403).json({ error: 'Webhook processing is disabled' });
+    }
     console.log(req);
     console.log(req.body);
     const { url, prompt } = req.body;
@@ -2607,7 +2602,7 @@ router.get('/dashboard', authenticateUI, async (req, res) => {
   const averageTotalTokens = metrics.length > 0 ? Math.round(metrics.reduce((acc, cur) => acc + cur.totalTokens, 0) / metrics.length) : 0;
   const tokensOverall = metrics.length > 0 ? metrics.reduce((acc, cur) => acc + cur.totalTokens, 0) : 0;
 
-  const version = configFile.PAPERLESS_AI_VERSION || ' ';
+  const version = getRuntimeConfig().version || ' ';
 
   res.render('dashboard', {
     paperless_data: {
@@ -2676,17 +2671,12 @@ router.get('/dashboard', authenticateUI, async (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get('/settings', authenticateUI, async (req, res) => {
-  const processSystemPrompt = (prompt) => {
-    if (!prompt) return '';
-    return prompt.replace(/\\n/g, '\n');
-  };
-
   let showErrorCheckSettings = false;
   const isConfigured = await configService.isConfigured();
   if (!isConfigured && parseBoolean(process.env.PAPERLESS_AI_INITIAL_SETUP, false)) {
     showErrorCheckSettings = true;
   }
-  let config = configService.buildBaseConfig(configFile);
+  let config = configService.buildBaseConfig();
 
   if (isConfigured) {
     const savedConfig = await configService.loadConfig();
@@ -2697,8 +2687,8 @@ router.get('/settings', authenticateUI, async (req, res) => {
   console.log('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
   console.log('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
   console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
-  const version = configFile.PAPERLESS_AI_VERSION || ' ';
-  config.ai = configFile.ai;
+  const version = getRuntimeConfig().version || ' ';
+  config.ai = getRuntimeConfig().ai;
   let paperlessCustomFields = [];
   try {
     paperlessCustomFields = await paperlessService.getCustomFieldsCached();
@@ -3425,6 +3415,11 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: OpenAI model to use for analysis
  *                 example: "gpt-4"
+ *               openaiSystemPromptRole:
+ *                 type: string
+ *                 description: Role to use for the system prompt (OpenAI)
+ *                 enum: ["system", "developer"]
+ *                 example: "system"
  *               openaiGizmoId:
  *                 type: string
  *                 description: Gizmo ID for a custom GPT (optional)
@@ -3449,14 +3444,18 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: Model name for custom LLM provider
  *                 example: "custom-model"
- *               scanInterval:
+ *               processingJobInterval:
  *                 type: number
  *                 description: Interval in minutes for scanning new documents
  *                 example: 15
- *               enableAutomaticProcessing:
+ *               processingEnableJob:
  *                 type: boolean
  *                 description: Enable automatic document processing
  *                 example: false
+ *               processingEnableWebhook:
+ *                 type: boolean
+ *                 description: Enable webhook processing
+ *                 example: true
  *               aiSystemPrompt:
  *                 type: string
  *                 description: Custom system prompt for document analysis
@@ -3491,19 +3490,19 @@ router.get('/health', async (req, res) => {
  *                 type: string
  *                 description: Comma-separated list of tags to exclude (takes precedence)
  *                 example: "no-AI,ignore"
- *               postProcessAddTags:
+ *               postProcessingAddTags:
  *                 type: boolean
  *                 description: Whether to add tags after AI processing
  *                 example: true
- *               postProcessTagsToAdd:
+ *               postProcessingTagsToAdd:
  *                 type: string
  *                 description: Comma-separated list of tags to add after AI processing
  *                 example: "ai-processed,reviewed"
- *               postProcessRemoveTags:
+ *               postProcessingRemoveTags:
  *                 type: boolean
  *                 description: Whether to remove tags after processing
  *                 example: false
- *               postProcessTagsToRemove:
+ *               postProcessingTagsToRemove:
  *                 type: string
  *                 description: Comma-separated list of tags to remove after processing
  *                 example: "inbox,no-ai"
@@ -3614,7 +3613,7 @@ router.post('/setup', express.json(), async (req, res) => {
       openaiGizmoId,
       ollamaApiUrl,
       ollamaModel,
-      scanInterval,
+      processingJobInterval,
       aiSystemPrompt,
       filterDocuments,
       aiTokenLimit,
@@ -3623,10 +3622,10 @@ router.post('/setup', express.json(), async (req, res) => {
       aiRawDocumentMode,
       filterIncludeTags,
       filterExcludeTags,
-      postProcessAddTags,
-      postProcessTagsToAdd,
-      postProcessRemoveTags,
-      postProcessTagsToRemove,
+      postProcessingAddTags,
+      postProcessingTagsToAdd,
+      postProcessingRemoveTags,
+      postProcessingTagsToRemove,
       aiUsePromptTags,
       aiPromptTags,
       username,
@@ -3644,7 +3643,8 @@ router.post('/setup', express.json(), async (req, res) => {
       enableContent,
       enableCustomFields,
       aiCustomFields,
-      enableAutomaticProcessing,
+      processingEnableJob,
+      processingEnableWebhook,
       restrictToExistingTags,
       restrictToExistingCorrespondents,
       restrictToExistingDocumentTypes,
@@ -3712,7 +3712,8 @@ router.post('/setup', express.json(), async (req, res) => {
         correspondents: restrictToExistingCorrespondents,
         documentTypes: restrictToExistingDocumentTypes
       },
-      postProcessAddTags
+      postProcessingAddTags,
+      postProcessingRemoveTags
     });
     const isPermissionValid = await paperlessService.validatePermissions(requiredPermissions);
     if (!isPermissionValid.success) {
@@ -3781,6 +3782,7 @@ router.post('/setup', express.json(), async (req, res) => {
 
     // Save configuration
     await configService.saveConfig(config);
+    container.refreshConfig(configService.getRuntimeConfig({ refresh: true }));
     const hashedPassword = await bcrypt.hash(password, 15);
     await documentModel.addUser(username, hashedPassword);
 
@@ -3848,6 +3850,11 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: OpenAI model to use for analysis
  *                 example: "gpt-4"
+ *               openaiSystemPromptRole:
+ *                 type: string
+ *                 description: Role to use for the system prompt (OpenAI)
+ *                 enum: ["system", "developer"]
+ *                 example: "system"
  *               ollamaApiUrl:
  *                 type: string
  *                 description: URL for Ollama API (required when aiProvider is 'ollama')
@@ -3868,7 +3875,7 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: Model name for custom LLM provider
  *                 example: "custom-model"
- *               scanInterval:
+ *               processingJobInterval:
  *                 type: number
  *                 description: Interval in minutes for scanning new documents
  *                 example: 15
@@ -3906,19 +3913,19 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: Comma-separated list of tags to exclude (takes precedence)
  *                 example: "no-AI,ignore"
- *               postProcessAddTags:
+ *               postProcessingAddTags:
  *                 type: boolean
  *                 description: Whether to add tags after AI processing
  *                 example: true
- *               postProcessTagsToAdd:
+ *               postProcessingTagsToAdd:
  *                 type: string
  *                 description: Comma-separated list of tags to add after AI processing
  *                 example: "ai-processed,reviewed"
- *               postProcessRemoveTags:
+ *               postProcessingRemoveTags:
  *                 type: boolean
  *                 description: Whether to remove tags after processing
  *                 example: false
- *               postProcessTagsToRemove:
+ *               postProcessingTagsToRemove:
  *                 type: string
  *                 description: Comma-separated list of tags to remove after processing
  *                 example: "inbox,no-ai"
@@ -3970,7 +3977,7 @@ router.post('/setup', express.json(), async (req, res) => {
  *                 type: string
  *                 description: JSON string defining custom fields to extract
  *                 example: '{"invoice_number":{"type":"string"},"total_amount":{"type":"number"}}'
- *               enableAutomaticProcessing:
+ *               processingEnableJob:
  *                 type: boolean
  *                 description: Enable automatic document processing
  *                 example: false
@@ -4029,7 +4036,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       openaiGizmoId,
       ollamaApiUrl,
       ollamaModel,
-      scanInterval,
+      processingJobInterval,
       aiSystemPrompt,
       filterDocuments,
       aiTokenLimit,
@@ -4038,10 +4045,10 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       aiRawDocumentMode,
       filterIncludeTags,
       filterExcludeTags,
-      postProcessAddTags,
-      postProcessTagsToAdd,
-      postProcessRemoveTags,
-      postProcessTagsToRemove,
+      postProcessingAddTags,
+      postProcessingTagsToAdd,
+      postProcessingRemoveTags,
+      postProcessingTagsToRemove,
       aiUsePromptTags,
       aiPromptTags,
       aiUseExistingData,
@@ -4057,7 +4064,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       enableContent,
       enableCustomFields,
       aiCustomFields,
-      enableAutomaticProcessing,
+      processingEnableJob,
+      processingEnableWebhook,
       restrictToExistingTags,
       restrictToExistingCorrespondents,
       restrictToExistingDocumentTypes,
@@ -4085,7 +4093,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
       });
     }
 
-    const baseConfig = configService.buildBaseConfig(configFile);
+    const baseConfig = configService.buildBaseConfig();
     const savedConfig = await configService.loadConfig();
     const currentConfig = configService.mergeSavedConfig(baseConfig, savedConfig);
 
@@ -4122,7 +4130,8 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
           correspondents: restrictToExistingCorrespondents,
           documentTypes: restrictToExistingDocumentTypes
         },
-      postProcessAddTags
+        postProcessingAddTags,
+        postProcessingRemoveTags
       });
       const isPermissionValid = await tempPaperlessService.validatePermissions(requiredPermissions);
       if (!isPermissionValid.success) {
@@ -4165,6 +4174,7 @@ router.post('/settings', [express.json(), authenticateAPI], async (req, res) => 
     const finalConfig = { ...mergedConfig, ...updatedConfig };
 
     await configService.saveConfig(finalConfig);
+    container.refreshConfig(configService.getRuntimeConfig({ refresh: true }));
     res.json({
       success: true,
       message: 'Configuration saved successfully.',

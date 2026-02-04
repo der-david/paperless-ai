@@ -682,9 +682,9 @@ class PaperlessService {
       }
 
       // Add AI-Processed tag if enabled
-      if (this.settings?.postProcessAddTags === true && this.settings?.postProcessTagsToAdd) {
+      if (this.settings?.postProcessing?.addTags === true && this.settings?.postProcessing?.tagsToAdd) {
         try {
-          const aiTagNames = this.normalizeTagList(this.settings.postProcessTagsToAdd);
+          const aiTagNames = this.normalizeTagList(this.settings.postProcessing.tagsToAdd);
           for (const aiTagName of aiTagNames) {
             let aiTag = await this.findExistingTag(aiTagName);
 
@@ -697,8 +697,8 @@ class PaperlessService {
             }
           }
         } catch (error) {
-          console.error(`processing AI tag "${this.settings.postProcessTagsToAdd}":`, error.message);
-          errors.push({ tagName: this.settings.postProcessTagsToAdd, error: error.message });
+          console.error(`processing AI tag "${this.settings.postProcessing.tagsToAdd}":`, error.message);
+          errors.push({ tagName: this.settings.postProcessing.tagsToAdd, error: error.message });
         }
       }
 
@@ -984,14 +984,15 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.settings?.filterDocuments === true;
+    const filterSettings = this.settings?.processing?.filter;
+    const shouldFilterByTags = filterSettings?.enabled === true;
     let includeTagIds = [];
     let excludeTagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      const includeTagsValue = this.settings?.filterIncludeTags;
-      const excludeTagsValue = this.settings?.filterExcludeTags;
+      const includeTagsValue = filterSettings?.includeTags;
+      const excludeTagsValue = filterSettings?.excludeTags;
       const includeTagNames = this.normalizeTagList(includeTagsValue);
       const excludeTagNames = this.normalizeTagList(excludeTagsValue);
 
@@ -1123,14 +1124,15 @@ class PaperlessService {
     let documents = [];
     let page = 1;
     let hasMore = true;
-    const shouldFilterByTags = this.settings?.filterDocuments === true;
+    const filterSettings = this.settings?.processing?.filter;
+    const shouldFilterByTags = filterSettings?.enabled === true;
     let includeTagIds = [];
     let excludeTagIds = [];
 
     // Vorverarbeitung der Tags, wenn Filter aktiv ist
     if (shouldFilterByTags) {
-      const includeTagsValue = this.settings?.filterIncludeTags;
-      const excludeTagsValue = this.settings?.filterExcludeTags;
+      const includeTagsValue = filterSettings?.includeTags;
+      const excludeTagsValue = filterSettings?.excludeTags;
       const includeTagNames = this.normalizeTagList(includeTagsValue);
       const excludeTagNames = this.normalizeTagList(excludeTagsValue);
 

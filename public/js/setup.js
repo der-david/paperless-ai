@@ -10,235 +10,16 @@ document.addEventListener('theme:change', updateShepherdTheme);
 
 class FormManager {
     constructor() {
-        this.form = document.getElementById('setupForm');
-        this.aiProvider = document.getElementById('aiProvider');
-        this.showTags = document.getElementById('filterDocuments');
-        this.postProcessAddTags = document.getElementById('postProcessAddTags');
-        this.postProcessRemoveTags = document.getElementById('postProcessRemoveTags');
-        this.usePromptTags = document.getElementById('aiUsePromptTags');
-        this.systemPrompt = document.getElementById('aiSystemPrompt');
-        this.systemPromptBtn = document.getElementById('systemPromptBtn');
-        this.enableAutomaticProcessing = document.getElementById('enableAutomaticProcessing');
         this.initialize();
     }
 
     initialize() {
-        // Initialize provider settings
-        this.toggleProviderSettings();
-
-        // Initialize tags section
-        this.toggleTagsInput();
-        this.handleEnableAutomaticProcessing();
-
-        // Add event listeners
-        this.aiProvider.addEventListener('change', () => this.toggleProviderSettings());
-        this.showTags.addEventListener('change', () => this.toggleTagsInput());
-        this.postProcessAddTags.addEventListener('change', () => this.togglePostProcessAddTagsInput());
-        this.postProcessRemoveTags.addEventListener('change', () => this.togglePostProcessRemoveTagsInput());
-        this.usePromptTags.addEventListener('change', () => this.togglePromptTagsInput());
-        if (this.enableAutomaticProcessing) {
-            this.enableAutomaticProcessing.addEventListener('change', () => this.handleEnableAutomaticProcessing());
-        }
-        this.syncCheckboxHidden('aiUseExistingData', 'aiUseExistingDataValue');
-        this.syncCheckboxHidden('filterDocuments', 'filterDocumentsValue');
-        this.syncCheckboxHidden('postProcessAddTags', 'postProcessAddTagsValue');
-        this.syncCheckboxHidden('postProcessRemoveTags', 'postProcessRemoveTagsValue');
-        this.syncCheckboxHidden('aiUsePromptTags', 'aiUsePromptTagsValue');
-
-        // Initialize password toggles
-        this.initializePasswordToggles();
-
-        // Initial state for prompt elements based on usePromptTags
-        if (this.usePromptTags.checked) {
-            this.disablePromptElements();
-        }
-
-        // Initialize new sections
-        this.togglePostProcessAddTagsInput();
-        this.togglePostProcessRemoveTagsInput();
-        this.togglePromptTagsInput();
+        initCheckboxSync();
+        initToggleTargets();
+        initPasswordToggles();
+        initAiProviderSettings();
     }
 
-    handleEnableAutomaticProcessing() {
-        if (!this.enableAutomaticProcessing) {
-            return;
-        }
-
-        let hiddenInput = document.getElementById('enableAutomaticProcessingValue');
-        if (!hiddenInput) {
-            hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.id = 'enableAutomaticProcessingValue';
-            hiddenInput.name = 'enableAutomaticProcessing';
-            this.form.appendChild(hiddenInput);
-        }
-
-        hiddenInput.value = this.enableAutomaticProcessing.checked ? 'true' : 'false';
-
-        const scanIntervalSection = document.getElementById('scanIntervalSection');
-        if (scanIntervalSection) {
-            scanIntervalSection.classList.toggle('hidden', !this.enableAutomaticProcessing.checked);
-        }
-    }
-
-    toggleProviderSettings() {
-        const provider = this.aiProvider.value;
-        const openaiSettings = document.getElementById('openaiSettings');
-        const ollamaSettings = document.getElementById('ollamaSettings');
-        const customSettings = document.getElementById('customSettings');
-        const azureSettings = document.getElementById('azureSettings');
-
-        // Get all required fields
-        const openaiKey = document.getElementById('openaiApiKey');
-        const ollamaUrl = document.getElementById('ollamaApiUrl');
-        const ollamaModel = document.getElementById('ollamaModel');
-        const customBaseUrl = document.getElementById('customBaseUrl');
-        const customApiKey = document.getElementById('customApiKey');
-        const customModel = document.getElementById('customModel');
-        const azureApiKey = document.getElementById('azureApiKey');
-        const azureEndpoint = document.getElementById('azureEndpoint');
-        const azureModel = document.getElementById('azureApiVersion');
-        const azureDeployment = document.getElementById('azureDeploymentName');
-
-        // Hide all settings first
-        openaiSettings.style.display = 'none';
-        ollamaSettings.style.display = 'none';
-        customSettings.style.display = 'none';
-        azureSettings.style.display = 'none';
-
-        // Reset all required attributes
-        openaiKey.required = false;
-        ollamaUrl.required = false;
-        ollamaModel.required = false;
-        customBaseUrl.required = false;
-        customApiKey.required = false;
-        customModel.required = false;
-        azureApiKey.required = false;
-        azureEndpoint.required = false;
-        azureModel.required = false;
-        azureDeployment.required = false;
-
-        // Show and set required fields based on selected provider
-        switch (provider) {
-            case 'openai':
-                openaiSettings.style.display = 'block';
-                openaiKey.required = true;
-                break;
-            case 'ollama':
-                ollamaSettings.style.display = 'block';
-                ollamaUrl.required = true;
-                ollamaModel.required = true;
-                break;
-            case 'custom':
-                customSettings.style.display = 'block';
-                customBaseUrl.required = true;
-                customApiKey.required = true;
-                customModel.required = true;
-                break;
-            case 'azure':
-                azureSettings.style.display = 'block';
-                azureApiKey.required = true;
-                azureEndpoint.required = true;
-                azureModel.required = true;
-                azureDeployment.required = true;
-                break;
-        }
-    }
-
-    toggleTagsInput() {
-        const showTags = this.showTags.checked;
-        const tagsInputSection = document.getElementById('tagsInputSection');
-
-        if (showTags) {
-            tagsInputSection.classList.remove('hidden');
-        } else {
-            tagsInputSection.classList.add('hidden');
-        }
-    }
-
-    togglePostProcessAddTagsInput() {
-        const showAddTags = this.postProcessAddTags.checked;
-        const addTagsSection = document.getElementById('postProcessTagsToAddSection');
-
-        if (showAddTags) {
-            addTagsSection.classList.remove('hidden');
-        } else {
-            addTagsSection.classList.add('hidden');
-        }
-    }
-
-    togglePostProcessRemoveTagsInput() {
-        const showRemoveTags = this.postProcessRemoveTags.checked;
-        const removeTagsSection = document.getElementById('postProcessTagsToRemoveSection');
-
-        if (showRemoveTags) {
-            removeTagsSection.classList.remove('hidden');
-        } else {
-            removeTagsSection.classList.add('hidden');
-        }
-    }
-
-    togglePromptTagsInput() {
-        const usePromptTags = this.usePromptTags.checked;
-        const promptTagsSection = document.getElementById('promptTagsSection');
-
-        if (usePromptTags) {
-            promptTagsSection.classList.remove('hidden');
-            this.disablePromptElements();
-        } else {
-            promptTagsSection.classList.add('hidden');
-            this.enablePromptElements();
-        }
-    }
-
-    syncCheckboxHidden(checkboxId, hiddenId) {
-        const checkbox = document.getElementById(checkboxId);
-        const hiddenInput = document.getElementById(hiddenId);
-        if (!checkbox || !hiddenInput) return;
-        const sync = () => {
-            hiddenInput.value = checkbox.checked ? 'true' : 'false';
-        };
-        sync();
-        checkbox.addEventListener('change', sync);
-    }
-
-    disablePromptElements() {
-        this.systemPrompt.disabled = true;
-        this.systemPromptBtn.disabled = true;
-        this.systemPrompt.classList.add('disabled');
-        this.systemPromptBtn.classList.add('disabled');
-    }
-
-    enablePromptElements() {
-        this.systemPrompt.disabled = false;
-        this.systemPromptBtn.disabled = false;
-        this.systemPrompt.classList.remove('disabled');
-        this.systemPromptBtn.classList.remove('disabled');
-    }
-
-    initializePasswordToggles() {
-        document.querySelectorAll('.password-toggle').forEach(toggle => {
-            toggle.addEventListener('click', (e) => {
-                const inputId = e.currentTarget.dataset.input;
-                this.togglePassword(inputId);
-            });
-        });
-    }
-
-    togglePassword(inputId) {
-        const input = document.getElementById(inputId);
-        const icon = input.nextElementSibling.querySelector('i');
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            input.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
-    }
 }
 
 class TabManager {
@@ -637,8 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tagsManager = new TagsManager('tagInput', 'tagsContainer', 'filterIncludeTags', '.add-tag-btn');
     const excludeTagsManager = new TagsManager('excludeTagInput', 'excludeTagsContainer', 'filterExcludeTags', '.add-exclude-tag-btn');
     const promptTagsManager = new TagsManager('promptTagInput', 'promptTagsContainer', 'aiPromptTags', '.add-prompt-tag-btn');
-    const processedTagsManager = new TagsManager('postProcessTagToAddInput', 'postProcessTagsToAddContainer', 'postProcessTagsToAdd', '.add-post-process-tag-to-add-btn');
-    const removeTagsManager = new TagsManager('postProcessTagToRemoveInput', 'postProcessTagsToRemoveContainer', 'postProcessTagsToRemove', '.add-post-process-tag-to-remove-btn');
+    const processedTagsManager = new TagsManager('postProcessingTagToAddInput', 'postProcessingTagsToAddContainer', 'postProcessingTagsToAdd', '.add-post-process-tag-to-add-btn');
+    const removeTagsManager = new TagsManager('postProcessingTagToRemoveInput', 'postProcessingTagsToRemoveContainer', 'postProcessingTagsToRemove', '.add-post-process-tag-to-remove-btn');
     const promptManager = new PromptManager();
     const passwordManager = new PasswordManager();
     /* eslint-enable no-unused-vars */

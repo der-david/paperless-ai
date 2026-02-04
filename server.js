@@ -2,10 +2,10 @@ const express = require('express');
 const cron = require('node-cron');
 const path = require('path');
 const fs = require('fs').promises;
-const config = require('./config/config');
 const container = require('./services/container');
 const documentModel = require('./models/document');
 const configService = container.getConfigService();
+const getConfig = () => configService.getRuntimeConfig();
 const setupRoutes = require('./routes/setup');
 
 // Add environment variables for RAG service if not already set
@@ -142,7 +142,7 @@ app.set('layout extractStyles', true);
 app.use((req, res, next) => {
   res.locals.showSidebar = true;
   res.locals.active = '';
-  res.locals.version = config.PAPERLESS_AI_VERSION;
+  res.locals.version = getConfig().version;
   next();
 });
 
@@ -213,7 +213,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
     paperlessService.getDocument(doc.id)
   ]);
 
-  if ((config.ai?.contentSourceMode || 'content') === 'content') {
+  if ((getConfig().ai?.contentSourceMode || 'content') === 'content') {
     if (!content || content.length < 10) {
       console.debug(`Document ${doc.id} has no content, skipping analysis`);
       return null;
@@ -227,7 +227,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   let externalApiData = null;
 
   // Get external API data if enabled
-  if (config.externalApiConfig.enabled === true) {
+  if (getConfig().externalApi.enabled === true) {
     try {
       const externalApiService = container.getExternalApiService();
       const externalData = await externalApiService.fetchData();
@@ -261,23 +261,23 @@ async function buildUpdateData(analysis, doc) {
 
   // Create options object with restriction settings
   const options = {
-    restrictToExistingTags: config.restrictToExisting.tags === true,
-    restrictToExistingCorrespondents: config.restrictToExisting.correspondents === true
+    restrictToExistingTags: getConfig().restrictToExisting.tags === true,
+    restrictToExistingCorrespondents: getConfig().restrictToExisting.correspondents === true
   };
 
   console.debug(`Building update data with restrictions: tags=${options.restrictToExistingTags}, correspondent=${options.restrictToExistingCorrespondents}`);
 
   // Only process tags if tagging is activated
-  if (config.enableUpdates?.tags !== false) {
+  if (getConfig().enableUpdates?.tags !== false) {
     const { tagIds, errors } = await paperlessService.processTags(analysis.document.tags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
     }
     updateData.tags = tagIds;
-  } else if (config.enableUpdates?.tags === false && config.postProcessAddTags === true) {
+  } else if (getConfig().enableUpdates?.tags === false && getConfig().postProcessing.addTags === true) {
     // Add AI processed tags to the document (processTags function awaits a tags array)
     console.debug('Tagging is deactivated but AI processed tag will be added');
-    const processedTags = Array.isArray(config.postProcessTagsToAdd) ? config.postProcessTagsToAdd : [];
+    const processedTags = Array.isArray(getConfig().postProcessing.tagsToAdd) ? getConfig().postProcessing.tagsToAdd : [];
     const { tagIds, errors } = await paperlessService.processTags(processedTags, options);
     if (errors.length > 0) {
       console.error('Some tags could not be processed:', errors);
@@ -287,12 +287,12 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process title if title generation is activated
-  if (config.enableUpdates?.title !== false) {
+  if (getConfig().enableUpdates?.title !== false) {
     updateData.title = analysis.document.title || doc.title;
   }
 
   // Only update content if content update is activated and AI provided content
-  if (config.enableUpdates?.content !== false && typeof analysis.document.content === 'string') {
+  if (getConfig().enableUpdates?.content !== false && typeof analysis.document.content === 'string') {
     const trimmedContent = analysis.document.content.trim();
     if (trimmedContent.length > 0) {
       updateData.content = trimmedContent;
@@ -300,19 +300,19 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Add created date regardless of settings as it's a core field
-  if (config.enableUpdates?.documentDate !== false && analysis.document.document_date) {
+  if (getConfig().enableUpdates?.documentDate !== false && analysis.document.document_date) {
     updateData.created = analysis.document.document_date;
   } else {
     updateData.created = doc.created;
   }
 
   // Only process document type if document type classification is activated
-  if (config.enableUpdates?.documentType !== false && analysis.document.document_type) {
+  if (getConfig().enableUpdates?.documentType !== false && analysis.document.document_type) {
     try {
       let documentType;
 
       // If restricting to existing document types, search for exact match only
-      if (config.restrictToExisting.documentTypes === true) {
+      if (getConfig().restrictToExisting.documentTypes === true) {
         documentType = await paperlessService.searchForExistingDocumentType(analysis.document.document_type);
         if (documentType) {
           console.debug(`Found existing document type "${analysis.document.document_type}" with ID ${documentType.id}`);
@@ -333,7 +333,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process custom fields if custom fields detection is activated
-  if (config.enableUpdates?.customFields !== false && analysis.document.custom_fields) {
+  if (getConfig().enableUpdates?.customFields !== false && analysis.document.custom_fields) {
     const customFields = analysis.document.custom_fields;
     const processedFields = [];
 
@@ -396,7 +396,7 @@ async function buildUpdateData(analysis, doc) {
   }
 
   // Only process correspondent if correspondent detection is activated
-  if (config.enableUpdates?.correspondent !== false && analysis.document.correspondent) {
+  if (getConfig().enableUpdates?.correspondent !== false && analysis.document.correspondent) {
     try {
       const correspondent = await paperlessService.getOrCreateCorrespondent(analysis.document.correspondent, options);
       if (correspondent) {
@@ -407,7 +407,7 @@ async function buildUpdateData(analysis, doc) {
     }
   }
 
-  if (config.enableUpdates?.language !== false && analysis.document.language) {
+  if (getConfig().enableUpdates?.language !== false && analysis.document.language) {
     updateData.language = analysis.document.language;
   }
 
@@ -420,10 +420,10 @@ async function saveDocumentChanges(docId, updateData, analysis, originalData) {
   await documentModel.saveOriginalData(docId, originalTags, originalCorrespondent, originalTitle);
   await paperlessService.updateDocument(docId, updateData);
 
-  if (config.postProcessRemoveTags === true &&
-      config.postProcessTagsToRemove &&
-      (Array.isArray(config.postProcessTagsToRemove) ? config.postProcessTagsToRemove.length > 0 : String(config.postProcessTagsToRemove).trim() !== '')) {
-    await paperlessService.removeTagsFromDocument(docId, config.postProcessTagsToRemove);
+  if (getConfig().postProcessing.removeTags === true &&
+      getConfig().postProcessing.tagsToRemove &&
+      (Array.isArray(getConfig().postProcessing.tagsToRemove) ? getConfig().postProcessing.tagsToRemove.length > 0 : String(getConfig().postProcessing.tagsToRemove).trim() !== '')) {
+    await paperlessService.removeTagsFromDocument(docId, getConfig().postProcessing.tagsToRemove);
   }
 
   await Promise.all([
@@ -654,6 +654,7 @@ async function startScanning() {
     const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
       console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
+      return;
     }
 
     const userId = await paperlessService.getOwnUserID();
@@ -662,12 +663,12 @@ async function startScanning() {
       return;
     }
 
-    console.log('Configured scan interval:', config.scanInterval);
+    console.log('Configured processing job interval:', getConfig().processing.jobInterval);
     console.log(`Starting initial scan at ${new Date().toISOString()}`);
-    if (config.enableAutomaticProcessing === true) {
+    if (getConfig().processing.enableJob === true) {
       await scanInitial();
 
-      cron.schedule(config.scanInterval, async () => {
+      cron.schedule(getConfig().processing.jobInterval, async () => {
         console.log(`Starting scheduled scan at ${new Date().toISOString()}`);
         await scanDocuments();
       });
