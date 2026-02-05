@@ -708,7 +708,7 @@ class PaperlessService {
       };
     } catch (error) {
       console.error('in processTags:', error);
-      throw new Error(`[ERROR] Failed to process tags: ${error.message}`);
+      throw new Error(`Failed to process tags: ${error.message}`);
     }
   }
 
@@ -742,9 +742,9 @@ class PaperlessService {
         hasMore = response.data.next !== null;
         page++;
 
-        console.log(
-          `[DEBUG] Fetched page ${page-1}, got ${response.data.results.length} tags. ` +
-          `[DEBUG] Total so far: ${tags.length}`
+        console.debug(
+          `Fetched page ${page - 1}, got ${response.data.results.length} tags. ` +
+          `Total so far: ${tags.length}`
         );
 
         // Kleine Verzögerung um die API nicht zu überlasten
@@ -793,9 +793,9 @@ class PaperlessService {
         hasMore = response.data.next !== null;
         page++;
 
-        console.log(
-          `[DEBUG] Fetched page ${page - 1}, got ${response.data.results.length} correspondents. ` +
-          `[DEBUG] Total so far: ${correspondents.length}`
+        console.debug(
+          `Fetched page ${page - 1}, got ${response.data.results.length} correspondents. ` +
+          `Total so far: ${correspondents.length}`
         );
 
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -1062,9 +1062,9 @@ class PaperlessService {
         hasMore = response.data.next !== null;
         page++;
 
-        console.log(
-          `[DEBUG] Fetched page ${page-1}, got ${response.data.results.length} documents. ` +
-          `[DEBUG] Total so far: ${documents.length}`
+        console.debug(
+          `Fetched page ${page - 1}, got ${response.data.results.length} documents. ` +
+          `Total so far: ${documents.length}`
         );
 
         // Kleine Verzögerung um die API nicht zu überlasten
@@ -1200,9 +1200,9 @@ class PaperlessService {
         hasMore = response.data.next !== null;
         page++;
 
-        console.log(
-          `[DEBUG] Fetched page ${page-1}, got ${response.data.results.length} documents. ` +
-          `[DEBUG] Total so far: ${documents.length}`
+        console.debug(
+          `Fetched page ${page - 1}, got ${response.data.results.length} documents. ` +
+          `Total so far: ${documents.length}`
         );
 
         // Kleine Verzögerung um die API nicht zu überlasten

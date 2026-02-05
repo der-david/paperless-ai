@@ -1606,7 +1606,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   }
   console.log('Response from AI service:', analysis);
   if (analysis.error) {
-    throw new Error(`[ERROR] Document analysis failed: ${analysis.error}`);
+    throw new Error(`Document analysis failed: ${analysis.error}`);
   }
   await documentModel.setProcessingStatus(doc.id, doc.title, 'complete');
   return { analysis, originalData };
