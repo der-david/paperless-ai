@@ -273,7 +273,7 @@ class PromptRatingSystem {
         }
 
         // Debug-Ausgabe
-        console.log('Current prompt:', this.currentPrompt);
+        console.debug('Current prompt:', this.currentPrompt);
 
         // Setze den Prompt-Text
         const codeElement = modal.querySelector('.prompt-preview code');
@@ -302,7 +302,7 @@ class PromptRatingSystem {
 
     savePromptRating(rating, comment) {
         // Debug-Ausgabe
-        console.log('Saving prompt:', this.currentPrompt);
+        console.debug('Saving prompt:', this.currentPrompt);
 
         // Sicherstellen, dass wir einen Prompt haben
         if (!this.currentPrompt) {
@@ -319,7 +319,7 @@ class PromptRatingSystem {
         };
 
         // Debug-Ausgabe
-        console.log('Saving prompt data:', promptData);
+        console.debug('Saving prompt data:', promptData);
 
         this.savedPrompts.unshift(promptData);
         try {
@@ -641,7 +641,7 @@ class PlaygroundAnalyzer {
 
     async updateDocumentCard(docCard, analysisResult, existing) {
         // Tags aktualisieren
-        console.log('Existing Data:', existing);
+        console.debug('Existing Data:', existing);
         if (analysisResult.tags && analysisResult.tags.length > 0) {
             const tagsContainer = docCard.querySelector('.tags-container, div[class*="flex flex-wrap gap"]');
             if (tagsContainer) {

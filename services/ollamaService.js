@@ -270,7 +270,7 @@ class OllamaService extends BaseAIService {
     _truncateContent(content, contentMaxLength = null) {
         try {
             if (contentMaxLength) {
-                console.log('Truncating content to max length:', contentMaxLength);
+                console.debug('Truncating content to max length:', contentMaxLength);
                 return content.substring(0, contentMaxLength);
             }
         } catch (error) {
@@ -511,9 +511,9 @@ class OllamaService extends BaseAIService {
 
         const numCtx = Math.min(totalTokenUsage, maxCtxLimit);
 
-        console.log('Prompt Token Count:', promptTokenCount);
-        console.log('Expected Response Tokens:', expectedResponseTokens);
-        console.log('Dynamic calculated num_ctx:', numCtx);
+        console.debug('Prompt Token Count:', promptTokenCount);
+        console.debug('Expected Response Tokens:', expectedResponseTokens);
+        console.debug('Dynamic calculated num_ctx:', numCtx);
 
         return numCtx;
     }
@@ -542,7 +542,7 @@ class OllamaService extends BaseAIService {
             await fs.access(cachePath);
             console.debug('Thumbnail already cached');
         } catch (err) {
-            console.log('Thumbnail not cached, fetching from Paperless');
+            console.debug('Thumbnail not cached, fetching from Paperless');
             const thumbnailData = await this.paperlessService.getThumbnailImage(id);
             if (!thumbnailData) {
                 console.warn('Thumbnail nicht gefunden');
@@ -594,7 +594,7 @@ class OllamaService extends BaseAIService {
         // Check if we got a structured response or need to parse from text
         if (responseData.response && typeof responseData.response === 'object') {
             // We got a structured response directly
-            console.log('Using structured output response');
+            console.debug('Using structured output response');
             return {
                 tags: Array.isArray(responseData.response.tags) ? responseData.response.tags : [],
                 correspondent: responseData.response.correspondent || null,
@@ -606,7 +606,7 @@ class OllamaService extends BaseAIService {
             };
         } else if (responseData.response) {
             // Fall back to parsing from text response
-            console.log('Falling back to text response parsing');
+            console.debug('Falling back to text response parsing');
             return this._parseResponse(responseData.response);
         } else {
             throw new Error('No response data from Ollama API');
@@ -718,7 +718,7 @@ class OllamaService extends BaseAIService {
                 if (Array.isArray(data.models) && data.models.length > 0) {
                     modelName = data.models[0].name;
                 }
-                console.log('Ollama model name:', modelName);
+                console.debug('Ollama model name:', modelName);
                 return { status: 'ok', model: modelName };
             }
         } catch (error) {

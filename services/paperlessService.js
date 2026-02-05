@@ -1530,7 +1530,7 @@ class PaperlessService {
       if (results.length > 1) {
           console.debug(`Multiple correspondents found:`);
           results.forEach(c => {
-              console.log(`- ID: ${c.id}, Name: ${c.name}`);
+              console.debug(`- ID: ${c.id}, Name: ${c.name}`);
           });
           return results;
       }
@@ -1941,7 +1941,7 @@ async getOrCreateDocumentType(name) {
       console.info(`Updated document ${documentId} with:`, updateData);
       return await this.getDocument(documentId);
     } catch (error) {
-      console.log(error);
+      console.error('Error updating document:', error);
       console.error(`updating document ${documentId}:`, error.message);
       return null;
     }

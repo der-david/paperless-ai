@@ -22,10 +22,10 @@ const config = {
   restrictToExistingDocumentTypes: 'yes'
 };
 
-console.log('=== Updated Restriction Prompt Service Test ===\n');
+console.info('=== Updated Restriction Prompt Service Test ===\n');
 
 // Test 1: Prompt with placeholders
-console.log('Test 1: Prompt with placeholders');
+console.info('Test 1: Prompt with placeholders');
 const promptWithPlaceholders = `You are a document analysis AI.
 Available tags: %RESTRICTED_TAGS%
 Available correspondents: %RESTRICTED_CORRESPONDENTS%
@@ -40,16 +40,16 @@ const result1 = RestrictionPromptService.processRestrictionsInPrompt(
   config
 );
 
-console.log('Original prompt:');
-console.log(promptWithPlaceholders);
-console.log('\nProcessed prompt:');
-console.log(result1);
-console.log('\nType of result:', typeof result1);
+console.info('Original prompt:');
+console.info(promptWithPlaceholders);
+console.info('\nProcessed prompt:');
+console.info(result1);
+console.info('\nType of result:', typeof result1);
 
-console.log('\n' + '='.repeat(50) + '\n');
+console.info('\n' + '='.repeat(50) + '\n');
 
 // Test 2: Prompt without placeholders
-console.log('Test 2: Prompt without placeholders');
+console.info('Test 2: Prompt without placeholders');
 const promptWithoutPlaceholders = `You are a document analysis AI. Please analyze the document.`;
 
 const result2 = RestrictionPromptService.processRestrictionsInPrompt(
@@ -60,16 +60,16 @@ const result2 = RestrictionPromptService.processRestrictionsInPrompt(
   config
 );
 
-console.log('Original prompt:');
-console.log(promptWithoutPlaceholders);
-console.log('\nProcessed prompt:');
-console.log(result2);
-console.log('\nType of result:', typeof result2);
+console.info('Original prompt:');
+console.info(promptWithoutPlaceholders);
+console.info('\nProcessed prompt:');
+console.info(result2);
+console.info('\nType of result:', typeof result2);
 
-console.log('\n' + '='.repeat(50) + '\n');
+console.info('\n' + '='.repeat(50) + '\n');
 
 // Test 3: Empty data with placeholders
-console.log('Test 3: Empty data with placeholders');
+console.info('Test 3: Empty data with placeholders');
 const result3 = RestrictionPromptService.processRestrictionsInPrompt(
   promptWithPlaceholders,
   [],
@@ -78,10 +78,10 @@ const result3 = RestrictionPromptService.processRestrictionsInPrompt(
   config
 );
 
-console.log('Original prompt:');
-console.log(promptWithPlaceholders);
-console.log('\nProcessed prompt (with empty data):');
-console.log(result3);
-console.log('\nType of result:', typeof result3);
+console.info('Original prompt:');
+console.info(promptWithPlaceholders);
+console.info('\nProcessed prompt (with empty data):');
+console.info(result3);
+console.info('\nType of result:', typeof result3);
 
-console.log('\n=== Test Complete ===');
+console.info('\n=== Test Complete ===');

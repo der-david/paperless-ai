@@ -60,10 +60,10 @@ window.addEventListener('resize', () => {
 document.addEventListener("DOMContentLoaded", function() {
     // Helper function to switch tabs
     function switchToTab(tabId) {
-        console.log('Attempting to switch to tab:', tabId);
+        console.debug('Attempting to switch to tab:', tabId);
         const tabButton = document.querySelector(`[data-tab="${tabId}"]`);
         if (tabButton) {
-            console.log('Tab button found, clicking');
+            console.debug('Tab button found, clicking');
             const event = new MouseEvent('click', {
                 view: window,
                 bubbles: true,
@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
-    console.log('Tour created');
+    console.debug('Tour created');
 
     // Define all tour steps
     const tourSteps = [
@@ -400,7 +400,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add all steps to the tour with error handling
     tourSteps.forEach(step => {
         try {
-            console.log('Adding step:', step.id);
+            console.debug('Adding step:', step.id);
             tour.addStep(step);
         } catch (error) {
             console.error(`Failed to add step ${step.id}:`, error);
@@ -411,7 +411,7 @@ document.addEventListener("DOMContentLoaded", function() {
     tour.on('show', (evt) => {
         try {
             const currentStep = evt.step;
-            console.log('Tour step is being shown:', currentStep.id);
+            console.debug('Tour step is being shown:', currentStep.id);
 
             // Execute beforeShow if it exists
             if (currentStep.options.beforeShow) {
@@ -432,7 +432,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     tour.on('complete', () => {
         try {
-            console.log('Tour completed');
+            console.debug('Tour completed');
             localStorage.setItem('tour_completed', 'true');
         } catch (error) {
             console.error('Error in tour complete event:', error);
@@ -442,7 +442,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // Start the tour with error handling
     setTimeout(() => {
         try {
-            console.log('Starting tour...');
+            console.debug('Starting tour...');
             tour.start();
         } catch (error) {
             console.error('Error starting tour:', error);

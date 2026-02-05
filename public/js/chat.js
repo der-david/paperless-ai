@@ -127,7 +127,7 @@ function addMessage(message, isUser = true) {
                 messageContent = jsonResponse.reply || jsonResponse.message || message;
             }
         } catch (e) {
-            console.log('Message is not JSON, using as is');
+            console.debug('Message is not JSON, using as is');
         }
 
         messageDiv.innerHTML = marked.parse(messageContent);

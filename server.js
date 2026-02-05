@@ -165,7 +165,7 @@ async function initializeDataDirectory() {
   try {
     await fs.access(dataDir);
   } catch {
-    console.log('Creating data directory...');
+    console.info('Creating data directory...');
     await fs.mkdir(dataDir, { recursive: true });
   }
 }
@@ -179,13 +179,13 @@ async function saveOpenApiSpec() {
     try {
       await fs.access(openApiDir);
     } catch {
-      console.log('Creating OPENAPI directory...');
+      console.info('Creating OPENAPI directory...');
       await fs.mkdir(openApiDir, { recursive: true });
     }
 
     // Write the specification to file
     await fs.writeFile(openApiPath, JSON.stringify(swaggerSpec, null, 2));
-    console.log(`OpenAPI specification saved to ${openApiPath}`);
+    console.info(`OpenAPI specification saved to ${openApiPath}`);
     return true;
   } catch (error) {
     console.error('Failed to save OpenAPI specification:', error);
@@ -248,7 +248,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   }else{
     analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData);
   }
-  console.log('Response from AI service:', analysis);
+  console.debug('Response from AI service:', analysis);
   if (analysis.error) {
     throw new Error(`Document analysis failed: ${analysis.error}`);
   }
@@ -653,7 +653,7 @@ async function startScanning() {
   try {
     const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
-      console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
+      console.warn(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
       return;
     }
 
@@ -663,13 +663,13 @@ async function startScanning() {
       return;
     }
 
-    console.log('Configured processing job interval:', getConfig().processing.jobInterval);
-    console.log(`Starting initial scan at ${new Date().toISOString()}`);
+    console.info('Configured processing job interval:', getConfig().processing.jobInterval);
+    console.info(`Starting initial scan at ${new Date().toISOString()}`);
     if (getConfig().processing.enableJob === true) {
       await scanInitial();
 
       cron.schedule(getConfig().processing.jobInterval, async () => {
-        console.log(`Starting scheduled scan at ${new Date().toISOString()}`);
+        console.info(`Starting scheduled scan at ${new Date().toISOString()}`);
         await scanDocuments();
       });
     }
@@ -726,7 +726,7 @@ async function startServer() {
     await initializeDataDirectory();
     await saveOpenApiSpec(); // Save OpenAPI specification on startup
     app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
+      console.info(`Server running on port ${port}`);
       startScanning();
     });
   } catch (error) {

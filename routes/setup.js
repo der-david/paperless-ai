@@ -332,7 +332,7 @@ router.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    console.log('Login attempt for user:', username);
+    console.info('Login attempt for user:', username);
     // Get user data - returns a single user object
     const user = await documentModel.getUser(username);
 
@@ -344,7 +344,7 @@ router.post('/login', async (req, res) => {
 
     // Compare passwords
     const isValidPassword = await bcrypt.compare(password, user.password);
-    console.log('Password validation result:', isValidPassword);
+    console.debug('Password validation result:', isValidPassword);
 
     if (isValidPassword) {
       const token = jwt.sign(
@@ -620,7 +620,7 @@ router.get('/thumb/:documentId', authenticateAPI, async (req, res) => {
     // Prüfe ob das Bild bereits im Cache existiert
     try {
       await fs.access(cachePath);
-      console.log('Serving cached thumbnail');
+      console.debug('Serving cached thumbnail');
 
       // Wenn ja, sende direkt das gecachte Bild
       res.setHeader('Content-Type', 'image/png');
@@ -628,7 +628,7 @@ router.get('/thumb/:documentId', authenticateAPI, async (req, res) => {
 
     } catch (err) {
       // File existiert nicht im Cache, hole es von Paperless
-      console.log('Thumbnail not cached, fetching from Paperless');
+      console.debug('Thumbnail not cached, fetching from Paperless');
 
       const thumbnailData = await paperlessService.getThumbnailImage(req.params.documentId);
 
@@ -1497,7 +1497,7 @@ router.post('/api/scan/now', authenticateAPI, async (req, res) => {
   try {
     const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
-      console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
+      console.warn(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
       return;
     }
 
@@ -1604,7 +1604,7 @@ async function processDocument(doc, existingTags, existingCorrespondentList, exi
   }else{
     analysis = await aiService.analyzeDocument(content, existingTags, existingCorrespondentList, existingDocumentTypesList, doc.id, null, externalApiData);
   }
-  console.log('Response from AI service:', analysis);
+  console.debug('Response from AI service:', analysis);
   if (analysis.error) {
     throw new Error(`Document analysis failed: ${analysis.error}`);
   }
@@ -1860,7 +1860,7 @@ router.post('/api/key-regenerate', authenticateAPI, async (req, res) => {
 
     // Sende die Antwort zurück
     res.json({ success: apiKey });
-    console.log('API key regenerated:', apiKey);
+    console.info('API key regenerated');
   } catch (error) {
     console.error('API key regeneration error:', error);
     res.status(500).json({ error: 'Error regenerating API key' });
@@ -1927,9 +1927,9 @@ router.get('/setup', async (req, res) => {
     }
 
     // Debug output
-    console.log('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
-    console.log('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
-    console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
+    console.debug('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
+    console.debug('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
+    console.debug('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
 
     // Check if system is fully configured
     const hasUsers = Array.isArray(users) && users.length > 0;
@@ -2042,7 +2042,7 @@ router.get('/setup', async (req, res) => {
 router.get('/manual/preview/:id', authenticateAPI, async (req, res) => {
   try {
     const documentId = req.params.id;
-    console.log('Fetching content for document:', documentId);
+    console.debug('Fetching content for document:', documentId);
 
     const response = await fetch(
       `${process.env.PAPERLESS_API_URL}/documents/${documentId}/`,
@@ -2064,7 +2064,7 @@ router.get('/manual/preview/:id', authenticateAPI, async (req, res) => {
       return tagName;
     }
     ));
-    console.log('Document Data:', document);
+    console.debug('Document Data:', document);
     res.json({ content: document.content, title: document.title, id: document.id, tags: document.tags });
   } catch (error) {
     console.error('Content fetch error:', error);
@@ -2351,7 +2351,7 @@ function extractDocumentId(url) {
 
 async function processQueue(customPrompt) {
   if (customPrompt) {
-    console.log('Using custom prompt:', customPrompt);
+    console.debug('Using custom prompt:', customPrompt);
   }
 
   if (isProcessing || documentQueue.length === 0) return;
@@ -2361,7 +2361,7 @@ async function processQueue(customPrompt) {
   try {
     const isConfigured = await configService.isConfigured();
     if (!isConfigured) {
-      console.log(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
+      console.warn(`Setup not completed. Visit http://your-machine-ip:${process.env.PAPERLESS_AI_PORT || 3000}/setup to complete setup.`);
       return;
     }
 
@@ -2503,8 +2503,8 @@ router.post('/api/webhook/document', [express.json(), authenticateAPI], async (r
     if (config.processing.enableWebhook !== true) {
       return res.status(403).json({ error: 'Webhook processing is disabled' });
     }
-    console.log(req);
-    console.log(req.body);
+    console.debug('Webhook request:', { url: req.originalUrl, method: req.method });
+    console.debug('Webhook body:', req.body);
     const { url, prompt } = req.body;
     let usePrompt = false;
     if (!url) {
@@ -2687,9 +2687,9 @@ router.get('/settings', authenticateUI, async (req, res) => {
   }
 
   // Debug-output
-  console.log('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
-  console.log('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
-  console.log('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
+  console.debug('Current config FILTER_INCLUDE_TAGS:', config.FILTER_INCLUDE_TAGS);
+  console.debug('Current config FILTER_EXCLUDE_TAGS:', config.FILTER_EXCLUDE_TAGS);
+  console.debug('Current config AI_PROMPT_TAGS:', config.AI_PROMPT_TAGS);
   const version = getRuntimeConfig().version || ' ';
   config.ai = getRuntimeConfig().ai;
   let paperlessCustomFields = [];
@@ -3003,7 +3003,7 @@ router.post('/manual/analyze', [express.json(), authenticateAPI], async (req, re
     let existingDocumentTypesList = existingDocumentTypes.map(docType => docType.name);
 
     if (!content || typeof content !== 'string') {
-      console.log('Invalid content received:', content);
+      console.warn('Invalid content received:', content);
       return res.status(400).json({ error: 'Valid content string is required' });
     }
 
@@ -3115,7 +3115,7 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
     const { content, existingTags, prompt, documentId } = req.body;
 
     if (!content || typeof content !== 'string') {
-      console.log('Invalid content received:', content);
+      console.warn('Invalid content received:', content);
       return res.status(400).json({ error: 'Valid content string is required' });
     }
 
@@ -3239,13 +3239,13 @@ router.post('/manual/playground', [express.json(), authenticateAPI], async (req,
 router.post('/manual/updateDocument', [express.json(), authenticateAPI], async (req, res) => {
   try {
     var { documentId, tags, correspondent, title } = req.body;
-    console.log("TITLE: ", title);
+    console.debug('TITLE:', title);
     // Convert all tags to names if they are IDs
     tags = await Promise.all(tags.map(async tag => {
-      console.log('Processing tag:', tag);
+      console.debug('Processing tag:', tag);
       if (!isNaN(tag)) {
         const tagName = await paperlessService.getTagTextFromId(Number(tag));
-        console.log('Converted tag ID:', tag, 'to name:', tagName);
+        console.debug('Converted tag ID:', tag, 'to name:', tagName);
         return tagName;
       }
       return tag;
@@ -3678,7 +3678,7 @@ router.post('/setup', express.json(), async (req, res) => {
       sensitiveKeys.includes(key) ? '******' : value
       ])
     );
-    console.log('Setup request received:', redactedBody);
+    console.info('Setup request received:', redactedBody);
 
 
     // Initialize paperlessService with the new credentials
@@ -4301,7 +4301,7 @@ router.get('/dashboard/doc/:id', authenticateAPI, async (req, res) => {
     const paperlessApiUrl = process.env.PAPERLESS_API_URL;
     const paperlessApiUrlWithoutApi = paperlessApiUrl.replace('/api', '');
     const redirectUrl = `${paperlessApiUrlWithoutApi}/documents/${docId}/details`;
-    console.log('Redirecting to Paperless-ngx URL:', redirectUrl);
+    console.info('Redirecting to Paperless-ngx URL:', redirectUrl);
     res.redirect(redirectUrl);
   } catch (error) {
     console.error('Error fetching document:', error);

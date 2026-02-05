@@ -81,7 +81,7 @@ class OpenAIService extends BaseAIService {
         await fs.access(cachePath);
         console.debug('Thumbnail already cached');
       } catch (err) {
-        console.log('Thumbnail not cached, fetching from Paperless');
+        console.debug('Thumbnail not cached, fetching from Paperless');
 
         const thumbnailData = await this.paperlessService.getThumbnailImage(id);
 
